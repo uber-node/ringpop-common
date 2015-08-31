@@ -9,3 +9,6 @@ install-tick:
 
 tick-node:
 	./tools/tick-cluster.js -n 10 -i node lang/node/main.js
+
+update-all:
+	git submodule foreach git pull origin master
