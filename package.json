@@ -1,0 +1,35 @@
+{
+  "name": "ringpop-common",
+  "description": "The home for all things Ringpop",
+  "contributors": [
+    "Jeff Wolski <wolski@uber.com>"
+  ],
+  "version": "0.0.1",
+  "repository": "git://github.com/uber/ringpop-common.git",
+  "scripts": {
+    "test": "npm run jshint && node test/index.js"
+  },
+  "devDependencies": {
+    "after": "^0.8.1",
+    "async": "^0.9.0",
+    "benchmark": "^1.0.0",
+    "cli-color": "^0.3.2",
+    "commander": "^2.6.0",
+    "coveralls": "^2.11.2",
+    "debug-logtron": "^2.1.0",
+    "format-stack": "4.1.0",
+    "glob": "^4.3.1",
+    "istanbul": "^0.3.5",
+    "itape": "^1.5.0",
+    "jshint": "^2.5.6",
+    "leaked-handles": "^5.1.0",
+    "opn": "^1.0.1",
+    "pre-commit": "^0.0.9",
+    "tape": "^3.0.3",
+    "tape-cluster": "2.1.0",
+    "tchannel": ">2.7.1-alpha",
+    "time-mock": "^0.1.2",
+    "tryit": "^1.0.1",
+    "uber-licence": "^1.1.0"
+  }
+}

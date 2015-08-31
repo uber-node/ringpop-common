@@ -1,0 +1,3 @@
+node_modules/*
+hosts.json
+npm-debug.log
