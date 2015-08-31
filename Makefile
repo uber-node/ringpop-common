@@ -6,3 +6,6 @@ install-node:
 
 install-tick:
 	npm install
+
+tick-node:
+	./tools/tick-cluster.js -n 10 -i node lang/node/main.js
