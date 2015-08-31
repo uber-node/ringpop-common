@@ -7,3 +7,6 @@
 [submodule "lang/node"]
 	path = lang/node
 	url = git@github.com:uber/ringpop-node.git
+[submodule "ui"]
+	path = ui
+	url = git@github.com:uber/ringpop-ui.git
