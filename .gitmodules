@@ -1,3 +1,6 @@
 [submodule "admin"]
 	path = admin
 	url = git@github.com:uber/ringpop-admin.git
+[submodule "lang/go"]
+	path = lang/go
+	url = git@github.com:uber/ringpop-go.git
