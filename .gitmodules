@@ -4,3 +4,6 @@
 [submodule "lang/go"]
 	path = lang/go
 	url = git@github.com:uber/ringpop-go.git
+[submodule "lang/node"]
+	path = lang/node
+	url = git@github.com:uber/ringpop.git
