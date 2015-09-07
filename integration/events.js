@@ -3,7 +3,8 @@ var Types = {
     Ping: 'Ping',
     PingReq: 'PingReq',
     ProxyReq: 'ProxyReq',
-    UnknownRequest: 'UnknownRequest'
+    UnknownRequest: 'UnknownRequest',
+    Stats: 'Stats'
 };
 
 function endpointToEventType(endpoint) {
@@ -16,20 +17,35 @@ function endpointToEventType(endpoint) {
             return Types.PingReq;
         case '/proxy/req':
             return Types.ProxyReq;
+        case '/admin/stats':
+            return Types.Stats;
         default:
             return Types.UnknownRequest;
     }
 }
 
 function createRequestEvent(req, arg2, arg3) {
-    this.type = endpointToEventType(req.endpoint)
-    this.time = Date.now()
+    this.type = endpointToEventType(req.endpoint);
+    this.direction = 'request';
+    this.endpoint = req.endpoint;
+    this.time = Date.now();
     this.req = req;
+    this.arg2 = arg2;
+    this.arg3 = arg3;
+}
+
+function createResponseEvent(res, arg2, arg3) {
+    this.type = endpointToEventType(res.span.name);
+    this.direction = 'response';
+    this.endpoint = res.span.name;
+    this.time = Date.now();
+    this.res = res;
     this.arg2 = arg2;
     this.arg3 = arg3;
 }
 
 module.exports = {
     Types: Types,
-    createRequestEvent: createRequestEvent
+    createRequestEvent: createRequestEvent,
+    createResponseEvent: createResponseEvent
 }

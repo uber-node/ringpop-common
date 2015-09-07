@@ -9,6 +9,8 @@ var util = require('util');
 var makeHostPort = require('./util').makeHostPort;
 var _ = require('underscore');
 var safeJSONParse = require('./util').safeParse;
+var events = require('events');
+var nodeToMemberInfo = require('./fake-node').nodeToMemberInfo;
 
 function validateSetupOptions(options) {
     if (!options.sut) {
@@ -57,6 +59,8 @@ function TestCoordinator(options) {
     }
 }
 
+require('util').inherits(TestCoordinator, events.EventEmitter);
+
 TestCoordinator.prototype.checkJournal = function checkJournal(n, timeout, check) {
     // check if journal has n elements
     var timeoutTimer = setTimeout(function() {
@@ -74,36 +78,6 @@ TestCoordinator.prototype.checkJournal = function checkJournal(n, timeout, check
     }, 20);
 };
 
-// A lot of work to be done in here.
-////////////////////////////////////////////////////////
-
-// The function array fns contains functions that check the journal for a certain condition
-// if the condition is met, the function returns true indicating that it's done. The functions
-// are run one by one sequentually. When all the functions are run and have returned true, the
-// test is at an end and the callback is called 
-function checkJournal(t, timeout, fns, cb) {
-    var timer = setTimeout(function() {
-        t.fail('Timeout');
-    }, timeout);
-
-    var i = 0;
-    var interval = setInterval(function() {
-        if(fns[i](journal) !== false) {
-            return;
-        }
-        
-        i++;
-        if(i >= fns.length) {
-            // test succes
-            clearTimout(timer);
-            clearInterval(interval);
-            cb();
-            return;
-        }
-    }, 20);
-};
-/////////////////////////////////////////////////////////////
-
 
 TestCoordinator.prototype.createFakeNode = function createFakeNode() {
     // Uses random ephemeral port
@@ -115,6 +89,51 @@ TestCoordinator.prototype.createFakeNode = function createFakeNode() {
     this.fakeNodes.push(node);
     return node;
 };
+
+
+
+// validate listsens to all emmited events. The list of all incomming events is tested
+// against all the functions in fns. If all functions have succeeded, the test is a succes.
+// Examples of the functions in fns can be found in assertions.js.
+// They have the following function signature: eventList => eventList.
+// A function is said to succeed if it consumes some of the event list and returns that list. 
+// If the function has not yet succeeded the function returns null.
+TestCoordinator.prototype.validate = function validate(t, fns, deadline) {
+    var self = this;
+    var i = 0;
+    var eventList = []
+
+    timer = setTimeout(function() {
+        t.fail('timeout');
+        t.end();
+        self.shutdown();
+    }, deadline);
+
+    if (fns && fns.length > 0) {
+        console.log('* starting ' + fns[0].name);
+    }
+
+    self.on("event", function(event) {
+        eventList.push(event);
+        while(i < fns.length) {
+            var events2 = fns[i](eventList);
+            if (events2 !== null) {
+                eventList = events2;
+                i++;
+                if (i < fns.length) {
+                    console.log('* starting ' + fns[i].name );
+                }
+            } else {
+                return;
+            }
+        }
+
+        clearTimeout(timer);
+        t.ok(true, 'validate done: all functions passed');
+        self.shutdown();
+        t.end();
+    });
+}
 
 TestCoordinator.prototype.startAllFakeNodes = function startAllFakeNodes(callback) {
     var self = this;
@@ -194,10 +213,18 @@ TestCoordinator.prototype.getAdminStats = function getAdminStats(callback) {
 
     self.adminChannel.request({serviceName: 'ringpop'}).send('/admin/stats', null, null,
         function(err, res, arg2, arg3) {
+            var event = self.journal.recordResponse(res, arg2, arg3);
+            self.emit('event', event);
             return callback(err, safeJSONParse(arg3));
         }
     );
 };
+
+TestCoordinator.prototype.getMembership = function getMembership() {
+    return this.getFakeNodes().map(function(node) {
+        return node.toMemberInfo();
+    });
+}
 
 TestCoordinator.prototype.shutdown = function shutdown() {
     this.adminChannel.topChannel.close();
@@ -226,16 +253,14 @@ TestCoordinator.prototype.createHostsFile = function createHostsFile(hostPortLis
     if (!hostPortList) {
         hostPortList = this.getStandardHostPortList();
     }
-
     fs.writeFileSync(this.hostsFile, JSON.stringify(hostPortList));
 };
 
-TestCoordinator.prototype.waitForEvent = function waitForEvent(options, callback) {
-    var type = options.type;
-    var deadline = options.deadline;
-
-    this.journal.waitForEvent(type, deadline, callback);
-};
+// TestCoordinator.prototype.waitForEvent = function waitForEvent(options, callback) {
+//     var type = options.type;
+//     var deadline = options.deadline;
+//     this.journal.waitForEvent(type, deadline, callback);
+// };
 
 TestCoordinator.prototype.getFakeNodes = function getFakeNodes() {
     return this.fakeNodes;

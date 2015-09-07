@@ -1,13 +1,14 @@
+var safeJSONParse = require('./util').safeParse;
 
-function pingReqHandler() {
-	return function(req, res, arg2, arg3) {
-		res.headers.as = 'raw';
-		res.sendOk(null, '{"changes": []}');
-	}
+
+function handlePingReq(req, res) {
+	console.log(safeJSONParse(req.arg3));
+	res.headers.as = 'raw';
+	res.sendOk(null, '{"changes": []}');
 }
 
 module.exports = {
-	pingReqHandler: pingReqHandler,
+	handlePingReq: handlePingReq,
 }
 
 

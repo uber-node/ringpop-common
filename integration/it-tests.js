@@ -1,11 +1,17 @@
-var _ = require('underscore');
-var test = require('tape');
+// var Test = require('tape');
 var program = require('commander');
 var fs = require('fs');
 var TestCoordinator = require('./test-coordinator');
 var range = require('./util').range;
 var farmhash = require('farmhash');
-var events = require('./events');
+var assertJoins = require('./assertions').assertJoins;
+var requestAdminStats = require('./assertions').requestAdminStats;
+var assertStats = require('./assertions').assertStats;
+var wait = require('./assertions').wait;
+var clear = require('./assertions').clear;
+
+var assertOnlyPings = require('./assertions').assertOnlyPings;
+var assertRoundRobinPings = require('./assertions').assertRoundRobinPings;
 
 var programPath, programInterpreter;
 
@@ -36,68 +42,88 @@ if (!fs.existsSync(programPath)) {
 }
 
 function createCoordinator(numNodes) {
-    return new TestCoordinator({
+    var tc = new TestCoordinator({
         sut: {
             program: programPath,
             interpreter: programInterpreter
         },
         numNodes: numNodes
     });
+    // tc.on('event', function(event) { 
+    //     console.log(event.endpoint, event.direction);
+    // });
+    return tc;
 }
 
-function assertValidAdminStats(t, stats) {
-    t.ok(stats, 'Stats should be present');
-    t.ok(stats.membership && stats.membership.members, 'And should contain a membership list');
+// test is normal tape test but also prints t._failMessage if a fail occured
+var Test = require('tape');
+function test(msg, opts, cb) {
+    var t = Test(msg, opts, cb);
+    t.on('result', function(res) {
+        if(res.error !== undefined) {
+            console.log('============== error details ===============');
+            console.log();
+            console.log(res.error);
+            console.log();
+            console.log('============================================');
+            console.log();
+        }
+    });
 }
 
-// XXX make this much richer
-function assertMembership(t, adminStats, expectedMembership) {
-    var reportedMembership = adminStats.membership.members.map(_.property('address'))
-    expectedMembership = expectedMembership.sort();
-
-    t.deepEqual(reportedMembership, expectedMembership, 'Membership is ' + expectedMembership);
-}
 
 test('join single-node cluster', function(t) {
-    var tc = createCoordinator(1);
-
+    var n = 1
+    var tc = createCoordinator(n);
     tc.start();
-    tc.waitForEvent({
-        type: events.Types.Join,
-        deadline: 1000
-    }, function afterJoin(event) {
-        tc.getAdminStats(function handleStats(err, stats) {
-            tc.shutdown();
-            t.ok(event, 'Should get a request from the real node');
 
-            t.notOk(err, 'Should retrieve admin status successfully');
-            assertValidAdminStats(t, stats);
-
-            var expectedMembership = tc.getFakeNodeHostPortList().concat(tc.getSUTHostPort())
-            assertMembership(t, stats, expectedMembership);
-            t.end();
-        });
-    });
+    tc.validate(t, [
+        assertJoins(t, tc, n),
+        requestAdminStats(tc),
+        assertStats(t, tc, n+1, 0, 0),
+        assertOnlyPings(t, tc),
+    ], 2000);
 });
 
 test('join two-node cluster', function(t) {
-    var tc = createCoordinator(2);
-
+    var n = 2;
+    var tc = createCoordinator(n);
     tc.start();
-    tc.waitForEvent({
-        type: events.Types.Join,
-        deadline: 1000
-    }, function afterJoin(event) {
-        tc.getAdminStats(function handleStats(err, stats) {
-            tc.shutdown();
-            t.ok(event, 'Should get a request from the real node');
 
-            t.notOk(err, 'Should retrieve admin status successfully');
-            assertValidAdminStats(t, stats);
-
-            var expectedMembership = tc.getFakeNodeHostPortList().concat(tc.getSUTHostPort())
-            assertMembership(t, stats, expectedMembership);
-            t.end();
-        });
-    });
+    tc.validate(t, [
+        assertJoins(t, tc, n),
+        requestAdminStats(tc),
+        assertStats(t, tc, n+1, 0, 0),
+        assertOnlyPings(t, tc),
+    ], 2000);
 });
+
+test('join twenty-node cluster', function(t) {
+    var n = 20;
+    var tc = createCoordinator(n);
+    tc.start();
+
+    tc.validate(t, [
+        assertJoins(t, tc, 6),
+        requestAdminStats(tc),
+        assertStats(t, tc, n+1, 0, 0),
+        assertOnlyPings(t, tc),
+    ], 2000);
+});
+
+
+
+test('ping 7-node cluster', function(t) {
+    var n = 7;
+    var tc = createCoordinator(n);
+    tc.start();
+
+    tc.validate(t, [
+        assertJoins(t, tc, 6),
+        requestAdminStats(tc),
+        assertStats(t, tc, n+1, 0, 0),
+        wait(6000),
+        assertRoundRobinPings(t, tc, 30),
+        assertOnlyPings(t, tc),
+    ], 20000);
+})
