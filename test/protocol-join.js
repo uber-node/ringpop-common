@@ -1,5 +1,5 @@
 var farmhash = require('farmhash');
-var makeHostPort = require('../util').makeHostPort;
+var makeHostPort = require('./util').makeHostPort;
 var checksum = require('./membership-checksum').checksum;
 
 // send and handle join requests (check bottom of file for example request)

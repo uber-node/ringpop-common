@@ -1,25 +1,25 @@
 
-function pingHandler() {
-    return function(req, res, arg2, arg3) {
-        // TODO (wieger): validate request
-        res.headers.as = 'raw';
-        res.sendOk(null, '{"changes": []}');
-    }
+function handlePing(res) {
+    // TODO (wieger): validate request
+    res.headers.as = 'raw';
+    res.sendOk(null, JSON.stringify({changes: []}));
 }
 
 
 function pingNotOkHandler() {
-    return function(req, res, arg2, arg3) {
-        // TODO (wieger): validate request
-        res.headers.as = 'raw';
-        res.sendNotOk(null, 'I am a fake node who does\'t like pings');
-    }
+    // TODO (wieger): validate request
+    console.log('pingNotOkHandler');
+    res.headers.as = 'raw';
+    res.sendNotOk(null, 'I am a fake node who does\'t like pings');
 }
 
+function noResponseHandler() {
+    console.log('noResponseHandler');
+}
 
 module.exports = {
-	pingHandler: pingHandler,
-	pingNotOkHandler: pingNotOkHandler
+    handlePing: handlePing,
+    pingNotOkHandler: pingNotOkHandler,
 }
 
 // PING REQUEST
