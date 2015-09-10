@@ -4,13 +4,12 @@ var fs = require('fs');
 var TestCoordinator = require('./test-coordinator');
 var range = require('./util').range;
 var farmhash = require('farmhash');
-var assertJoins = require('./assertions').assertJoins;
-var requestAdminStats = require('./assertions').requestAdminStats;
-var assertStats = require('./assertions').assertStats;
-var wait = require('./assertions').wait;
-var clear = require('./assertions').clear;
 
-var assertOnlyPings = require('./assertions').assertOnlyPings;
+var consumeJoins = require('./assertions').consumeJoins;
+var assertStats = require('./assertions').assertStats;
+var requestPing = require('./assertions').requestPing;
+var assertPingResponse = require('./assertions').assertPingResponse;
+var consumeOnlyPings = require('./assertions').consumeOnlyPings;
 var assertRoundRobinPings = require('./assertions').assertRoundRobinPings;
 
 var programPath, programInterpreter;
@@ -72,46 +71,21 @@ function test(msg, opts, cb) {
 }
 
 
-test('join single-node cluster', function(t) {
-    var n = 1
-    var tc = createCoordinator(n);
-    tc.start();
+function testJoinCluster(nNodes, nJoins) {
+    test('join twenty-node cluster', function(t) {
+        var tc = createCoordinator(nNodes);
+        tc.start();
 
-    tc.validate(t, [
-        assertJoins(t, tc, n),
-        requestAdminStats(tc),
-        assertStats(t, tc, n+1, 0, 0),
-        assertOnlyPings(t, tc),
-    ], 2000);
-});
-
-test('join two-node cluster', function(t) {
-    var n = 2;
-    var tc = createCoordinator(n);
-    tc.start();
-
-    tc.validate(t, [
-        assertJoins(t, tc, n),
-        requestAdminStats(tc),
-        assertStats(t, tc, n+1, 0, 0),
-        assertOnlyPings(t, tc),
-    ], 2000);
-});
-
-test('join twenty-node cluster', function(t) {
-    var n = 20;
-    var tc = createCoordinator(n);
-    tc.start();
-
-    tc.validate(t, [
-        assertJoins(t, tc, 6),
-        requestAdminStats(tc),
-        assertStats(t, tc, n+1, 0, 0),
-        assertOnlyPings(t, tc),
-    ], 2000);
-});
-
-
+        tc.validate(t, [
+            consumeJoins(t, tc, nJoins),
+            assertStats(t, tc, nNodes+1, 0, 0),
+            consumeOnlyPings(t, tc),
+        ], 2000);
+    });
+}
+testJoinCluster(1, 1);
+testJoinCluster(2, 2);
+testJoinCluster(20, 6);
 
 test('ping 7-node cluster', function(t) {
     var n = 7;
@@ -119,11 +93,9 @@ test('ping 7-node cluster', function(t) {
     tc.start();
 
     tc.validate(t, [
-        assertJoins(t, tc, 6),
-        requestAdminStats(tc),
+        consumeJoins(t, tc, 6),
         assertStats(t, tc, n+1, 0, 0),
-        wait(6000),
-        assertRoundRobinPings(t, tc, 30),
-        assertOnlyPings(t, tc),
+        assertRoundRobinPings(t, tc, 31, 6000),
+        consumeOnlyPings(t, tc),
     ], 20000);
-})
+});

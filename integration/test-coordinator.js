@@ -1,7 +1,7 @@
 var fs = require('fs');
 var async = require('async');
 var childProc = require('child_process');
-//var logMsg = require('./util').logMsg;
+var logMsg = require('./util').logMsg;
 var FakeNode = require('./fake-node');
 var TChannel = require('tchannel');
 var Journal = require('./journal');
@@ -31,14 +31,15 @@ function validateSetupOptions(options) {
 }
 
 function TestCoordinator(options) {
+
     validateSetupOptions(options);
 
-	this.fakeNodes = [];
+    this.fakeNodes = [];
     this.sutHostPort = makeHostPort('127.0.0.1', _.random(10000, 30000))
     this.sutProgram = options.sut.program;
     this.sutInterpreter = options.sut.interpreter;
-	this.sutProc = undefined;
-	this.journal = new Journal();
+    this.sutProc = undefined;
+    this.journal = new Journal();
     this.hostsFile = '/tmp/ringpop-integration-test-hosts.json';
 
     this.adminChannel = new TChannel().makeSubChannel({
@@ -60,6 +61,7 @@ function TestCoordinator(options) {
 }
 
 require('util').inherits(TestCoordinator, events.EventEmitter);
+
 
 TestCoordinator.prototype.checkJournal = function checkJournal(n, timeout, check) {
     // check if journal has n elements
@@ -113,25 +115,35 @@ TestCoordinator.prototype.validate = function validate(t, fns, deadline) {
         console.log('* starting ' + fns[0].name);
     }
 
-    self.on("event", function(event) {
-        eventList.push(event);
-        while(i < fns.length) {
-            var events2 = fns[i](eventList);
-            if (events2 !== null) {
-                eventList = events2;
-                i++;
-                if (i < fns.length) {
-                    console.log('* starting ' + fns[i].name );
-                }
-            } else {
+    // flatten so arrays gets expanded and fns becomes one-dimensional
+    fns = _.flatten(fns);
+
+    // XXX: use once in stead of on
+    var progressNextTasks = function() {
+        fns[i](eventList, function(result) {
+            if (result === null) {
+                //wait for more events
                 return;
             }
-        }
+            eventList = result
+            i++;
+            if (i < fns.length) {
+                console.log('* starting ' + fns[i].name );
+                progressNextTasks();
+                return;
+            }
 
-        clearTimeout(timer);
-        t.ok(true, 'validate done: all functions passed');
-        self.shutdown();
-        t.end();
+            // done
+            clearTimeout(timer);
+            t.ok(true, 'validate done: all functions passed');
+            self.shutdown();
+            t.end();
+        });
+    }
+
+    self.on("event", function(event) {
+        eventList.push(event);
+        progressNextTasks();
     });
 }
 
@@ -194,7 +206,7 @@ TestCoordinator.prototype.startSUT = function startSUT() {
             output += line.replace(/^\s+/g, ' ');
 
             if (totalOpenBraces === totalCloseBraces) {
-               // logMsg(who, output);
+                // logMsg(who, output);
                 output = '';
                 totalOpenBraces = 0;
                 totalCloseBraces = 0;
@@ -213,9 +225,14 @@ TestCoordinator.prototype.getAdminStats = function getAdminStats(callback) {
 
     self.adminChannel.request({serviceName: 'ringpop'}).send('/admin/stats', null, null,
         function(err, res, arg2, arg3) {
+            if (err) {
+                console.log("ERRRRROR", err, res);
+                return;
+            }
+
             var event = self.journal.recordResponse(res, arg2, arg3);
             self.emit('event', event);
-            return callback(err, safeJSONParse(arg3));
+            callback(event);
         }
     );
 };

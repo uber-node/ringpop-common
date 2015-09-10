@@ -18,8 +18,8 @@ function noResponseHandler() {
 }
 
 module.exports = {
-	handlePing: handlePing,
-	pingNotOkHandler: pingNotOkHandler,
+    handlePing: handlePing,
+    pingNotOkHandler: pingNotOkHandler,
 }
 
 // PING REQUEST

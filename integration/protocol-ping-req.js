@@ -2,13 +2,13 @@ var safeJSONParse = require('./util').safeParse;
 
 
 function handlePingReq(req, res) {
-	console.log(safeJSONParse(req.arg3));
-	res.headers.as = 'raw';
-	res.sendOk(null, '{"changes": []}');
+    console.log(safeJSONParse(req.arg3));
+    res.headers.as = 'raw';
+    res.sendOk(null, '{"changes": []}');
 }
-
+    
 module.exports = {
-	handlePingReq: handlePingReq,
+    handlePingReq: handlePingReq,
 }
 
 
@@ -28,7 +28,7 @@ module.exports = {
 //     "source": "10.80.134.35:3000",
 //     "sourceIncarnationNumber": 1440006862476,
 //     "target": "10.80.134.35:3001"
-// 	   },
-// 	   "hostInfo": "10.80.134.35:53811",
-// 	   "time": 2752
+//     },
+//     "hostInfo": "10.80.134.35:53811",
+//     "time": 2752
 // }

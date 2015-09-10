@@ -6,13 +6,22 @@ var handlePing = require('./protocol-ping').handlePing;
 var handlePingReq = require('./protocol-ping-req').handlePingReq;
 
 function FakeNode(options) {
-	this.coordinator = options.coordinator;
+    this.coordinator = options.coordinator;
     this.host = options.host;
     this.port = undefined; // set at listen time
     this.journal = this.coordinator.getJournal();
-	this.tchannel = new TChannel();
-	this.channel = this.tchannel.makeSubChannel({
-        serviceName: 'ringpop'
+    this.tchannel = new TChannel();
+    this.channel = this.tchannel.makeSubChannel({
+        serviceName: 'ringpop',
+        peers: [this.coordinator.sutHostPort],
+        requestDefaults: {
+            headers: {
+                'as': 'raw',
+                'cn': 'ringpop-integration-test'
+            },
+            timeout: 4000,
+            hasNoParent: true
+        }
     });
 
     this.endpoints = {
@@ -86,6 +95,22 @@ FakeNode.prototype.joinHandler = function joinHandler(req, res, arg2, arg3) {
     return handleJoin(req, res, this.toMemberInfo(), membership);
 };
 
+FakeNode.prototype.requestPing = function requestPing(callback) {
+    var self = this;
+
+    self.channel.request({serviceName: 'ringpop'}).send('/protocol/ping', null, null,
+        function(err, res, arg2, arg3) {
+            if (err) {
+                console.log("TChannel Response Error", err, res);
+                return;
+            }
+            var event = self.coordinator.journal.recordResponse(res, arg2, arg3);
+            self.coordinator.emit('event', event);
+            callback();
+        }
+    );
+}
+
 FakeNode.prototype.pingHandler = function pingHandler(req, res, arg2, arg3) {
     return handlePing(res);
 };
@@ -95,6 +120,7 @@ FakeNode.prototype.pingReqHandler = function pingReqHandler(req, res, arg2, arg3
 };
 
 FakeNode.prototype.proxyReqHandler = function proxyReqHandler(req, res, arg2, arg3) {
+
 };
 
 

@@ -48,7 +48,7 @@ function findLocalIP() {
     } else {
         for (var i = 0; i < addrs.length; i++) {
             if (addrs[i].family === 'IPv4') {
-            	var localIP = addrs[i].address;
+                var localIP = addrs[i].address;
                 // logMsg('cluster', color.cyan('using ') + color.green(localIP) + color.cyan(' to listen'));
                 return localIP;
             }
@@ -63,11 +63,11 @@ function logMsg(who, msg) {
 }
 
 function range(start, end) {
-	var res = [];
-	for (var i = start; i <= end; i++) {
-		res.push(i);
-	}
-	return res;
+    var res = [];
+    for (var i = start; i <= end; i++) {
+        res.push(i);
+    }
+    return res;
 }
 
 module.exports = {

@@ -35,6 +35,7 @@ function createRequestEvent(req, arg2, arg3) {
 }
 
 function createResponseEvent(res, arg2, arg3) {
+    // console.log(res, arg2, require('./util').safeParse(arg3));
     this.type = endpointToEventType(res.span.name);
     this.direction = 'response';
     this.endpoint = res.span.name;
@@ -49,3 +50,39 @@ module.exports = {
     createRequestEvent: createRequestEvent,
     createResponseEvent: createResponseEvent
 }
+
+
+
+// function getEventType(event) {
+//     if(event.direction == 'request') {
+//         switch(event.endpoint) {
+//             case '/protocol/join':
+//                 return Types.Join;
+//             case '/protocol/ping':
+//                 return Types.Ping;
+//             case '/protocol/ping-req':
+//                 return Types.PingReq;
+//             case '/proxy/req':
+//                 return Types.ProxyReq;
+//             default:
+//                 return Types.UnknownRequest;
+//         }
+//     }
+
+//     if(event.direction == 'response') {
+//         switch(event.endpoint) {        
+//             case '/protocol/join':
+//                 return Types.JoinResponse;
+//             case '/protocol/ping':
+//                 return Types.PingResponse;
+//             case '/protocol/ping-req':
+//                 return Types.PingReqResponse;
+//             // case '/proxy/req':
+//             //     return Types.ProxyReq;
+//             case '/admin/stats':
+//                 return Types.StatsResponse;
+//             default:
+//                 return Types.UnknownRequest;
+//         }
+//     }
+// }
