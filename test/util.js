@@ -39,22 +39,29 @@ function formatDate() {
         return lpad(now.getHours(), 2) + ':' + lpad(now.getMinutes(), 2) + ':' + lpad(now.getSeconds(), 2) + '.' + lpad(now.getMilliseconds(), 3);
 }
 
-function findLocalIP() {
-    var addrs = require('os').networkInterfaces().en0;
-    if (! addrs) {
-        // logMsg('cluster', color.red('could not determine local IP, defaulting to 127.0.0.1'));
-        return '127.0.0.1';
-    } else {
-        for (var i = 0; i < addrs.length; i++) {
-            if (addrs[i].family === 'IPv4') {
-                var localIP = addrs[i].address;
-                // logMsg('cluster', color.cyan('using ') + color.green(localIP) + color.cyan(' to listen'));
-                return localIP;
+function findLocalIP(interfaces) {
+    interfaces = interfaces || os.networkInterfaces();
+
+    function getIPv4Addr(iface) {
+        var addresses = interfaces[iface];
+
+        if (!Array.isArray(addresses)) {
+            return null;
+        }
+
+        for (var i = 0; i < addresses.length; i++) {
+            var address = addresses[i];
+
+            if (address.family === 'IPv4' && !address.internal) {
+                return address.address;
             }
         }
+
+        return null;
     }
-    // logMsg('cluster', color.red('could not find local IP with IPv4 address, defaulting to 127.0.0.1'));
-    return '127.0.0.1';
+
+    return getIPv4Addr('en0') || getIPv4Addr('eth0') || '127.0.0.1';
+
 }
 
 function logMsg(who, msg) {

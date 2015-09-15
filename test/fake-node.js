@@ -107,7 +107,6 @@ FakeNode.prototype.joinHandler = function joinHandler(req, res, arg2, arg3) {
     return handleJoin(req, res, this.toMemberInfo(), membership);
 };
 
-
 FakeNode.prototype.pingHandler = function pingHandler(req, res, arg2, arg3) {
     return handlePing(res);
 };
