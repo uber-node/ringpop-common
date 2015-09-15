@@ -4,10 +4,6 @@ var checksum = require('./membership-checksum').checksum;
 
 // send and handle join requests (check bottom of file for example request)
 
-function sendJoin(node) {
-
-}
-
 // Responding node and allNodes must have host, port, status, and incarnationNumber fields
 function handleJoin(req, res, respondingNode, membershipList) {
     res.headers.as = 'raw';

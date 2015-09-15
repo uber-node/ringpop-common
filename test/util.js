@@ -22,7 +22,6 @@ function parseArg(opt) {
     }
 }
 
-
 function lpad(num, len) {
     var ret = String(num);
     while (ret.length < len) {
@@ -70,6 +69,23 @@ function range(start, end) {
     return res;
 }
 
+// test is like normal tape test but also prints t.error.details if a fail occured
+var Test = require('tape');
+function test(msg, opts, cb) {
+    var t = Test(msg, opts, cb);
+    t.on('result', function(res) {
+        
+        if(!res.ok && res.error.details !== undefined) {
+            console.log('============== error details ===============');
+            console.log();
+            console.log(res.error.details);
+            console.log();
+            console.log('============================================');
+            console.log();
+        }
+    });
+}
+
 module.exports = {
     safeParse: safeParse,
     parseArg: parseArg,
@@ -77,5 +93,6 @@ module.exports = {
     findLocalIP: findLocalIP,
     logMsg: logMsg,
     range: range,
-    makeHostPort: makeHostPort
+    makeHostPort: makeHostPort,
+    test: test,
 };

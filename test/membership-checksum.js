@@ -1,6 +1,7 @@
+// hashing algorithm might change upon ringpop implementation
 var farmhash = require('farmhash');
 
-// Entries must have address (hostport), status (e.g. "alive"), and incarnation numbers
+// entries must have address (hostport), status (e.g. "alive"), and incarnation numbers
 module.exports.checksum = function checksum(members) {
     var copiedMembers = members.slice();
     var sortedMembers = copiedMembers.sort(function sort(a, b) {
@@ -14,16 +15,13 @@ module.exports.checksum = function checksum(members) {
     });
 
     var checksumString = '';
-
     for (var i = 0; i < sortedMembers.length; ++i) {
         var member = sortedMembers[i];
-
         checksumString += member.address +
-        member.status +
-        member.incarnationNumber + ';';
+            member.status +
+            member.incarnationNumber + ';';
     }
 
     checksumString = checksumString.slice(0, -1)
-
     return farmhash.hash32(checksumString);
 };

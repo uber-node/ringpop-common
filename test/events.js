@@ -24,7 +24,7 @@ function endpointToEventType(endpoint) {
     }
 }
 
-function createRequestEvent(req, arg2, arg3) {
+function RequestEvent(req, arg2, arg3) {
     this.type = endpointToEventType(req.endpoint);
     this.direction = 'request';
     this.endpoint = req.endpoint;
@@ -34,8 +34,7 @@ function createRequestEvent(req, arg2, arg3) {
     this.arg3 = arg3;
 }
 
-function createResponseEvent(res, arg2, arg3) {
-    // console.log(res, arg2, require('./util').safeParse(arg3));
+function ResponseEvent(res, arg2, arg3) {
     this.type = endpointToEventType(res.span.name);
     this.direction = 'response';
     this.endpoint = res.span.name;
@@ -47,8 +46,8 @@ function createResponseEvent(res, arg2, arg3) {
 
 module.exports = {
     Types: Types,
-    createRequestEvent: createRequestEvent,
-    createResponseEvent: createResponseEvent
+    RequestEvent: RequestEvent,
+    ResponseEvent: ResponseEvent
 }
 
 

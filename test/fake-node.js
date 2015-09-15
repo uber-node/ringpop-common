@@ -4,14 +4,44 @@ var makeHostPort = require('./util').makeHostPort;
 var handleJoin = require('./protocol-join').handleJoin;
 var handlePing = require('./protocol-ping').handlePing;
 var handlePingReq = require('./protocol-ping-req').handlePingReq;
+var events = require('./events');
 
 function FakeNode(options) {
     this.coordinator = options.coordinator;
     this.host = options.host;
     this.port = undefined; // set at listen time
-    this.journal = this.coordinator.getJournal();
-    this.tchannel = new TChannel();
-    this.channel = this.tchannel.makeSubChannel({
+    
+    this.tchannel = undefined;
+    this.channel = undefined;
+
+    this.endpoints = {};
+    this.enableEndpoints();
+}
+
+FakeNode.prototype.enableEndpoints = function enableEndpoints() {
+    this.endpoints[events.Types.Join] = {
+        path: '/protocol/join',
+        handler: this.joinHandler.bind(this)
+    };
+    this.endpoints[events.Types.Ping] = {
+        path: '/protocol/ping',
+        handler: this.pingHandler.bind(this)
+    };
+    this.endpoints[events.Types.PingReq] = {
+        path: '/protocol/ping-req',
+        handler: this.pingReqHandler.bind(this)
+    };
+    this.endpoints[events.Types.ProxyReq] = {
+        path: '/proxy/req',
+        handler: this.proxyReqHandler.bind(this)
+    };    
+}
+
+FakeNode.prototype.start = function start(callback) {
+    var self = this;
+    self.enabled = true;
+    self.tchannel = new TChannel();
+    self.channel = this.tchannel.makeSubChannel({
         serviceName: 'ringpop',
         peers: [this.coordinator.sutHostPort],
         requestDefaults: {
@@ -24,30 +54,9 @@ function FakeNode(options) {
         }
     });
 
-    this.endpoints = {
-        join: {
-            path: '/protocol/join',
-            handler: this.joinHandler.bind(this)
-        },
-        ping: {
-            path: '/protocol/ping',
-            handler: this.pingHandler.bind(this)
-        },
-        pingReq: {
-            path: '/protocol/ping-req',
-            handler: this.pingReqHandler.bind(this)
-        },
-        proxyReq: {
-            path: '/proxy/req',
-            handler: this.proxyReqHandler.bind(this)
-        }
-    };
-
     this._registerEndpoints();
-}
 
-FakeNode.prototype.start = function start(callback) {
-    var self = this;
+    callback = callback || function() {};
 
     self.channel.listen(0, self.host, function onListen() {
         self.port = self.channel.address().port;
@@ -66,7 +75,7 @@ FakeNode.prototype._registerEndpoints = function _registerEndpoints() {
         var path = self.endpoints[endpointType].path;
 
         self.channel.register(path, function handleRequest(req, res, arg2, arg3) {
-            var event = self.journal.recordRequest(req, arg2, arg3);
+            var event = new events.RequestEvent(req, arg2, arg3);
             self.coordinator.emit('event', event);
             self.endpoints[endpointType].handler(req, res, arg2, arg3);
         });
@@ -74,7 +83,10 @@ FakeNode.prototype._registerEndpoints = function _registerEndpoints() {
 };
 
 FakeNode.prototype.shutdown = function shutdown() {
-    this.tchannel.close();
+    this.enabled = false;
+    if(this.channel.destroyed === false) {
+        this.tchannel.close();
+    }
 };
 
 FakeNode.prototype.toMemberInfo = function toMemberInfo() {
@@ -95,6 +107,43 @@ FakeNode.prototype.joinHandler = function joinHandler(req, res, arg2, arg3) {
     return handleJoin(req, res, this.toMemberInfo(), membership);
 };
 
+
+FakeNode.prototype.pingHandler = function pingHandler(req, res, arg2, arg3) {
+    return handlePing(res);
+};
+
+FakeNode.prototype.pingReqHandler = function pingReqHandler(req, res, arg2, arg3) {
+    // is the target alive?
+    var target = safeParse(arg3).target;
+    var status = true;
+    this.coordinator.fakeNodes.forEach(function (node) {
+        if (require('util').format('%s:%s', node.host, node.port) === target) {
+            status = node.enabled;
+        }
+    });
+
+    return handlePingReq(req, res, status);
+};
+
+FakeNode.prototype.requestJoin = function requestJoin(callback) {
+    var self = this;
+
+    self.channel.request({serviceName: 'ringpop'}).send('/protocol/join', null, null,
+        function(err, res, arg2, arg3) {
+            if (err) {
+                console.log("TChannel Response Error", err, res);
+                return;
+            }
+            var event = new events.ResponseEvent(res, arg2, arg3);
+            console.log(arg3);
+            console.log(arg3.toString());
+            console.log(arg3);
+            callback();
+            self.coordinator.emit('event', event);
+        }
+    );
+}
+
 FakeNode.prototype.requestPing = function requestPing(callback) {
     var self = this;
 
@@ -104,25 +153,21 @@ FakeNode.prototype.requestPing = function requestPing(callback) {
                 console.log("TChannel Response Error", err, res);
                 return;
             }
-            var event = self.coordinator.journal.recordResponse(res, arg2, arg3);
-            self.coordinator.emit('event', event);
+            var event = new events.Response(res, arg2, arg3);
+            console.log(arg3);
+            console.log(arg3.toString());
+            console.log(arg3);
+
             callback();
+            self.coordinator.emit('event', event);
+            
         }
     );
 }
 
-FakeNode.prototype.pingHandler = function pingHandler(req, res, arg2, arg3) {
-    return handlePing(res);
-};
-
-FakeNode.prototype.pingReqHandler = function pingReqHandler(req, res, arg2, arg3) {
-    return handlePingReq(req);
-};
-
 FakeNode.prototype.proxyReqHandler = function proxyReqHandler(req, res, arg2, arg3) {
 
 };
-
 
 function createLogger(name) {
     return {

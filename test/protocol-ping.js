@@ -5,7 +5,6 @@ function handlePing(res) {
     res.sendOk(null, JSON.stringify({changes: []}));
 }
 
-
 function pingNotOkHandler() {
     // TODO (wieger): validate request
     console.log('pingNotOkHandler');

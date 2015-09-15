@@ -1,12 +1,26 @@
 var safeJSONParse = require('./util').safeParse;
 
-
-function handlePingReq(req, res) {
-    console.log(safeJSONParse(req.arg3));
+function handlePingReq(req, res, pingStatus) {
+	var request = safeJSONParse(req.arg3);
     res.headers.as = 'raw';
-    res.sendOk(null, '{"changes": []}');
+    var response = {
+    	changes: [],
+		pingStatus: pingStatus,
+		target: request.target,
+	};
+	
+	res.sendOk(null, JSON.stringify(response));
 }
     
+
+// JSON.stringify({
+//     changes: ringpop.dissemination.issueAsReceiver(source,
+//         sourceIncarnationNumber, checksum),
+//     pingStatus: isOk,
+//     target: target
+// }
+
+
 module.exports = {
     handlePingReq: handlePingReq,
 }

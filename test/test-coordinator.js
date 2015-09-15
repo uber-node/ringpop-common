@@ -4,12 +4,12 @@ var childProc = require('child_process');
 var logMsg = require('./util').logMsg;
 var FakeNode = require('./fake-node');
 var TChannel = require('tchannel');
-var Journal = require('./journal');
 var util = require('util');
 var makeHostPort = require('./util').makeHostPort;
 var _ = require('underscore');
 var safeJSONParse = require('./util').safeParse;
 var events = require('events');
+var nodeEvents = require('./events');
 var nodeToMemberInfo = require('./fake-node').nodeToMemberInfo;
 
 function validateSetupOptions(options) {
@@ -31,7 +31,6 @@ function validateSetupOptions(options) {
 }
 
 function TestCoordinator(options) {
-
     validateSetupOptions(options);
 
     this.fakeNodes = [];
@@ -39,7 +38,6 @@ function TestCoordinator(options) {
     this.sutProgram = options.sut.program;
     this.sutInterpreter = options.sut.interpreter;
     this.sutProc = undefined;
-    this.journal = new Journal();
     this.hostsFile = '/tmp/ringpop-integration-test-hosts.json';
 
     this.adminChannel = new TChannel().makeSubChannel({
@@ -62,25 +60,6 @@ function TestCoordinator(options) {
 
 require('util').inherits(TestCoordinator, events.EventEmitter);
 
-
-TestCoordinator.prototype.checkJournal = function checkJournal(n, timeout, check) {
-    // check if journal has n elements
-    var timeoutTimer = setTimeout(function() {
-        t.fail("test timed out");
-    }, timeout);
-
-    var self = this;
-    // if timout is reached, test fails
-    var interval = setInterval(function() {
-        if(self.journal.length >= n) {
-            clearTimeout(timeoutTimer);
-            check();
-            clearInterval(interval);
-        }
-    }, 20);
-};
-
-
 TestCoordinator.prototype.createFakeNode = function createFakeNode() {
     // Uses random ephemeral port
     var node = new FakeNode({
@@ -92,71 +71,12 @@ TestCoordinator.prototype.createFakeNode = function createFakeNode() {
     return node;
 };
 
-
-
-// validate listsens to all emmited events. The list of all incomming events is tested
-// against all the functions in fns. If all functions have succeeded, the test is a succes.
-// Examples of the functions in fns can be found in assertions.js.
-// They have the following function signature: eventList => eventList.
-// A function is said to succeed if it consumes some of the event list and returns that list. 
-// If the function has not yet succeeded the function returns null.
-TestCoordinator.prototype.validate = function validate(t, fns, deadline) {
-    var self = this;
-    var i = 0;
-    var eventList = []
-
-    timer = setTimeout(function() {
-        t.fail('timeout');
-        t.end();
-        self.shutdown();
-    }, deadline);
-
-    if (fns && fns.length > 0) {
-        console.log('* starting ' + fns[0].name);
-    }
-
-    // flatten so arrays gets expanded and fns becomes one-dimensional
-    fns = _.flatten(fns);
-
-    // XXX: use once in stead of on
-    var progressNextTasks = function() {
-        fns[i](eventList, function(result) {
-            if (result === null) {
-                //wait for more events
-                return;
-            }
-            eventList = result
-            i++;
-            if (i < fns.length) {
-                console.log('* starting ' + fns[i].name );
-                progressNextTasks();
-                return;
-            }
-
-            // done
-            clearTimeout(timer);
-            t.ok(true, 'validate done: all functions passed');
-            self.shutdown();
-            t.end();
-        });
-    }
-
-    self.on("event", function(event) {
-        eventList.push(event);
-        progressNextTasks();
-    });
-}
-
 TestCoordinator.prototype.startAllFakeNodes = function startAllFakeNodes(callback) {
     var self = this;
 
     async.each(self.fakeNodes, function startNode(node, nodeStarted) {
         node.start(nodeStarted);
     }, callback);
-};
-
-TestCoordinator.prototype.getJournal = function getJournal() {
-    return this.journal;
 };
 
 TestCoordinator.prototype.start = function start() {
@@ -226,13 +146,13 @@ TestCoordinator.prototype.getAdminStats = function getAdminStats(callback) {
     self.adminChannel.request({serviceName: 'ringpop'}).send('/admin/stats', null, null,
         function(err, res, arg2, arg3) {
             if (err) {
-                console.log("ERRRRROR", err, res);
+                console.log("GET ADMIN STATS ERROR", err, res);
                 return;
             }
 
-            var event = self.journal.recordResponse(res, arg2, arg3);
-            self.emit('event', event);
+            var event = new nodeEvents.ResponseEvent(res, arg2, arg3);
             callback(event);
+            self.emit('event', event);
         }
     );
 };
@@ -251,7 +171,6 @@ TestCoordinator.prototype.shutdown = function shutdown() {
     });
 };
 
-
 TestCoordinator.prototype.getFakeNodeHostPortList = function getFakeNodeHostPortList() {
     return this.fakeNodes.map(function toHostPort(node) {
         return node.getHostPort();
@@ -265,19 +184,12 @@ TestCoordinator.prototype.getStandardHostPortList = function getStandardHostPort
     return result;
 };
 
-
 TestCoordinator.prototype.createHostsFile = function createHostsFile(hostPortList) {
     if (!hostPortList) {
         hostPortList = this.getStandardHostPortList();
     }
     fs.writeFileSync(this.hostsFile, JSON.stringify(hostPortList));
 };
-
-// TestCoordinator.prototype.waitForEvent = function waitForEvent(options, callback) {
-//     var type = options.type;
-//     var deadline = options.deadline;
-//     this.journal.waitForEvent(type, deadline, callback);
-// };
 
 TestCoordinator.prototype.getFakeNodes = function getFakeNodes() {
     return this.fakeNodes;
