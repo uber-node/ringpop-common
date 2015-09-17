@@ -92,8 +92,8 @@ TestCoordinator.prototype.startSUT = function startSUT() {
     var self = this;
     var newProc;
     var hostsFileArg = util.format('--hosts=%s', this.hostsFile);
-    var listenArg = util.format('--listen=%s', this.sutHostPort)
-
+    var listenArg = util.format('--listen=%s', this.sutHostPort);
+    console.log(this.sutProgram, listenArg, hostsFileArg);
     if (this.sutInterpreter) {
         newProc = childProc.spawn(this.sutInterpreter, [this.sutProgram, listenArg, hostsFileArg]);
     } else {
@@ -126,7 +126,7 @@ TestCoordinator.prototype.startSUT = function startSUT() {
             output += line.replace(/^\s+/g, ' ');
 
             if (totalOpenBraces === totalCloseBraces) {
-                // logMsg(who, output);
+                logMsg(who, output);
                 output = '';
                 totalOpenBraces = 0;
                 totalCloseBraces = 0;
@@ -134,7 +134,7 @@ TestCoordinator.prototype.startSUT = function startSUT() {
         });
     }
 
-    newProc.stdout.on('data', logOutput);
+    newProc.stdout.on('data', function() {});
     newProc.stderr.on('data', logOutput);
 
     this.sutProc = newProc;
@@ -164,7 +164,9 @@ TestCoordinator.prototype.getMembership = function getMembership() {
 }
 
 TestCoordinator.prototype.shutdown = function shutdown() {
-    this.adminChannel.topChannel.close();
+    if(this.adminChannel.topChannel.destroyed === false) {
+        this.adminChannel.topChannel.close();
+    }
     this.sutProc.kill();
     this.fakeNodes.forEach(function shutdownNode(node) {
         node.shutdown();

@@ -81,7 +81,6 @@ var Test = require('tape');
 function test(msg, opts, cb) {
     var t = Test(msg, opts, cb);
     t.on('result', function(res) {
-        
         if(!res.ok && res.error.details !== undefined) {
             console.log('============== error details ===============');
             console.log();

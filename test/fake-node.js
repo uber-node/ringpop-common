@@ -5,11 +5,13 @@ var handleJoin = require('./protocol-join').handleJoin;
 var handlePing = require('./protocol-ping').handlePing;
 var handlePingReq = require('./protocol-ping-req').handlePingReq;
 var events = require('./events');
+var checksum = require('./membership-checksum').checksum;
 
 function FakeNode(options) {
     this.coordinator = options.coordinator;
     this.host = options.host;
     this.port = undefined; // set at listen time
+    this.incarnationNumber = 1337;
     
     this.tchannel = undefined;
     this.channel = undefined;
@@ -42,26 +44,17 @@ FakeNode.prototype.start = function start(callback) {
     self.enabled = true;
     self.tchannel = new TChannel();
     self.channel = this.tchannel.makeSubChannel({
-        serviceName: 'ringpop',
-        peers: [this.coordinator.sutHostPort],
-        requestDefaults: {
-            headers: {
-                'as': 'raw',
-                'cn': 'ringpop-integration-test'
-            },
-            timeout: 4000,
-            hasNoParent: true
-        }
+        serviceName: 'ringpop'
     });
 
-    this._registerEndpoints();
+    self._registerEndpoints();
 
     callback = callback || function() {};
-
-    self.channel.listen(0, self.host, function onListen() {
+    var port = self.port || 0;
+    self.channel.listen(port, self.host, function onListen() {
         self.port = self.channel.address().port;
         return callback();
-    })
+    });
 };
 
 FakeNode.prototype.getHostPort = function getHostPort() {
@@ -94,7 +87,7 @@ FakeNode.prototype.toMemberInfo = function toMemberInfo() {
         host: this.host,
         port: this.port,
         status: 'alive',
-        incarnationNumber: 1337
+        incarnationNumber: this.incarnationNumber,
     }
 }
 
@@ -127,42 +120,137 @@ FakeNode.prototype.pingReqHandler = function pingReqHandler(req, res, arg2, arg3
 FakeNode.prototype.requestJoin = function requestJoin(callback) {
     var self = this;
 
-    self.channel.request({serviceName: 'ringpop'}).send('/protocol/join', null, null,
-        function(err, res, arg2, arg3) {
-            if (err) {
-                console.log("TChannel Response Error", err, res);
-                return;
-            }
-            var event = new events.ResponseEvent(res, arg2, arg3);
-            console.log(arg3);
-            console.log(arg3.toString());
-            console.log(arg3);
-            callback();
-            self.coordinator.emit('event', event);
+    var body = JSON.stringify({
+        app: 'ringpop',
+        source: self.getHostPort(),
+        incarnationNumber: self.incarnationNumber,
+    });
+
+    self.channel.waitForIdentified({
+        host: self.coordinator.sutHostPort
+    }, function onIdentified(err) {
+        if (err) {
+            callback(err);
+            return;
         }
-    );
+
+        self.channel.request({
+            serviceName: 'ringpop',
+            host: self.coordinator.sutHostPort,
+            timeout: 10000,
+            hasNoParent: true,
+            trace: false,
+            headers: {
+                'as': 'raw',
+                'cn': 'ringpop'
+            }
+        }).send('/protocol/join', null, body,
+            function(err, res, arg2, arg3) {
+                if (err) {
+                    console.log("TChannel Response Error", err, res);
+                    callback();
+                    return;
+                }
+
+                var event = new events.ResponseEvent(res, arg2, arg3, self.getHostPort());
+                callback();
+                self.coordinator.emit('event', event);
+            }
+        );
+
+    });
 }
 
 FakeNode.prototype.requestPing = function requestPing(callback) {
     var self = this;
 
-    self.channel.request({serviceName: 'ringpop'}).send('/protocol/ping', null, null,
-        function(err, res, arg2, arg3) {
-            if (err) {
-                console.log("TChannel Response Error", err, res);
-                return;
-            }
-            var event = new events.Response(res, arg2, arg3);
-            console.log(arg3);
-            console.log(arg3.toString());
-            console.log(arg3);
+    var body = JSON.stringify({
+        source: self.getHostPort(),
+        checksum: checksum(self.coordinator.getMembership()),
+        changes: [],
+        sourceIncarnationNumber: self.incarnationNumber,
+    });
 
-            callback();
-            self.coordinator.emit('event', event);
-            
+    self.channel.waitForIdentified({
+        host: self.coordinator.sutHostPort
+    }, function onIdentified(err) {
+        if (err) {
+            callback(err);
+            return;
         }
-    );
+
+        self.channel.request({
+            serviceName: 'ringpop',
+            host: self.coordinator.sutHostPort,
+            timeout: 10000,
+            hasNoParent: true,
+            trace: false,
+            headers: {
+                'as': 'raw',
+                'cn': 'ringpop'
+            }
+        }).send('/protocol/ping', null, body,
+            function(err, res, arg2, arg3) {
+                if (err) {
+                    console.log("TChannel Response Error", err, res);
+                    // callback();
+                    return;
+                }
+
+                var event = new events.ResponseEvent(res, arg2, arg3, self.getHostPort());
+                self.coordinator.emit('event', event);
+                callback();
+            }
+        );        
+    });
 }
+
+FakeNode.prototype.requestPingReq = function requestPingReq(target, callback) {
+    var self = this;
+
+    var body = JSON.stringify({
+        source: self.getHostPort(),
+        checksum: checksum(this.coordinator.getMembership()),
+        changes: [],
+        sourceIncarnationNumber: self.incarnationNumber,
+        target: target,
+    });
+
+    self.channel.waitForIdentified({
+        host: self.coordinator.sutHostPort
+    }, function onIdentified(err) {
+        if (err) {
+            callback(err);
+            return;
+        }
+
+        self.channel.request({
+            serviceName: 'ringpop',
+            host: self.coordinator.sutHostPort,
+            timeout: 10000,
+            hasNoParent: true,
+            trace: false,
+            headers: {
+                'as': 'raw',
+                'cn': 'ringpop'
+            }
+        }).send('/protocol/ping-req', null, body,
+            function(err, res, arg2, arg3) {
+                if (err) {
+                    console.log("TChannel Response Error", err, res);
+                    // callback();
+                    return;
+                }
+                
+                var event = new events.ResponseEvent(res, arg2, arg3, self.getHostPort());
+                self.coordinator.emit('event', event);
+                callback();
+            }
+        );        
+    });
+}
+
+//TODO(wieger): combine requestPing, requestPingReq and requestJoin into one function
 
 FakeNode.prototype.proxyReqHandler = function proxyReqHandler(req, res, arg2, arg3) {
 

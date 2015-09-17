@@ -24,21 +24,23 @@ function endpointToEventType(endpoint) {
     }
 }
 
-function RequestEvent(req, arg2, arg3) {
+function RequestEvent(req, arg2, arg3, receiver) {
     this.type = endpointToEventType(req.endpoint);
     this.direction = 'request';
     this.endpoint = req.endpoint;
     this.time = Date.now();
+    this.receiver = receiver;
     this.req = req;
     this.arg2 = arg2;
     this.arg3 = arg3;
 }
 
-function ResponseEvent(res, arg2, arg3) {
+function ResponseEvent(res, arg2, arg3, receiver) {
     this.type = endpointToEventType(res.span.name);
     this.direction = 'response';
     this.endpoint = res.span.name;
     this.time = Date.now();
+    this.receiver = receiver;
     this.res = res;
     this.arg2 = arg2;
     this.arg3 = arg3;

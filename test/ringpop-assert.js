@@ -2,7 +2,7 @@ var _ = require('lodash');
 var events = require('./events');
 var safeJSONParse = require('./util').safeParse;
 var util = require('util');
-
+var makeHostPort = require('./util').makeHostPort;
 
 function errDetails(details) {
     return {error:{details:details}};
@@ -17,6 +17,7 @@ function wait(millis) {
 }
 
 function waitForJoins(t, tc, n) {
+    n = _.min([6, n]);
     return function waitForJoins(list, cb) {
         var joins = _.filter(list, {type: events.Types.Join});
         if (joins.length < n) {
@@ -26,7 +27,6 @@ function waitForJoins(t, tc, n) {
         
         t.equals(joins.length, n, 'check number of joins', 
             errDetails({journal: _.pluck(list, 'endpoint')}));
-
 
         cb(_.reject(list, {type: events.Types.Join}));
     }
@@ -48,19 +48,20 @@ function waitForPingReqs(t, tc, n) {
     }
 }
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-function joinNewNode(tc) {
+function joinNewNode(t, tc, nodeIx) {
     return [
-        addFakeNode(tc),
-        sendJoin(tc, tc.fakeNodes.length - 1),
+        addFakeNode(t, tc),
+        sendJoin(t, tc, nodeIx),
     ];
 }
 
-function addFakeNode(tc) {
-    return _.once(function addNode(list, cb) {
-        tc.createFakeNode();
-        cb(list);
+function addFakeNode(t, tc) {
+    var f = _.once(function addNode(list, cb) {
+        var node = tc.createFakeNode();
+        node.start(cb.bind(null, list));
     });
+    f.callerName = 'addFakeNode';
+    return f;
 }
 
 function sendJoin(t, tc, nodeIx) {
@@ -73,10 +74,15 @@ function sendJoin(t, tc, nodeIx) {
     return f;
 }
 
+function sendPings(t, tc, nodeIxs) {
+    return _.map(nodeIxs, function(ix) {
+        return sendPing(t, tc, ix);
+    });
+}
+
 function sendPing(t, tc, nodeIx) {
     var f = _.once(function sendPing(list, cb) {
         tc.fakeNodes[nodeIx].requestPing(function() {
-            // console.log()
             cb(list);
         });
     });
@@ -84,17 +90,89 @@ function sendPing(t, tc, nodeIx) {
     return f;
 }
 
-function sendPingReq(t, tc, nodeIx, status) {
+function waitForPingResponses(t, tc, nodeIxs) {
+    return _.map(nodeIxs, function(ix) {
+        return waitForPingResponse(t, tc, ix);
+    });
+}
+
+function waitForPingResponse(t, tc, nodeIx) {
+    return function waitForPingResponse(list, cb) {
+        var pings = _.filter(list, {type: events.Types.Ping, direction: 'response'});
+        pings = _.filter(pings, function(event) {
+            return event.receiver === tc.fakeNodes[nodeIx].getHostPort();
+        });
+        
+        if(pings.length === 0) {
+            cb(null);
+            return;
+        }
+
+        // TODO(wieger): validate pings[0]
+        _.pullAt(list, _.indexOf(list, pings[0]));
+        cb(list);
+    }
+}
+
+function waitForJoinResponse(t, tc, nodeIx) {
+    return function waitForJoinResponse(list, cb) {
+        var joins = _.filter(list, {type: events.Types.Join, direction: 'response'});
+        joins = _.filter(joins, function(event) {
+            return event.receiver === tc.fakeNodes[nodeIx].getHostPort();
+        });
+        
+        if(joins.length === 0) {
+            cb(null);
+            return;
+        }
+
+        // TODO(wieger): validate joins[0]
+        _.pullAt(list, _.indexOf(list, joins[0]));
+        cb(list);
+    }
+}
+
+function sendPingReq(t, tc, nodeIx, targetIx) {
+
     var f = _.once(function sendPing(list, cb) {
-        tc.fakeNodes[nodeIx].requestPingReq(function() {
-            // console.log()
+        var target = tc.fakeNodes[targetIx].getHostPort();
+        tc.fakeNodes[nodeIx].requestPingReq(target, function() {
             cb(list);
         });
     });
     f.callerName = 'sendPingReq';
     return f;
 }
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+function waitForPingReqResponse(t, tc, nodeIx, targetIx, status) {
+    return function waitForPingReqResponse(list, cb) {
+        var pingReqs = _.filter(list, {type: events.Types.PingReq, direction: 'response'});
+        pingReqs = _.filter(pingReqs, function(event) {
+            return event.receiver === tc.fakeNodes[nodeIx].getHostPort();
+        });
+        
+        if(pingReqs.length === 0) {
+            cb(null);
+            return;
+        }
+
+        // TODO(wieger): validate pingReqs[0]
+        var arg3 = safeJSONParse(pingReqs[0].arg3);
+        t.equal(arg3.target, tc.fakeNodes[targetIx].getHostPort(),
+            'check target of the response',
+            errDetails({"ping-req-response": arg3}));
+        t.equal(arg3.pingStatus, status, 
+            'check target ping status of the response', 
+            errDetails({"ping-req-response": arg3}));
+
+        _.pullAt(list, _.indexOf(list, pingReqs[0]));
+        cb(list);
+    }
+}
+
+// TODO(wieger): make general request for ping, pingreqs, join
+// with a callback that manipulates the requested object
+// function waitForResponse(t, tc, type, nodeIx, validateResponseCB) {}
 
 function expectOnlyPings(t, tc) {
     return function expectOnlyPings(list, cb) {
@@ -221,28 +299,15 @@ function disableNode(t, tc, ix) {
     return f;
 }
 
-function enableNode(t, tc, ix) {
+function enableNode(t, tc, ix, incarnationNumber) {
     var f = _.once(function(list, cb) {
         tc.fakeNodes[ix].start();
+        tc.fakeNodes[ix].incarnationNumber = incarnationNumber;
         cb(list);
     });
     f.callerName = 'enableNode';
     return f;
 }
-
-// function consumePingResponse(t, tc, nodeIx) {
-//     return function consumePingResponse(list, cb) {
-//         var ix = _.findIndex(list, {type: events.Types.Ping, direction: 'response'});
-//         if (ix == -1) {
-//             cb(null);
-//             return;
-//         }
-//         // console.log(list[ix]);
-//         _.remove(list, ix);
-//         return cb(list);
-//     }
-// }
-
 
 // validates a scheme on incoming events send by the real-node. A scheme is a collection of
 // functions from scheme.js. On every incoming event we try to progress through the scheme. 
@@ -254,8 +319,9 @@ function validate(t, tc, scheme, deadline) {
 
     timer = setTimeout(function() {
         t.fail('timeout');
-        t.end();
+        tc.removeAllListeners('event');
         tc.shutdown();
+        t.end();
     }, deadline);
 
     // flatten so arrays gets expanded and fns becomes one-dimensional
@@ -264,16 +330,18 @@ function validate(t, tc, scheme, deadline) {
     // try to run the fn that the cursor points to. The function indicates that it has
     // succeeded by yielding an updated eventList. If succeeded the cursor progresses 
     // to the next function.
-    var progressFromCursor = function(firstTime) {
+    var progressFromCursor = function() {
         if(cursor >= fns.length) {
             clearTimeout(timer);
             t.ok(true, 'validate done: all functions passed');
             tc.shutdown();
+            tc.removeAllListeners('event');
             t.end();
             return;
         }
 
-        if(firstTime) {
+        if(!fns[cursor].isPrinted) {
+            fns[cursor].isPrinted = true;
             var name = fns[cursor].name || fns[cursor].callerName;
             console.log('* starting ' + name);    
         }
@@ -290,12 +358,9 @@ function validate(t, tc, scheme, deadline) {
         });
     }
 
-    // Prints: * starting fns[0].name
-    progressFromCursor(true);
-
-    tc.on("event", function(event) {
+    tc.on('event', function(event) {
         eventList.push(event);
-        progressFromCursor(false);
+        progressFromCursor();
     });
 }
 
@@ -318,4 +383,14 @@ module.exports = {
     
     disableNode: disableNode,
     enableNode: enableNode,
+
+    sendPings: sendPings,
+    waitForPingResponse: waitForPingResponse,
+    waitForPingResponses: waitForPingResponses,
+
+    addFakeNode: addFakeNode,
+    joinNewNode: joinNewNode,
+    waitForJoinResponse: waitForJoinResponse,
+
+    waitForPingReqResponse: waitForPingReqResponse,
 }
