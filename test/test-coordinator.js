@@ -33,8 +33,10 @@ function validateSetupOptions(options) {
 function TestCoordinator(options) {
     validateSetupOptions(options);
 
+    var portBase = options.portBase || 0;
+
     this.fakeNodes = [];
-    this.sutHostPort = makeHostPort('127.0.0.1', _.random(10000, 30000))
+    this.sutHostPort = makeHostPort('127.0.0.1', portBase || _.random(10000, 30000));
     this.sutProgram = options.sut.program;
     this.sutInterpreter = options.sut.interpreter;
     this.sutProc = undefined;
@@ -54,17 +56,17 @@ function TestCoordinator(options) {
     });
 
     for (var i = 0; i < options.numNodes; i++) {
-        this.createFakeNode();
+        this.createFakeNode(portBase ? portBase + i + 1 : 0);
     }
 }
 
 require('util').inherits(TestCoordinator, events.EventEmitter);
 
-TestCoordinator.prototype.createFakeNode = function createFakeNode() {
-    // Uses random ephemeral port
+TestCoordinator.prototype.createFakeNode = function createFakeNode(port) {
     var node = new FakeNode({
         coordinator: this,
-        host: '127.0.0.1'
+        host: '127.0.0.1',
+        port: port,
     });
 
     this.fakeNodes.push(node);

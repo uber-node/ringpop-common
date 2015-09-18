@@ -32,13 +32,14 @@ if (!fs.existsSync(programPath)) {
     process.exit(1);
 }
 
-function createCoordinator(numNodes) {
+function createCoordinator(numNodes, portBase) {
     var tc = new TestCoordinator({
         sut: {
             program: programPath,
             interpreter: programInterpreter
         },
-        numNodes: numNodes
+        numNodes: numNodes,
+        portBase: portBase,
     });
 
     return tc;

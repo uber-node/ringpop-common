@@ -31,8 +31,8 @@ function RequestEvent(req, arg2, arg3, receiver) {
     this.time = Date.now();
     this.receiver = receiver;
     this.req = req;
-    this.arg2 = arg2;
-    this.arg3 = arg3;
+    this.arg2 = arg2.toString();
+    this.arg3 = arg3.toString();
 }
 
 function ResponseEvent(res, arg2, arg3, receiver) {
@@ -42,8 +42,8 @@ function ResponseEvent(res, arg2, arg3, receiver) {
     this.time = Date.now();
     this.receiver = receiver;
     this.res = res;
-    this.arg2 = arg2;
-    this.arg3 = arg3;
+    this.arg2 = arg2.toString();
+    this.arg3 = arg3.toString();
 }
 
 module.exports = {
