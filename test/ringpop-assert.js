@@ -100,6 +100,32 @@ function waitForPingResponses(t, tc, nodeIxs) {
     });
 }
 
+function verifyChange(t, tc, change) {
+    var mandatoryFields = [
+      'address',
+      'status',
+      'incarnationNumber',
+      'source'
+    ];
+
+    mandatoryFields.forEach(function (key) {
+        t.ok(key in change, "Missing field: " + key);
+    });
+
+    var allowedFields = [
+        'address',
+        'status',
+        'incarnationNumber',
+        'source',
+        'sourceIncarnationNumber',
+        'id'
+    ];
+
+    Object.keys(change).forEach(function (key) {
+        t.notEqual(allowedFields.indexOf(key), -1, "Unknown field in change: " + key);
+    });
+}
+
 function waitForPingResponse(t, tc, nodeIx) {
     return function waitForPingResponse(list, cb) {
         var pings = _.filter(list, {type: events.Types.Ping, direction: 'response'});
@@ -112,10 +138,21 @@ function waitForPingResponse(t, tc, nodeIx) {
             return;
         }
 
-        // TODO(wieger): validate pings[0]
+        // validate pings
+        pings.forEach(function (ping) {
+            var body = safeJSONParse(ping.res.arg3);
+            t.ok(body, "check for presence of ping response");
+            t.ok(body.changes, "check for presence of changes in ping response");
+            t.ok(Array.isArray(body.changes), "Expected an array of changes");
+
+            body.changes.forEach(function (change) {
+                verifyChange(t, tc, change);
+            });
+        });
+
         _.pullAt(list, _.indexOf(list, pings[0]));
         cb(list);
-    }
+    };
 }
 
 function waitForJoinResponse(t, tc, nodeIx) {
@@ -503,6 +540,7 @@ module.exports = {
     sendPings: sendPings,
     waitForPingResponse: waitForPingResponse,
     waitForPingResponses: waitForPingResponses,
+    verifyChange: verifyChange,
 
     addFakeNode: addFakeNode,
     joinNewNode: joinNewNode,
