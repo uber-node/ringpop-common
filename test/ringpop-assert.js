@@ -146,7 +146,6 @@ function sendPingReq(t, tc, nodeIx, targetIx) {
 
 function waitForPingReqResponse(t, tc, nodeIx, targetIx, status) {
     return function waitForPingReqResponse(list, cb) {
-        debugger;
         var pingReqs = _.filter(list, {type: events.Types.PingReq, direction: 'response'});
         pingReqs = _.filter(pingReqs, function(event) {
             return event.receiver === tc.fakeNodes[nodeIx].getHostPort();
@@ -256,7 +255,7 @@ function assertRoundRobinPings(t, tc, pings, millis) {
     ];
 }
 
-// imidiately checks for n-1, n or n+1 pings
+// immediately checks for n-1, n or n+1 pings
 function expectRoundRobinPings(t, tc, n) {
     return function expectRoundRobinPings(list, cb) {
         var pings = _.filter(list, {type: events.Types.Ping});

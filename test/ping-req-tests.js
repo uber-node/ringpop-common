@@ -41,9 +41,9 @@ test('alive, suspect, faulty cycle in 7-node cluster', function(t) {
     tc.start();
 
     dsl.validate(t, tc, [
-        dsl.waitForJoins(t, tc, Math.max(6, n-1)),
+        dsl.waitForJoins(t, tc, n),
         dsl.assertStats(t, tc, n+1, 0, 0),
-        dsl.assertRoundRobinPings(t, tc, Math.min(5, n-1), 1000),
+        dsl.assertRoundRobinPings(t, tc, 5, 1000),
         dsl.disableNode(t, tc, 0),
         dsl.waitForPingReqs(t, tc, Math.min(3, n-1)),
         dsl.wait(100),
