@@ -163,10 +163,7 @@ function waitForPingReqResponse(t, tc, nodeIx, targetIx, status) {
             'check target of the response',
             errDetails({"ping-req-response": arg3}));
 
-        // (@benfleis) I believe that this needs to be .false instead .equal
-        // false, due to ringpop using as:'raw' and go as:'json', but not
-        // certain, because I would expect it to appear in other places as well.
-        t.false(arg3.pingStatus, status, 
+        t.equal(arg3.pingStatus, status, 
             'check target ping status of the response', 
             errDetails({"ping-req-response": arg3}));
 
