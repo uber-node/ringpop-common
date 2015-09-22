@@ -33,7 +33,10 @@ function testFields(t, tc, name, spec, obj) {
         t.ok(
             key in obj,
             "test mandatory field '" + key + "' in '" + name + "'",
-            errDetails("missing field in " + name + " message: " + key)
+            errDetails({
+                message: "missing field in " + name + " message: " + key,
+                object: obj
+            })
         );
     });
 
@@ -41,7 +44,10 @@ function testFields(t, tc, name, spec, obj) {
         t.notEqual(
             allowed.indexOf(key), -1,
             "test field '" + key + "' in '" + name + "'",
-            errDetails("unknown field in " + name + " message: " + key)
+            errDetails({
+                message: "unknown field in " + name + " message: " + key,
+                object: obj
+            })
         );
     });
 }
@@ -401,6 +407,16 @@ function assertRoundRobinPings(t, tc, pings, millis) {
 function expectRoundRobinPings(t, tc, n) {
     return function expectRoundRobinPings(list, cb) {
         var pings = _.filter(list, {type: events.Types.Ping});
+
+        // validate pings[0]
+        var ping = safeJSONParse(pings[0].arg3);
+        testFields(t,tc,"ping", {
+            checksum: true,
+            changes: true,
+            source: true,
+            sourceIncarnationNumber: true
+        }, ping);
+
         pings = _.pluck(pings, "req.channel.hostPort");
 
         // expect ping every 200 ms
@@ -425,6 +441,7 @@ function expectRoundRobinPings(t, tc, n) {
         t.ok(_.every(sliceFreqs, function(v, k) { return v === 1; }), 
             'ping rounds should be randomized',
             errDetails({sliceFreqs: sliceFreqs}));
+
 
         cb(_.reject(list, {type: events.Types.Ping}));
     }
