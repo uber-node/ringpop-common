@@ -28,6 +28,8 @@ function waitForJoins(t, tc, n) {
         t.equals(joins.length, n, 'check number of joins', 
             errDetails({journal: _.pluck(list, 'endpoint')}));
 
+        //XXX: a bit wonky to get sutIncarnationNumber like this
+        tc.sutIncarnationNumber = safeJSONParse(list[0].arg3).incarnationNumber;
         cb(_.reject(list, {type: events.Types.Join}));
     }
 }
@@ -80,11 +82,13 @@ function sendPings(t, tc, nodeIxs) {
     });
 }
 
-function sendPing(t, tc, nodeIx) {
+function sendPing(t, tc, nodeIx, piggybackOpts) {
     var f = _.once(function sendPing(list, cb) {
+        var piggybackData = piggyback(tc, piggybackOpts);
+        
         tc.fakeNodes[nodeIx].requestPing(function() {
             cb(list);
-        });
+        }, piggybackData);
     });
     f.callerName = 'sendPing';
     return f;
@@ -132,13 +136,13 @@ function waitForJoinResponse(t, tc, nodeIx) {
     }
 }
 
-function sendPingReq(t, tc, nodeIx, targetIx) {
-
+function sendPingReq(t, tc, nodeIx, targetIx, piggybackOpts) {
     var f = _.once(function sendPing(list, cb) {
+        var piggybackData = piggyback(tc, piggybackOpts);
         var target = tc.fakeNodes[targetIx].getHostPort();
         tc.fakeNodes[nodeIx].requestPingReq(target, function() {
             cb(list);
-        });
+        }, piggybackData);
     });
     f.callerName = 'sendPingReq';
     return f;
@@ -364,6 +368,80 @@ function validate(t, tc, scheme, deadline) {
     });
 }
 
+var uuid = require('node-uuid');
+
+// function piggyback(tc, sourceIx, subjectIx, status, id) {
+//     return function() {
+//         update = {};
+//         update.id = id || uuid.v4();
+       
+//         if(sourceIx === 'sut') { 
+//             update.source = tc.sutHostPort;
+//             update.sourceIncarnationNumber = 99999999;
+//         } else {
+//             update.source = tc.fakeNodes[sourceIx].getHostPort();    
+//             update.sourceIncarnationNumber = tc.fakeNodes[sourceIx].incarnationNumber;
+//         }
+
+//         if(subjectIx === 'sut') {
+//             update.address = tc.sutHostPort;
+//             update.sourceIncarnationNumber = 99999999;
+//         } else {
+//             update.address = tc.fakeNodes[subjectIx].getHostPort();
+//             update.incarnationNumber = tc.fakeNodes[subjectIx].incarnationNumber;
+//         }
+        
+//         update.status = status;
+
+//         console.log(update);
+//         return update;
+//     }
+// }
+
+// example opts = {
+//    sourceIx: 0,
+//    subjectIx: 1,
+//    status: 'alive',
+//    id: 'abcd-1234',
+//    sourceIncNoDelta: 1,
+//    subjectIncNoDelta: 1,
+// }
+function piggyback(tc, opts) { 
+    if (opts === undefined) {
+        return undefined;
+    }
+    update = {};
+    update.id = opts.id || uuid.v4();
+    update.status = opts.status;
+    
+    if(opts.sourceIx === 'sut') { 
+        update.source = tc.sutHostPort;
+        update.sourceIncarnationNumber = tc.sutIncarnationNumber;
+    } else {
+        update.source = tc.fakeNodes[opts.sourceIx].getHostPort();    
+        update.sourceIncarnationNumber = tc.fakeNodes[opts.sourceIx].incarnationNumber;
+    }
+
+    if (opts.sourceIncNoDetla !== undefined) {
+        update.sourceIncarnationNumber += opts.sourceIncNoDelta;
+    }
+
+    if(opts.subjectIx === 'sut') {
+        update.address = tc.sutHostPort;
+        update.sourceIncarnationNumber = tc.sutIncarnationNumber;
+    } else {
+        update.address = tc.fakeNodes[opts.subjectIx].getHostPort();
+        update.incarnationNumber = tc.fakeNodes[opts.subjectIx].incarnationNumber;
+    }
+
+    if(opts.subjectIncNoDelta !== undefined) {
+        update.incarnationNumber += opts.subjectIncNoDelta;
+    }
+
+    return update;
+}
+
+
 module.exports = {
     validate: validate,
     wait: wait,
@@ -393,4 +471,6 @@ module.exports = {
     waitForJoinResponse: waitForJoinResponse,
 
     waitForPingReqResponse: waitForPingReqResponse,
+
+    piggyback: piggyback,
 }

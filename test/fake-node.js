@@ -161,16 +161,22 @@ FakeNode.prototype.requestJoin = function requestJoin(callback) {
     });
 }
 
-FakeNode.prototype.requestPing = function requestPing(callback) {
+FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
     var self = this;
+
+    var changes = [];
+    if (piggybackData !== undefined) {
+        changes.push(piggybackData);
+    }
 
     var body = JSON.stringify({
         source: self.getHostPort(),
         checksum: checksum(self.coordinator.getMembership()),
-        changes: [],
+        changes: changes,
         sourceIncarnationNumber: self.incarnationNumber,
     });
 
+    
     self.channel.waitForIdentified({
         host: self.coordinator.sutHostPort
     }, function onIdentified(err) {
@@ -205,7 +211,7 @@ FakeNode.prototype.requestPing = function requestPing(callback) {
     });
 }
 
-FakeNode.prototype.requestPingReq = function requestPingReq(target, callback) {
+FakeNode.prototype.requestPingReq = function requestPingReq(target, callback, piggybackData) {
     var self = this;
 
     var body = JSON.stringify({
@@ -216,6 +222,10 @@ FakeNode.prototype.requestPingReq = function requestPingReq(target, callback) {
         target: target,
     });
 
+    if (piggybackData !== undefined) {
+        body.changes.push(piggybackData);
+    }
+    
     self.channel.waitForIdentified({
         host: self.coordinator.sutHostPort
     }, function onIdentified(err) {

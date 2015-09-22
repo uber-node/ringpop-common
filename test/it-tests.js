@@ -51,6 +51,6 @@ module.exports = {
 require('./join-tests');
 require('./ping-tests');
 require('./ping-req-tests');
-
-// require('./network-blip-tests');
+    
+require('./network-blip-tests');
 // require('./revive-tests');

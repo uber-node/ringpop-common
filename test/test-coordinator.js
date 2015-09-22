@@ -38,6 +38,7 @@ function TestCoordinator(options) {
     this.sutProgram = options.sut.program;
     this.sutInterpreter = options.sut.interpreter;
     this.sutProc = undefined;
+    this.sutIncarnationNumber = undefined;
     this.hostsFile = '/tmp/ringpop-integration-test-hosts.json';
 
     this.adminChannel = new TChannel().makeSubChannel({
