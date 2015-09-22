@@ -200,10 +200,35 @@ function waitForJoinResponse(t, tc, nodeIx) {
             return;
         }
 
-        // TODO(wieger): validate joins[0]
+        // validate joins[0]
+        var joinResponse = safeJSONParse(joins[0].arg3);
+        testFields(t,tc, "join-response", {
+            // mandatory fields
+            app: true,
+            coordinator: true,
+            membership: true,
+            membershipChecksum: true
+        }, joinResponse);
+
+        testFields(t, tc, "join-response membership", {
+            // mandatory fields
+            source: true,
+            address: true,
+            status: true,
+            incarnationNumber: true,
+
+            // optional fields
+            timestamp: false,
+            // TODO ringpop-go has sourceIncarnation in here, this should
+            // probably be sourceIncarnationNumber. And we need to figure
+            // out if we want this information exchanged over the protocol
+            // or not.
+            sourceIncarnationNumber: false
+        }, joinResponse.membership[0]);
+
         _.pullAt(list, _.indexOf(list, joins[0]));
         cb(list);
-    }
+    };
 }
 
 function sendPingReq(t, tc, nodeIx, targetIx, piggybackOpts) {
