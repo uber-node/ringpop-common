@@ -30,11 +30,19 @@ function testFields(t, tc, name, spec, obj) {
     var allowed = keys;
 
     mandatory.forEach(function (key) {
-        t.ok(key in obj, "missing field in " + name + " message: " + key);
+        t.ok(
+            key in obj,
+            "test mandatory field '" + key + "' in '" + name + "'",
+            errDetails("missing field in " + name + " message: " + key)
+        );
     });
 
     Object.keys(obj).forEach(function (key) {
-        t.notEqual(allowed.indexOf(key), -1, "unknown field in " + name + " message: " + key);
+        t.notEqual(
+            allowed.indexOf(key), -1,
+            "test field '" + key + "' in '" + name + "'",
+            errDetails("unknown field in " + name + " message: " + key)
+        );
     });
 }
 
