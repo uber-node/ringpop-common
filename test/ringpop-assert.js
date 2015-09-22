@@ -464,6 +464,16 @@ function createValidateEvent(t, tc) {
         });
     };
 
+    validators.request[events.Types.PingReq] = function pingReqRequestValidator(event, body) {
+        testFields(t, tc, "ping-req", {
+            checksum: true,
+            changes: true,
+            source: true,
+            sourceIncarnationNumber: true,
+            target: true
+        }, body);
+    };
+
     return function (event) {
         var type = event.type;
         var direction = event.direction;
