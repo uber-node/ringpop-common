@@ -16,6 +16,36 @@ function wait(millis) {
     return f;
 }
 
+// test if object conforms to the spec.
+// @param spec is an object where keys have a value of true or false. True meaning mandatory, false meaning optional
+function testFields(t, tc, spec, obj) {
+    var keys = Object.keys(spec);
+
+    // create arrays for mandatory and allowed fields
+    var mandatory = keys.filter(function (key) {
+        return spec[key] === true;
+    });
+    var allowed = keys;
+
+    mandatory.forEach(function (key) {
+        t.ok(key in obj, "missing field: " + key);
+    });
+
+    Object.keys(obj).forEach(function (key) {
+        t.notEqual(allowed.indexOf(key), -1, "unknown field: " + key);
+    });
+}
+
+function verifyJoin(t, tc, join) {
+    t.ok(join, "Missing join information");
+    return testFields(t, tc, {
+        app: true,
+        source: true,
+        incarnationNumber: true,
+        timeout: false
+    }, join);
+}
+
 function waitForJoins(t, tc, n) {
     n = _.min([6, n]);
     return function waitForJoins(list, cb) {
@@ -28,10 +58,13 @@ function waitForJoins(t, tc, n) {
         t.equals(joins.length, n, 'check number of joins', 
             errDetails({journal: _.pluck(list, 'endpoint')}));
 
+        var join = safeJSONParse(joins[0].arg3);
+        verifyJoin(t, tc, join);
+
         //XXX: a bit wonky to get sutIncarnationNumber like this
         tc.sutIncarnationNumber = safeJSONParse(list[0].arg3).incarnationNumber;
         cb(_.reject(list, {type: events.Types.Join}));
-    }
+    };
 }
 
 function waitForPingReqs(t, tc, n) {
