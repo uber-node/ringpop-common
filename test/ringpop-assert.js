@@ -362,6 +362,16 @@ function createValidateEvent(t, tc) {
     var Validator = require('jsonschema').Validator;
     var validator = new Validator();
 
+    validator.addSchema({
+        id: "/Status",
+        title: "Status",
+        enum: [
+            "alive",
+            "suspect",
+            "faulty"
+        ]
+    });
+
     // /Change
     validator.addSchema({
         id: "/Change",
@@ -369,7 +379,7 @@ function createValidateEvent(t, tc) {
         type: "object",
         properties: {
             address: { type: "string" },
-            status: { type: "string" },
+            status: { $ref: "/Status" },
             incarnationNumber: { type: "number" },
             source: { type: "string" },
 
@@ -421,7 +431,7 @@ function createValidateEvent(t, tc) {
                     properties: {
                         source: { type: "string" },
                         address: { type: "string" },
-                        status: { type: "string" },
+                        status: { $ref: "/Status" },
                         incarnationNumber: { type: "number" },
 
                         timestamp: { type: "number" },
