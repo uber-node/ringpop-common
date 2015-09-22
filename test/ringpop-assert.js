@@ -440,6 +440,21 @@ function createValidateEvent(t, tc) {
             source: true,
             sourceIncarnationNumber: true
         }, body);
+
+        body.changes.forEach(function (change) {
+            testFields(t, tc, "change", {
+                // mandatory fields
+                address: true,
+                status: true,
+                incarnationNumber: true,
+                source: true,
+
+                // optional fields
+                sourceIncarnationNumber: false,
+                id: false,
+                timestamp: false
+            }, change);
+        });
     };
 
     validators.response[events.Types.Ping] = function pingResponseValidator(event, body) {
