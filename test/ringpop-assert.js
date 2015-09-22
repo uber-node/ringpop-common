@@ -554,55 +554,25 @@ function createValidateEvent(t, tc) {
         additionalProperties: false
     });
 
-    validators.request[events.Types.Join] = function joinRequestValidator(event, body) {
-        var result = validator.validate(body, "/JoinRequest", { propertyName: 'join-request' });
-        if (result.errors.length > 0) {
-            t.fail("join request", errDetails({
-                errors: _.pluck(result.errors, "stack"),
-                body: body
-            }));
-        }
-    };
+    function bodyVerification(name, schema) {
+        return function (event, body) {
+            var result = validator.validate(body, schema, { propertyName: name.replace(' ','-') });
+            if (result.errors.length > 0) {
+                t.fail(name, errDetails({
+                    errors: _.pluck(result.errors, "stack"),
+                    body: body
+                }));
+            }
+        };
+    }
 
-    validators.response[events.Types.Join] = function joinResponseValidator(event, body) {
-        var result = validator.validate(body, "/JoinResponse", { propertyName: 'join-response' });
-        if (result.errors.length > 0) {
-            t.fail("join response", errDetails({
-                errors: _.pluck(result.errors, "stack"),
-                body: body
-            }));
-        }
-    };
+    validators.request[events.Types.Join] = bodyVerification("join request", "/JoinRequest");
+    validators.response[events.Types.Join] = bodyVerification("join response", "/JoinResponse");
 
-    validators.request[events.Types.Ping] = function pingRequestValidator(event, body) {
-        var result = validator.validate(body, "/PingRequest", { propertyName: 'ping-request' });
-        if (result.errors.length > 0) {
-            t.fail("ping request", errDetails({
-                errors: _.pluck(result.errors, "stack"),
-                body: body
-            }));
-        }
-    };
+    validators.request[events.Types.Ping] = bodyVerification("ping request", "/PingRequest");
+    validators.response[events.Types.Ping] = bodyVerification("ping response", "/PingResponse");
 
-    validators.response[events.Types.Ping] = function pingResponseValidator(event, body) {
-        var result = validator.validate(body, "/PingResponse", { propertyName: 'ping-response' });
-        if (result.errors.length > 0) {
-            t.fail("ping response", errDetails({
-                errors: _.pluck(result.errors, "stack"),
-                body: body
-            }));
-        }
-    };
-
-    validators.request[events.Types.PingReq] = function pingReqRequestValidator(event, body) {
-        var result = validator.validate(body, "/PingReqRequest", { propertyName: 'ping-req-request' });
-        if (result.errors.length > 0) {
-            t.fail("ping-req Request", errDetails({
-                errors: _.pluck(result.errors, "stack"),
-                body: body
-            }));
-        }
-    };
+    validators.request[events.Types.PingReq] = bodyVerification("ping-req request", "/PingReqRequest");
 
     return function (event) {
         var type = event.type;
