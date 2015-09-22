@@ -16,42 +16,6 @@ function wait(millis) {
     return f;
 }
 
-// test if object conforms to the spec.
-// @param name name of the object being tested for better messages on failure.
-// @param spec is an object where keys have a value of true or false. True meaning mandatory, false meaning optional.
-// @param obj object to test against the spec
-function testFields(t, tc, name, spec, obj) {
-    var keys = Object.keys(spec);
-
-    // create arrays for mandatory and allowed fields
-    var mandatory = keys.filter(function (key) {
-        return spec[key] === true;
-    });
-    var allowed = keys;
-
-    mandatory.forEach(function (key) {
-        t.ok(
-            key in obj,
-            "test mandatory field '" + key + "' in '" + name + "'",
-            errDetails({
-                message: "missing field in " + name + " message: " + key,
-                object: obj
-            })
-        );
-    });
-
-    Object.keys(obj).forEach(function (key) {
-        t.notEqual(
-            allowed.indexOf(key), -1,
-            "test field '" + key + "' in '" + name + "'",
-            errDetails({
-                message: "unknown field in " + name + " message: " + key,
-                object: obj
-            })
-        );
-    });
-}
-
 function waitForJoins(t, tc, n) {
     n = _.min([6, n]);
     return function waitForJoins(list, cb) {
