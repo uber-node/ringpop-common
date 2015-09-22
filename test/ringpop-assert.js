@@ -17,8 +17,10 @@ function wait(millis) {
 }
 
 // test if object conforms to the spec.
-// @param spec is an object where keys have a value of true or false. True meaning mandatory, false meaning optional
-function testFields(t, tc, spec, obj) {
+// @param name name of the object being tested for better messages on failure.
+// @param spec is an object where keys have a value of true or false. True meaning mandatory, false meaning optional.
+// @param obj object to test against the spec
+function testFields(t, tc, name, spec, obj) {
     var keys = Object.keys(spec);
 
     // create arrays for mandatory and allowed fields
@@ -28,20 +30,23 @@ function testFields(t, tc, spec, obj) {
     var allowed = keys;
 
     mandatory.forEach(function (key) {
-        t.ok(key in obj, "missing field: " + key);
+        t.ok(key in obj, "missing field in " + name + " message: " + key);
     });
 
     Object.keys(obj).forEach(function (key) {
-        t.notEqual(allowed.indexOf(key), -1, "unknown field: " + key);
+        t.notEqual(allowed.indexOf(key), -1, "unknown field in " + name + " message: " + key);
     });
 }
 
 function verifyJoin(t, tc, join) {
     t.ok(join, "Missing join information");
-    return testFields(t, tc, {
+    return testFields(t, tc, "join", {
+        // mandatory fields
         app: true,
         source: true,
         incarnationNumber: true,
+
+        // optional fields
         timeout: false
     }, join);
 }
@@ -134,12 +139,14 @@ function waitForPingResponses(t, tc, nodeIxs) {
 }
 
 function verifyChange(t, tc, change) {
-    testFields(t, tc, {
+    testFields(t, tc, "change", {
+        // mandatory fields
         address: true,
         status: true,
         incarnationNumber: true,
         source: true,
 
+        // optional fields
         sourceIncarnationNumber: false,
         id: false,
         timestamp: false
