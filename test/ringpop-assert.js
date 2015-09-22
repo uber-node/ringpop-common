@@ -395,98 +395,213 @@ function createValidateEvent(t, tc) {
         'response': {}
     };
 
-    validators.request[events.Types.Join] = function joinRequestValidator(event, body) {
-        return testFields(t, tc, "join", {
-            // mandatory fields
-            app: true,
-            source: true,
-            incarnationNumber: true,
+    var Validator = require('jsonschema').Validator;
+    var validator = new Validator();
 
-            // optional fields
-            timeout: false
-        }, body);
+    // /Change
+    validator.addSchema({
+        id: "/Change",
+        title: "Change",
+        type: "object",
+        properties: {
+            address: { type: "string" },
+            status: { type: "string" },
+            incarnationNumber: { type: "number" },
+            source: { type: "string" },
+
+            id: { type: "string" },
+            sourceIncarnationNumber: { type: "number" },
+
+            timestamp: { type: "number" }
+        },
+        required: [
+            "address",
+            "status",
+            "incarnationNumber",
+            "source"
+        ],
+        additionalProperties: false
+    });
+
+    // /JoinRequest
+    validator.addSchema({
+        id: "/JoinRequest",
+        title: "Join Request",
+        type: "object",
+        properties: {
+            app: { type: "string" },
+            source: { type: "string" },
+            incarnationNumber: { type: "number" },
+            timeout: { type: "number" }
+        },
+        required: [
+            "app",
+            "source",
+            "incarnationNumber"
+        ],
+        additionalProperties: false
+    });
+
+    // /JoinResponse
+    validator.addSchema({
+        id: "/JoinResponse",
+        title: "Join Response",
+        type: "object",
+        properties: {
+            app: { type: "string" },
+            coordinator: { type: "string" },
+            membership: {
+                type: "array",
+                items: {
+                    type: "object",
+                    properties: {
+                        source: { type: "string" },
+                        address: { type: "string" },
+                        status: { type: "string" },
+                        incarnationNumber: { type: "number" },
+
+                        timestamp: { type: "number" },
+                        sourceIncarnationNumber: { type: "number" }
+                    },
+                    required: [
+                        "source",
+                        "address",
+                        "status",
+                        "incarnationNumber"
+                    ],
+                    additionalProperties: false
+                }
+            },
+            membershipChecksum: { type: "number" }
+        },
+        required: [
+            "app",
+            "coordinator",
+            "membership",
+            "membershipChecksum"
+        ],
+        additionalProperties: false
+    });
+
+    // /PingRequest
+    validator.addSchema({
+        id: "/PingRequest",
+        title: "Ping Request",
+        type: "object",
+        properties: {
+            checksum: { type: "number" },
+            changes: {
+                type: "array",
+                items: {
+                    $ref: "/Change"
+                }
+            },
+            source: { type: "string" },
+            sourceIncarnationNumber: { type: "number" }
+        },
+        required: [
+            "checksum",
+            "changes",
+            "source",
+            "sourceIncarnationNumber"
+        ],
+        additionalProperties: false
+    });
+
+    // /PingResponse
+    validator.addSchema({
+        id: "/PingResponse",
+        title: "Ping Response",
+        type: "object",
+        properties: {
+            changes: {
+                type: "array",
+                items: {
+                    $ref: "/Change"
+                }
+            }
+        },
+        required: [
+            "changes",
+        ],
+        additionalProperties: false
+    });
+
+    // /PingReqRequest
+    validator.addSchema({
+        id: "/PingReqRequest",
+        title: "PingReq Request",
+        type: "object",
+        properties: {
+            checksum: { type: "number" },
+            changes: {
+                type: "array",
+                items: {
+                    $ref: "/Change"
+                }
+            },
+            source: { type: "string" },
+            sourceIncarnationNumber: { type: "number" },
+            target: { type: "string" }
+        },
+        required: [
+            "checksum",
+            "changes",
+            "source",
+            "sourceIncarnationNumber",
+            "target"
+        ],
+        additionalProperties: false
+    });
+
+    validators.request[events.Types.Join] = function joinRequestValidator(event, body) {
+        var result = validator.validate(body, "/JoinRequest", { propertyName: 'join-request' });
+        if (result.errors.length > 0) {
+            t.fail("join request", errDetails({
+                errors: _.pluck(result.errors, "stack"),
+                body: body
+            }));
+        }
     };
 
     validators.response[events.Types.Join] = function joinResponseValidator(event, body) {
-        testFields(t,tc, "join-response", {
-            // mandatory fields
-            app: true,
-            coordinator: true,
-            membership: true,
-            membershipChecksum: true
-        }, body);
-
-        testFields(t, tc, "join-response membership", {
-            // mandatory fields
-            source: true,
-            address: true,
-            status: true,
-            incarnationNumber: true,
-
-            // optional fields
-            timestamp: false,
-            // TODO ringpop-go has sourceIncarnation in here, this should
-            // probably be sourceIncarnationNumber. And we need to figure
-            // out if we want this information exchanged over the protocol
-            // or not.
-            sourceIncarnationNumber: false
-        }, body.membership[0]);
+        var result = validator.validate(body, "/JoinResponse", { propertyName: 'join-response' });
+        if (result.errors.length > 0) {
+            t.fail("join response", errDetails({
+                errors: _.pluck(result.errors, "stack"),
+                body: body
+            }));
+        }
     };
 
     validators.request[events.Types.Ping] = function pingRequestValidator(event, body) {
-        testFields(t, tc, "ping", {
-            checksum: true,
-            changes: true,
-            source: true,
-            sourceIncarnationNumber: true
-        }, body);
-
-        body.changes.forEach(function (change) {
-            testFields(t, tc, "change", {
-                // mandatory fields
-                address: true,
-                status: true,
-                incarnationNumber: true,
-                source: true,
-
-                // optional fields
-                sourceIncarnationNumber: false,
-                id: false,
-                timestamp: false
-            }, change);
-        });
+        var result = validator.validate(body, "/PingRequest", { propertyName: 'ping-request' });
+        if (result.errors.length > 0) {
+            t.fail("ping request", errDetails({
+                errors: _.pluck(result.errors, "stack"),
+                body: body
+            }));
+        }
     };
 
     validators.response[events.Types.Ping] = function pingResponseValidator(event, body) {
-        // validate pings
-        t.ok(body, "check for presence of ping response");
-        t.ok(body.changes, "check for presence of changes in ping response");
-        t.ok(Array.isArray(body.changes), "Expected an array of changes");
-
-        body.changes.forEach(function (change) {
-            testFields(t, tc, "change", {
-                // mandatory fields
-                address: true,
-                status: true,
-                incarnationNumber: true,
-                source: true,
-
-                // optional fields
-                sourceIncarnationNumber: false,
-                id: false,
-                timestamp: false
-            }, change);
-        });
+        var result = validator.validate(body, "/PingResponse", { propertyName: 'ping-response' });
+        if (result.errors.length > 0) {
+            t.fail("ping response", errDetails({
+                errors: _.pluck(result.errors, "stack"),
+                body: body
+            }));
+        }
     };
 
     validators.request[events.Types.PingReq] = function pingReqRequestValidator(event, body) {
-        testFields(t, tc, "ping-req", {
-            checksum: true,
-            changes: true,
-            source: true,
-            sourceIncarnationNumber: true,
-            target: true
-        }, body);
+        var result = validator.validate(body, "/PingReqRequest", { propertyName: 'ping-req-request' });
+        if (result.errors.length > 0) {
+            t.fail("ping-req Request", errDetails({
+                errors: _.pluck(result.errors, "stack"),
+                body: body
+            }));
+        }
     };
 
     return function (event) {
