@@ -134,30 +134,16 @@ function waitForPingResponses(t, tc, nodeIxs) {
 }
 
 function verifyChange(t, tc, change) {
-    var mandatoryFields = [
-      'address',
-      'status',
-      'incarnationNumber',
-      'source'
-    ];
+    testFields(t, tc, {
+        address: true,
+        status: true,
+        incarnationNumber: true,
+        source: true,
 
-    mandatoryFields.forEach(function (key) {
-        t.ok(key in change, "Missing field: " + key);
-    });
-
-    var allowedFields = [
-        'address',
-        'status',
-        'incarnationNumber',
-        'source',
-        'sourceIncarnationNumber',
-        'id',
-        'timestamp'
-    ];
-
-    Object.keys(change).forEach(function (key) {
-        t.notEqual(allowedFields.indexOf(key), -1, "Unknown field in change: " + key);
-    });
+        sourceIncarnationNumber: false,
+        id: false,
+        timestamp: false
+    }, change);
 }
 
 function waitForPingResponse(t, tc, nodeIx) {
