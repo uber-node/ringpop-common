@@ -118,7 +118,8 @@ function verifyChange(t, tc, change) {
         'incarnationNumber',
         'source',
         'sourceIncarnationNumber',
-        'id'
+        'id',
+        'timestamp'
     ];
 
     Object.keys(change).forEach(function (key) {
