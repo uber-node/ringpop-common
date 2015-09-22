@@ -52,19 +52,6 @@ function testFields(t, tc, name, spec, obj) {
     });
 }
 
-function verifyJoin(t, tc, join) {
-    t.ok(join, "Missing join information");
-    return testFields(t, tc, "join", {
-        // mandatory fields
-        app: true,
-        source: true,
-        incarnationNumber: true,
-
-        // optional fields
-        timeout: false
-    }, join);
-}
-
 function waitForJoins(t, tc, n) {
     n = _.min([6, n]);
     return function waitForJoins(list, cb) {
@@ -76,9 +63,6 @@ function waitForJoins(t, tc, n) {
         
         t.equals(joins.length, n, 'check number of joins', 
             errDetails({journal: _.pluck(list, 'endpoint')}));
-
-        var join = safeJSONParse(joins[0].arg3);
-        verifyJoin(t, tc, join);
 
         //XXX: a bit wonky to get sutIncarnationNumber like this
         tc.sutIncarnationNumber = safeJSONParse(list[0].arg3).incarnationNumber;
@@ -152,21 +136,6 @@ function waitForPingResponses(t, tc, nodeIxs) {
     });
 }
 
-function verifyChange(t, tc, change) {
-    testFields(t, tc, "change", {
-        // mandatory fields
-        address: true,
-        status: true,
-        incarnationNumber: true,
-        source: true,
-
-        // optional fields
-        sourceIncarnationNumber: false,
-        id: false,
-        timestamp: false
-    }, change);
-}
-
 function waitForPingResponse(t, tc, nodeIx) {
     return function waitForPingResponse(list, cb) {
         var pings = _.filter(list, {type: events.Types.Ping, direction: 'response'});
@@ -178,16 +147,6 @@ function waitForPingResponse(t, tc, nodeIx) {
             cb(null);
             return;
         }
-
-        // validate pings
-        pings.forEach(function (ping) {
-            var body = safeJSONParse(ping.res.arg3);
-            t.ok(body, "check for presence of ping response");
-            t.ok(body.changes, "check for presence of changes in ping response");
-            t.ok(Array.isArray(body.changes), "Expected an array of changes");
-
-            body.changes.forEach(verifyChange.bind(null, t, tc));
-        });
 
         _.pullAt(list, _.indexOf(list, pings[0]));
         cb(list);
@@ -205,32 +164,6 @@ function waitForJoinResponse(t, tc, nodeIx) {
             cb(null);
             return;
         }
-
-        // validate joins[0]
-        var joinResponse = safeJSONParse(joins[0].arg3);
-        testFields(t,tc, "join-response", {
-            // mandatory fields
-            app: true,
-            coordinator: true,
-            membership: true,
-            membershipChecksum: true
-        }, joinResponse);
-
-        testFields(t, tc, "join-response membership", {
-            // mandatory fields
-            source: true,
-            address: true,
-            status: true,
-            incarnationNumber: true,
-
-            // optional fields
-            timestamp: false,
-            // TODO ringpop-go has sourceIncarnation in here, this should
-            // probably be sourceIncarnationNumber. And we need to figure
-            // out if we want this information exchanged over the protocol
-            // or not.
-            sourceIncarnationNumber: false
-        }, joinResponse.membership[0]);
 
         _.pullAt(list, _.indexOf(list, joins[0]));
         cb(list);
@@ -407,16 +340,6 @@ function assertRoundRobinPings(t, tc, pings, millis) {
 function expectRoundRobinPings(t, tc, n) {
     return function expectRoundRobinPings(list, cb) {
         var pings = _.filter(list, {type: events.Types.Ping});
-
-        // validate pings[0]
-        var ping = safeJSONParse(pings[0].arg3);
-        testFields(t,tc,"ping", {
-            checksum: true,
-            changes: true,
-            source: true,
-            sourceIncarnationNumber: true
-        }, ping);
-
         pings = _.pluck(pings, "req.channel.hostPort");
 
         // expect ping every 200 ms
@@ -466,13 +389,102 @@ function enableNode(t, tc, ix, incarnationNumber) {
     return f;
 }
 
+function createValidateEvent(t, tc) {
+    var validators = {
+        'request': {},
+        'response': {}
+    };
+
+    validators.request[events.Types.Join] = function joinRequestValidator(event, body) {
+        return testFields(t, tc, "join", {
+            // mandatory fields
+            app: true,
+            source: true,
+            incarnationNumber: true,
+
+            // optional fields
+            timeout: false
+        }, body);
+    };
+
+    validators.response[events.Types.Join] = function joinResponseValidator(event, body) {
+        testFields(t,tc, "join-response", {
+            // mandatory fields
+            app: true,
+            coordinator: true,
+            membership: true,
+            membershipChecksum: true
+        }, body);
+
+        testFields(t, tc, "join-response membership", {
+            // mandatory fields
+            source: true,
+            address: true,
+            status: true,
+            incarnationNumber: true,
+
+            // optional fields
+            timestamp: false,
+            // TODO ringpop-go has sourceIncarnation in here, this should
+            // probably be sourceIncarnationNumber. And we need to figure
+            // out if we want this information exchanged over the protocol
+            // or not.
+            sourceIncarnationNumber: false
+        }, body.membership[0]);
+    };
+
+    validators.request[events.Types.Ping] = function pingRequestValidator(event, body) {
+        testFields(t, tc, "ping", {
+            checksum: true,
+            changes: true,
+            source: true,
+            sourceIncarnationNumber: true
+        }, body);
+    };
+
+    validators.response[events.Types.Ping] = function pingResponseValidator(event, body) {
+        // validate pings
+        t.ok(body, "check for presence of ping response");
+        t.ok(body.changes, "check for presence of changes in ping response");
+        t.ok(Array.isArray(body.changes), "Expected an array of changes");
+
+        body.changes.forEach(function (change) {
+            testFields(t, tc, "change", {
+                // mandatory fields
+                address: true,
+                status: true,
+                incarnationNumber: true,
+                source: true,
+
+                // optional fields
+                sourceIncarnationNumber: false,
+                id: false,
+                timestamp: false
+            }, change);
+        });
+    };
+
+    return function (event) {
+        var type = event.type;
+        var direction = event.direction;
+
+
+        var validator = validators[direction][type];
+        if (!validator) return; // nothing to test here
+
+        validator(event, safeJSONParse(event.arg3));
+    }; 
+}
+
 // validates a scheme on incoming events send by the real-node. A scheme is a collection of
 // functions from scheme.js. On every incoming event we try to progress through the scheme. 
 // further. When all the functions in the scheme have ran, the test is a success.
 function validate(t, tc, scheme, deadline) {
     var fns = scheme;
     var cursor = 0;
-    var eventList = []
+    var eventList = [];
+
+    tc.on('event', createValidateEvent(t, tc));
 
     timer = setTimeout(function() {
         t.fail('timeout');
@@ -618,7 +630,6 @@ module.exports = {
     sendPings: sendPings,
     waitForPingResponse: waitForPingResponse,
     waitForPingResponses: waitForPingResponses,
-    verifyChange: verifyChange,
 
     addFakeNode: addFakeNode,
     joinNewNode: joinNewNode,
@@ -627,4 +638,4 @@ module.exports = {
     waitForPingReqResponse: waitForPingReqResponse,
 
     piggyback: piggyback,
-}
+};
