@@ -528,6 +528,119 @@ function createValidateEvent(t, tc) {
         additionalProperties: false
     });
 
+    // /PingReqRequest
+    validator.addSchema({
+        id: "/StatsResponse",
+        title: "Admin Stats Response",
+        type: "object",
+        properties: {
+            hooks: { type: "null" },
+            membership: {
+                type: "object",
+                properties: {
+                    checksum: { type: "number" },
+                    members: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            properties: {
+                                address: { type: "string" },
+                                status: { $ref: "/Status" },
+                                incarnationNumber: { type: "number" },
+                                dampScore: { type: "number" }
+                            },
+                            required: [
+                                "address",
+                                "status",
+                                "incarnationNumber"
+                            ],
+                            additionalProperties: false
+                        }
+                    }
+                },
+                required: [
+                    "checksum",
+                    "members"
+                ],
+                additionalProperties: false
+            },
+            process: {
+                type: "object",
+                properties: {
+                    memory: {
+                        type: "object",
+                        properties: {
+                            rss: { type: "number" },
+                            heapTotal: { type: "number" },
+                            heapUsed: { type: "number" }
+                        },
+                        required: [
+                            "rss",
+                            "heapTotal",
+                            "heapUsed"
+                        ],
+                        additionalProperties: false
+                    },
+                    pid: { type: "number" }
+                },
+                required: [
+                    "memory",
+                    "pid"
+                ],
+                additionalProperties: false
+            },
+            protocol: {
+                type: "object",
+                properties: {
+                    timing: { type: "object" }, // TODO add definition of timing
+                    protocolRate: { type: "number" },
+                    clientRate: { type: "number" },
+                    serverRate: { type: "number" },
+                    totalRate: { type: "number" }
+                },
+                required: [
+                    "timing",
+                    "protocolRate",
+                    "clientRate",
+                    "serverRate",
+                    "totalRate"
+                ],
+                additionalProperties: false
+            },
+            ring: {
+                type: "object",
+                properties: {
+                    checksum: { type: "number" },
+                    servers: {
+                        type: "array",
+                        items: { type: "string" }
+                    }
+                },
+                required: [
+                    "checksum",
+                    "servers"
+                ],
+                additionalProperties: false
+            },
+            version: { type: "string" },
+            timestamp: { type: "number" },
+            uptime: { type: "number" },
+            tchannelVersion: { type: "string" },
+        },
+        required: [
+            "hooks",
+            "membership",
+            "process",
+            "protocol",
+            "ring",
+            "version",
+            "timestamp",
+            "uptime",
+            "tchannelVersion"
+        ],
+        additionalProperties: false
+    });
+
     function bodyVerification(name, schema) {
         return function (event, body) {
             var result = validator.validate(body, schema, { propertyName: name.replace(' ','-') });
@@ -547,6 +660,8 @@ function createValidateEvent(t, tc) {
     validators.response[events.Types.Ping] = bodyVerification("ping response", "/PingResponse");
 
     validators.request[events.Types.PingReq] = bodyVerification("ping-req request", "/PingReqRequest");
+
+    validators.response[events.Types.Stats] = bodyVerification("admin-status response", "/StatsResponse");
 
     return function (event) {
         var type = event.type;
