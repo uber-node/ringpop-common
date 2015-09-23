@@ -48,9 +48,9 @@ module.exports = {
     createCoordinator: createCoordinator,
 }
 
-require('./join-tests');
-require('./ping-tests');
+// require('./join-tests');
+// require('./ping-tests');
 require('./ping-req-tests');
     
-require('./network-blip-tests');
+// require('./network-blip-tests');
 // require('./revive-tests');

@@ -80,12 +80,14 @@ TestCoordinator.prototype.startAllFakeNodes = function startAllFakeNodes(callbac
     }, callback);
 };
 
-TestCoordinator.prototype.start = function start() {
+TestCoordinator.prototype.start = function start(callback) {
     var self = this;
-
+    callback = callback || function(){};
+    
     self.startAllFakeNodes(function onFakeNodesUp() {
         self.createHostsFile();
         self.startSUT();
+        callback();
     });
 };
 

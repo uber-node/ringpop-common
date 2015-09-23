@@ -210,10 +210,48 @@ function expectOnlyPingsAndPingReqs(t, tc) {
     }
 }
 
+
+// function assertUpToDateIncarnationNumbers(t, tc) {
+//     return [
+//         requestAdminStats(tc),
+//         waitForStatsCheckIncarnationNumbers(t, tc),
+//     ];
+// }
+
+// function waitForStatsCheckIncarnationNumber(t, tc) {
+//     return function waitForStatsCheckIncarnationNumber(list, cb) {
+//         var ix = _.findIndex(list, {type: events.Types.Stats});
+//         if (ix === -1) {
+//             cb(null);
+//             return;
+//         }
+
+//         var stats = safeJSONParse(list[ix].arg3);
+//         var members = stats.membership.members;
+
+//         members.forEach(function(member) {
+//             var found = false;
+//             tc.fakeNodes.forEach(function(fakeNode)) {
+//                 if (member.address === fakeNode.getHostPort()) {
+//                     found = true;
+
+//                 }
+//             }
+//             if (!found) {
+//                 f.fail('member not found in fake nodes', errDetails(members));
+//                 return;
+//             }
+//         });
+        
+//         _.pullAt(list, ix);
+//         cb(list);
+//     }
+// }
+
 function assertStats(t, tc, a, s, f) {
     return [
         requestAdminStats(tc),
-        waitForStats(t, tc, a, s, f)
+        waitForStatsCheckStatus(t, tc, a, s, f),
     ];
 }
 
@@ -228,8 +266,8 @@ function requestAdminStats(tc) {
     return f;
 }
 
-function waitForStats(t, tc, alive, suspect, faulty) {
-    return function waitForStats(list, cb) {
+function waitForStatsCheckStatus(t, tc, alive, suspect, faulty) {
+    return function waitForStatsCheckStatus(list, cb) {
         var ix = _.findIndex(list, {type: events.Types.Stats});
         if (ix === -1) {
             cb(null);
