@@ -33,8 +33,8 @@ function main() {
     }
 
 
-    // require('./join-tests');
-    // require('./ping-tests');
+    require('./join-tests');
+    require('./ping-tests');
     require('./ping-req-tests');
         
     // require('./network-blip-tests');
@@ -49,45 +49,10 @@ function getProgramInterpreter() {
     return programInterpreter;
 }
 
-// test is like normal tape test but also prints t.error.details if a fail occured
-var Test = require('tape');
-function test(msg, opts, cb) {
-    var t = Test(msg, opts, cb);
-    t.on('result', function(res) {
-        if(!res.ok && res.error.details !== undefined) {
-            console.log('============== error details ===============');
-            console.log();
-            console.log(typeof res.error.details === 'object' ? JSON.stringify(res.error.details, null, 2) : res.error.details);
-            console.log();
-            console.log('============================================');
-            console.log();
-        }
-    });
-}
-
-function test2(str, n, deadline, callback) {
-    test(str, function(t) {
-
-        var tc = new TestCoordinator({
-            sut: {
-                program: getProgramPath(),
-                interpreter: getProgramInterpreter(),
-            },
-            numNodes: n,
-        });
-
-        tc.start(function onTCStarted() {
-            dsl.validate(t, tc, callback(t, tc, n), deadline);
-        });
-    })
-}
-
 // ./util uses this so we want to export it before require('./util') happens somewhere
 module.exports = {
     getProgramInterpreter: getProgramInterpreter,
     getProgramPath: getProgramPath,
-    test: test,
-    test2: test2,
     // createCoordinator: createCoordinator,
 };
 
