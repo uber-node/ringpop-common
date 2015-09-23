@@ -352,11 +352,6 @@ function enableNode(t, tc, ix, incarnationNumber) {
 }
 
 function createValidateEvent(t, tc) {
-    var validators = {
-        'request': {},
-        'response': {}
-    };
-
     var Validator = jsonschema.Validator;
     var validator = new Validator();
 
@@ -377,6 +372,11 @@ function createValidateEvent(t, tc) {
             }
         };
     }
+
+    var validators = {
+        'request': {},
+        'response': {}
+    };
 
     // /protocol/join
     validators.request[events.Types.Join] = bodyVerification("join request", "/JoinRequest");
