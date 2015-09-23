@@ -362,283 +362,12 @@ function createValidateEvent(t, tc) {
     var Validator = require('jsonschema').Validator;
     var validator = new Validator();
 
-    validator.addSchema({
-        id: "/Status",
-        title: "Status",
-        enum: [
-            "alive",
-            "suspect",
-            "faulty"
-        ]
-    });
+    var glob = require('glob');
 
-    // /Change
-    validator.addSchema({
-        id: "/Change",
-        title: "Change",
-        type: "object",
-        properties: {
-            address: { type: "string" },
-            status: { $ref: "/Status" },
-            incarnationNumber: { type: "number" },
-            source: { type: "string" },
-
-            id: { type: "string" },
-            sourceIncarnationNumber: { type: "number" },
-
-            timestamp: { type: "number" }
-        },
-        required: [
-            "address",
-            "status",
-            "incarnationNumber",
-            "source"
-        ],
-        additionalProperties: false
-    });
-
-    // /JoinRequest
-    validator.addSchema({
-        id: "/JoinRequest",
-        title: "Join Request",
-        type: "object",
-        properties: {
-            app: { type: "string" },
-            source: { type: "string" },
-            incarnationNumber: { type: "number" },
-            timeout: { type: "number" }
-        },
-        required: [
-            "app",
-            "source",
-            "incarnationNumber"
-        ],
-        additionalProperties: false
-    });
-
-    // /JoinResponse
-    validator.addSchema({
-        id: "/JoinResponse",
-        title: "Join Response",
-        type: "object",
-        properties: {
-            app: { type: "string" },
-            coordinator: { type: "string" },
-            membership: {
-                type: "array",
-                items: {
-                    type: "object",
-                    properties: {
-                        source: { type: "string" },
-                        address: { type: "string" },
-                        status: { $ref: "/Status" },
-                        incarnationNumber: { type: "number" },
-
-                        timestamp: { type: "number" },
-                        sourceIncarnationNumber: { type: "number" }
-                    },
-                    required: [
-                        "source",
-                        "address",
-                        "status",
-                        "incarnationNumber"
-                    ],
-                    additionalProperties: false
-                }
-            },
-            membershipChecksum: { type: "number" }
-        },
-        required: [
-            "app",
-            "coordinator",
-            "membership",
-            "membershipChecksum"
-        ],
-        additionalProperties: false
-    });
-
-    // /PingRequest
-    validator.addSchema({
-        id: "/PingRequest",
-        title: "Ping Request",
-        type: "object",
-        properties: {
-            checksum: { type: "number" },
-            changes: {
-                type: "array",
-                items: {
-                    $ref: "/Change"
-                }
-            },
-            source: { type: "string" },
-            sourceIncarnationNumber: { type: "number" }
-        },
-        required: [
-            "checksum",
-            "changes",
-            "source",
-            "sourceIncarnationNumber"
-        ],
-        additionalProperties: false
-    });
-
-    // /PingResponse
-    validator.addSchema({
-        id: "/PingResponse",
-        title: "Ping Response",
-        type: "object",
-        properties: {
-            changes: {
-                type: "array",
-                items: {
-                    $ref: "/Change"
-                }
-            }
-        },
-        required: [
-            "changes",
-        ],
-        additionalProperties: false
-    });
-
-    // /PingReqRequest
-    validator.addSchema({
-        id: "/PingReqRequest",
-        title: "PingReq Request",
-        type: "object",
-        properties: {
-            checksum: { type: "number" },
-            changes: {
-                type: "array",
-                items: {
-                    $ref: "/Change"
-                }
-            },
-            source: { type: "string" },
-            sourceIncarnationNumber: { type: "number" },
-            target: { type: "string" }
-        },
-        required: [
-            "checksum",
-            "changes",
-            "source",
-            "sourceIncarnationNumber",
-            "target"
-        ],
-        additionalProperties: false
-    });
-
-    // /PingReqRequest
-    validator.addSchema({
-        id: "/StatsResponse",
-        title: "Admin Stats Response",
-        type: "object",
-        properties: {
-            hooks: { type: "null" },
-            membership: {
-                type: "object",
-                properties: {
-                    checksum: { type: "number" },
-                    members: {
-                        type: "array",
-                        items: {
-                            type: "object",
-                            properties: {
-                                address: { type: "string" },
-                                status: { $ref: "/Status" },
-                                incarnationNumber: { type: "number" },
-                                dampScore: { type: "number" }
-                            },
-                            required: [
-                                "address",
-                                "status",
-                                "incarnationNumber"
-                            ],
-                            additionalProperties: false
-                        }
-                    }
-                },
-                required: [
-                    "checksum",
-                    "members"
-                ],
-                additionalProperties: false
-            },
-            process: {
-                type: "object",
-                properties: {
-                    memory: {
-                        type: "object",
-                        properties: {
-                            rss: { type: "number" },
-                            heapTotal: { type: "number" },
-                            heapUsed: { type: "number" }
-                        },
-                        required: [
-                            "rss",
-                            "heapTotal",
-                            "heapUsed"
-                        ],
-                        additionalProperties: false
-                    },
-                    pid: { type: "number" }
-                },
-                required: [
-                    "memory",
-                    "pid"
-                ],
-                additionalProperties: false
-            },
-            protocol: {
-                type: "object",
-                properties: {
-                    timing: { type: "object" }, // TODO add definition of timing
-                    protocolRate: { type: "number" },
-                    clientRate: { type: "number" },
-                    serverRate: { type: "number" },
-                    totalRate: { type: "number" }
-                },
-                required: [
-                    "timing",
-                    "protocolRate",
-                    "clientRate",
-                    "serverRate",
-                    "totalRate"
-                ],
-                additionalProperties: false
-            },
-            ring: {
-                type: "object",
-                properties: {
-                    checksum: { type: "number" },
-                    servers: {
-                        type: "array",
-                        items: { type: "string" }
-                    }
-                },
-                required: [
-                    "checksum",
-                    "servers"
-                ],
-                additionalProperties: false
-            },
-            version: { type: "string" },
-            timestamp: { type: "number" },
-            uptime: { type: "number" },
-            tchannelVersion: { type: "string" },
-        },
-        required: [
-            "hooks",
-            "membership",
-            "process",
-            "protocol",
-            "ring",
-            "version",
-            "timestamp",
-            "uptime",
-            "tchannelVersion"
-        ],
-        additionalProperties: false
+    // load all json schema files and add them to the valicator
+    var schemaFiles = glob.sync("../schema/*.json",{cwd:__dirname});
+    schemaFiles.forEach(function (schemaFile) {
+        validator.addSchema(require(schemaFile));
     });
 
     function bodyVerification(name, schema) {
@@ -653,14 +382,18 @@ function createValidateEvent(t, tc) {
         };
     }
 
+    // /protocol/join
     validators.request[events.Types.Join] = bodyVerification("join request", "/JoinRequest");
     validators.response[events.Types.Join] = bodyVerification("join response", "/JoinResponse");
 
+    // /protovol/ping
     validators.request[events.Types.Ping] = bodyVerification("ping request", "/PingRequest");
     validators.response[events.Types.Ping] = bodyVerification("ping response", "/PingResponse");
 
+    // /protovol/ping-req
     validators.request[events.Types.PingReq] = bodyVerification("ping-req request", "/PingReqRequest");
 
+    // /admin/stats
     validators.response[events.Types.Stats] = bodyVerification("admin-status response", "/StatsResponse");
 
     return function (event) {

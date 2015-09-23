@@ -1,0 +1,25 @@
+{
+    "id": "/JoinRequest",
+    "title": "Join Request",
+    "type": "object",
+    "properties": {
+        "app": {
+            "type": "string"
+        },
+        "source": {
+            "type": "string"
+        },
+        "incarnationNumber": {
+            "type": "number"
+        },
+        "timeout": {
+            "type": "number"
+        }
+    },
+    "required": [
+        "app",
+        "source",
+        "incarnationNumber"
+    ],
+    "additionalProperties": false
+}

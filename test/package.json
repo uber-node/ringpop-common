@@ -11,6 +11,7 @@
     "cli-color": "^0.3.2",
     "commander": "^2.6.0",
     "farmhash": "^1.1.0",
+    "glob": "^5.0.14",
     "jshint": "^2.8.0",
     "jsonschema": "^1.0.2",
     "lodash": "^3.10.1",

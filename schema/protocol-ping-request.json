@@ -1,0 +1,29 @@
+{
+    "id": "/PingRequest",
+    "title": "Ping Request",
+    "type": "object",
+    "properties": {
+        "checksum": {
+            "type": "number"
+        },
+        "changes": {
+            "type": "array",
+            "items": {
+                "$ref": "/Change"
+            }
+        },
+        "source": {
+            "type": "string"
+        },
+        "sourceIncarnationNumber": {
+            "type": "number"
+        }
+    },
+    "required": [
+        "checksum",
+        "changes",
+        "source",
+        "sourceIncarnationNumber"
+    ],
+    "additionalProperties": false
+}
