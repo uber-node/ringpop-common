@@ -1,41 +1,40 @@
 var events = require('./events');
-test = require('./util').test;
 util = require('util');
-var createCoordinator = require('./it-tests').createCoordinator;
+var test2 = require('./test-util').test2;
 var dsl = require('./ringpop-assert');
+var prepareCluster = require('./test-util').prepareCluster;
 
-test('join real-node', function(t) {
-    var nNodes = 8;
-    var tc = createCoordinator(nNodes);
-    tc.start();
 
-    dsl.validate(t, tc, [
-        dsl.waitForJoins(t, tc, nNodes),
-        dsl.assertStats(t, tc, nNodes+1, 0, 0),
-        // dsl.addFakeNode(t, tc),
-        dsl.joinNewNode(t, tc, nNodes),
-        dsl.waitForJoinResponse(t, tc, nNodes),
-        dsl.wait(1000),
-        dsl.assertStats(t, tc, nNodes+2, 0, 0),
-        dsl.expectOnlyPings(t, tc),
-    ], 20000);
-});
-
-function testJoinCluster(nNodes, nJoins) {
-    test(util.format('join %d-node cluster', nNodes), function(t) {
-        var tc = createCoordinator(nNodes);
-        tc.start();
-
-        dsl.validate(t, tc, [
-            dsl.waitForJoins(t, tc, nJoins),
-            dsl.assertStats(t, tc, nNodes+1, 0, 0),
+function joinFakeCluster(n) {
+    test2('join cluster of 1+' + n + ' nodes', n, 20000, 
+        prepareCluster(function(t, tc, n) { return [
+            dsl.assertStats(t, tc, n+1, 0, 0),
             dsl.expectOnlyPings(t, tc),
-        ], 20000);
-    });
+        ];})
+    );
 }
 
-testJoinCluster(1, 1);
-testJoinCluster(2, 2);
-testJoinCluster(20, 6);
+joinFakeCluster(1);
+joinFakeCluster(2);
+joinFakeCluster(3);
+joinFakeCluster(4);
+joinFakeCluster(5);
+joinFakeCluster(6);
+joinFakeCluster(7);
+joinFakeCluster(8);
+joinFakeCluster(10);
+joinFakeCluster(20);
+joinFakeCluster(30);
+
+
+test2('join ringpop with fake node', 8, 20000, 
+    prepareCluster(function(t, tc, n) { return [
+        dsl.joinNewNode(t, tc, n),
+        dsl.waitForJoinResponse(t, tc, n),
+        dsl.wait(1000),
+        dsl.assertStats(t, tc, n+2, 0, 0),
+        dsl.expectOnlyPings(t, tc),
+    ];})
+);
 
 

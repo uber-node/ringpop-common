@@ -1,30 +1,9 @@
 var events = require('./events');
 test2 = require('./it-tests').test2;
 var dsl = require('./ringpop-assert');
-
-function prepareCluster(insert_fns) {
-    return function(t, tc, n) {
-        return [
-            dsl.waitForJoins(t, tc, n),
-            dsl.assertStats(t, tc, n+1, 0, 0),
-            insert_fns(t, tc, n),
-            dsl.expectOnlyPingsAndPingReqs(t, tc),
-        ];
-    }
-}
-
-function prepareWithStatus(ix, status, insert_fns) {
-    var sourceIx = 0;
-    if (ix == sourceIx) {
-        sourceIx = 1;
-    }
-
-    return prepareCluster(function(t, tc, n) { return [
-        dsl.sendPing(t, tc, sourceIx, {sourceIx: sourceIx, subjectIx: ix, status: status }),
-        dsl.waitForPingResponse(t, tc, sourceIx),
-        insert_fns(t, tc, n),
-    ];});
-}
+var test2 = require('./test-util').test2;
+var prepareCluster = require('./test-util').prepareCluster;
+var prepareWithStatus = require('./test-util').prepareWithStatus;
 
 test2('ping-req real-node with a disabled target', 8, 20000, 
     prepareCluster(function(t, tc, n) { return [

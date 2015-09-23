@@ -53,7 +53,6 @@ function getProgramInterpreter() {
 module.exports = {
     getProgramInterpreter: getProgramInterpreter,
     getProgramPath: getProgramPath,
-    // createCoordinator: createCoordinator,
 };
 
 if (require.main === module) {
