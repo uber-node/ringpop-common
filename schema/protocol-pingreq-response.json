@@ -1,0 +1,25 @@
+{
+    "id": "/PingReqResponse",
+    "title": "PingReq Request",
+    "type": "object",
+    "properties": {
+        "changes": {
+            "type": "array",
+            "items": {
+                "$ref": "/Change"
+            }
+        },
+        "pingStatus": {
+            "type": "boolean"
+        },
+        "target": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "changes",
+        "pingStatus",
+        "target"
+    ],
+    "additionalProperties": false
+}

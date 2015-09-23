@@ -390,6 +390,7 @@ function createValidateEvent(t, tc) {
 
     // /protovol/ping-req
     validators.request[events.Types.PingReq] = bodyVerification("ping-req request", "/PingReqRequest");
+    validators.response[events.Types.PingReq] = bodyVerification("ping-req response", "/PingReqResponse");
 
     // /admin/stats
     validators.response[events.Types.Stats] = bodyVerification("admin-status response", "/StatsResponse");
