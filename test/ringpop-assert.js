@@ -169,9 +169,6 @@ function waitForPingReqResponse(t, tc, nodeIx, targetIx, status) {
             'check target ping status of the response', 
             errDetails({"ping-req-response": arg3}));
 
-        t.ok(arg3.changes, "check presence of changes in pingReq response");
-        arg3.changes.forEach(verifyChange.bind(null, t, tc));
-
         _.pullAt(list, _.indexOf(list, pingReqs[0]));
         cb(list);
     }
