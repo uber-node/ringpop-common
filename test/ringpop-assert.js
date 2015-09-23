@@ -1,4 +1,6 @@
 var _ = require('lodash');
+var glob = require('glob');
+var jsonschema = require('jsonschema');
 var events = require('./events');
 var safeJSONParse = require('./util').safeParse;
 var util = require('util');
@@ -359,10 +361,9 @@ function createValidateEvent(t, tc) {
         'response': {}
     };
 
-    var Validator = require('jsonschema').Validator;
+    var Validator = jsonschema.Validator;
     var validator = new Validator();
 
-    var glob = require('glob');
 
     // load all json schema files and add them to the valicator
     var schemaFiles = glob.sync("../schema/*.json",{cwd:__dirname});
