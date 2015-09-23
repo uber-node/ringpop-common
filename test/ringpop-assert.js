@@ -395,6 +395,16 @@ function createValidateEvent(t, tc) {
     // /admin/stats
     validators.response[events.Types.Stats] = bodyVerification("admin-status response", "/StatsResponse");
 
+    // TODO endpoints to specify and test
+    // /admin/debugClear
+    // /admin/debugSet
+    // /admin/gossip
+    // /admin/join
+    // /admin/leave
+    // /admin/lookup
+    // /admin/reload
+    // /admin/tick
+
     return function (event) {
         var type = event.type;
         var direction = event.direction;
