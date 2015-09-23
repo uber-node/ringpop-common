@@ -328,7 +328,6 @@ function expectRoundRobinPings(t, tc, n) {
             'ping rounds should be randomized',
             errDetails({sliceFreqs: sliceFreqs}));
 
-
         cb(_.reject(list, {type: events.Types.Ping}));
     }
 }
@@ -360,7 +359,6 @@ function createValidateEvent(t, tc) {
 
     var Validator = jsonschema.Validator;
     var validator = new Validator();
-
 
     // load all json schema files and add them to the valicator
     var schemaFiles = glob.sync("../schema/*.json",{cwd:__dirname});
@@ -408,7 +406,6 @@ function createValidateEvent(t, tc) {
     return function (event) {
         var type = event.type;
         var direction = event.direction;
-
 
         var validator = validators[direction][type];
         if (!validator) return; // nothing to test here
