@@ -1,4 +1,6 @@
 var _ = require('lodash');
+var glob = require('glob');
+var jsonschema = require('jsonschema');
 var events = require('./events');
 var safeJSONParse = require('./util').safeParse;
 var util = require('util');
@@ -31,7 +33,7 @@ function waitForJoins(t, tc, n) {
         //XXX: a bit wonky to get sutIncarnationNumber like this
         tc.sutIncarnationNumber = safeJSONParse(list[0].arg3).incarnationNumber;
         cb(_.reject(list, {type: events.Types.Join}));
-    }
+    };
 }
 
 function waitForPingReqs(t, tc, n) {
@@ -112,10 +114,9 @@ function waitForPingResponse(t, tc, nodeIx) {
             return;
         }
 
-        // TODO(wieger): validate pings[0]
         _.pullAt(list, _.indexOf(list, pings[0]));
         cb(list);
-    }
+    };
 }
 
 function waitForJoinResponse(t, tc, nodeIx) {
@@ -130,10 +131,9 @@ function waitForJoinResponse(t, tc, nodeIx) {
             return;
         }
 
-        // TODO(wieger): validate joins[0]
         _.pullAt(list, _.indexOf(list, joins[0]));
         cb(list);
-    }
+    };
 }
 
 function sendPingReq(t, tc, nodeIx, targetIx, piggybackOpts) {
@@ -351,13 +351,76 @@ function enableNode(t, tc, ix, incarnationNumber) {
     return f;
 }
 
+function createValidateEvent(t, tc) {
+    var Validator = jsonschema.Validator;
+    var validator = new Validator();
+
+    // load all json schema files and add them to the valicator
+    var schemaFiles = glob.sync("../schema/*.json",{cwd:__dirname});
+    schemaFiles.forEach(function (schemaFile) {
+        validator.addSchema(require(schemaFile));
+    });
+
+    function bodyVerification(name, schema) {
+        return function (event, body) {
+            var result = validator.validate(body, schema, { propertyName: name.replace(' ','-') });
+            t.equals(result.errors.length, 0, "JSON Validation: " + name, errDetails({
+                errors: _.pluck(result.errors, "stack"),
+                body: body
+            }));
+        };
+    }
+
+    var validators = {
+        'request': {},
+        'response': {}
+    };
+
+    // /protocol/join
+    validators.request[events.Types.Join] = bodyVerification("join request", "/JoinRequest");
+    validators.response[events.Types.Join] = bodyVerification("join response", "/JoinResponse");
+
+    // /protovol/ping
+    validators.request[events.Types.Ping] = bodyVerification("ping request", "/PingRequest");
+    validators.response[events.Types.Ping] = bodyVerification("ping response", "/PingResponse");
+
+    // /protovol/ping-req
+    validators.request[events.Types.PingReq] = bodyVerification("ping-req request", "/PingReqRequest");
+    validators.response[events.Types.PingReq] = bodyVerification("ping-req response", "/PingReqResponse");
+
+    // /admin/stats
+    validators.response[events.Types.Stats] = bodyVerification("admin-status response", "/StatsResponse");
+
+    // TODO endpoints to specify and test
+    // /admin/debugClear
+    // /admin/debugSet
+    // /admin/gossip
+    // /admin/join
+    // /admin/leave
+    // /admin/lookup
+    // /admin/reload
+    // /admin/tick
+
+    return function (event) {
+        var type = event.type;
+        var direction = event.direction;
+
+        var validator = validators[direction][type];
+        if (!validator) return; // nothing to test here
+
+        validator(event, safeJSONParse(event.arg3));
+    }; 
+}
+
 // validates a scheme on incoming events send by the real-node. A scheme is a collection of
 // functions from scheme.js. On every incoming event we try to progress through the scheme. 
 // further. When all the functions in the scheme have ran, the test is a success.
 function validate(t, tc, scheme, deadline) {
     var fns = scheme;
     var cursor = 0;
-    var eventList = []
+    var eventList = [];
+
+    tc.on('event', createValidateEvent(t, tc));
 
     timer = setTimeout(function() {
         t.fail('timeout');
@@ -511,4 +574,4 @@ module.exports = {
     waitForPingReqResponse: waitForPingReqResponse,
 
     piggyback: piggyback,
-}
+};

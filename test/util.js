@@ -75,8 +75,6 @@ function range(start, end) {
     return res;
 }
 
-
-
 module.exports = {
     safeParse: safeParse,
     parseArg: parseArg,

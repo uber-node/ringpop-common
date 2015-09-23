@@ -57,7 +57,7 @@ function test(msg, opts, cb) {
         if(!res.ok && res.error.details !== undefined) {
             console.log('============== error details ===============');
             console.log();
-            console.log(res.error.details);
+            console.log(typeof res.error.details === 'object' ? JSON.stringify(res.error.details, null, 2) : res.error.details);
             console.log();
             console.log('============================================');
             console.log();

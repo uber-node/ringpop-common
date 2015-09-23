@@ -1,0 +1,17 @@
+{
+    "id": "/PingResponse",
+    "title": "Ping Response",
+    "type": "object",
+    "properties": {
+        "changes": {
+            "type": "array",
+            "items": {
+                "$ref": "/Change"
+            }
+        }
+    },
+    "required": [
+        "changes"
+    ],
+    "additionalProperties": false
+}
