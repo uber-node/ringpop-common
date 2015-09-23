@@ -364,12 +364,10 @@ function createValidateEvent(t, tc) {
     function bodyVerification(name, schema) {
         return function (event, body) {
             var result = validator.validate(body, schema, { propertyName: name.replace(' ','-') });
-            if (result.errors.length > 0) {
-                t.fail(name, errDetails({
-                    errors: _.pluck(result.errors, "stack"),
-                    body: body
-                }));
-            }
+            t.equals(result.errors.length, 0, "JSON Validation: " + name, errDetails({
+                errors: _.pluck(result.errors, "stack"),
+                body: body
+            }));
         };
     }
 
