@@ -1,5 +1,5 @@
 var events = require('./events');
-var test2 = require('./it-tests').test2;
+var test2 = require('./test-util').test2;
 var dsl = require('./ringpop-assert');
 
 test2('ringpop sends piggyback info in ping request', 7, 20000, function(t, tc, n) {
