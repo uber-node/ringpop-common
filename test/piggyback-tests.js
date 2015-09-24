@@ -24,10 +24,10 @@ test2('ringpop sends piggyback info in ping request', 7, 20000, function(t, tc, 
         }, "Test if piggybacked information is in ping", function (ping) {
             return ping.body &&
                 ping.body.changes &&
-                ping.body.changes.length == 1 &&
+                ping.body.changes.length === 1 &&
                 ping.body.changes[0] &&
-                ping.body.changes[0].source == tc.fakeNodes[0].getHostPort() &&
-                ping.body.changes[0].status == "suspect";
+                ping.body.changes[0].source === tc.fakeNodes[0].getHostPort() &&
+                ping.body.changes[0].status === "suspect";
         })
     ];
 });
@@ -54,10 +54,10 @@ test2('ringpop updates its dissimination list on pingreq', 7, 20000, function(t,
         }, "Test if piggybacked information is in ping", function (ping) {
             return ping.body &&
                 ping.body.changes &&
-                ping.body.changes.length == 1 &&
+                ping.body.changes.length === 1 &&
                 ping.body.changes[0] &&
-                ping.body.changes[0].source == tc.fakeNodes[0].getHostPort() &&
-                ping.body.changes[0].status == "suspect";
+                ping.body.changes[0].source === tc.fakeNodes[0].getHostPort() &&
+                ping.body.changes[0].status === "suspect";
         })
     ];
 });
@@ -86,10 +86,10 @@ test2('ringpop sends piggyback info in ping-req response', 7, 20000, function(t,
         }, "Test if piggybacked information is in pingreq response", function (ping) {
             return ping.body &&
                 ping.body.changes &&
-                ping.body.changes.length == 1 &&
+                ping.body.changes.length === 1 &&
                 ping.body.changes[0] &&
-                ping.body.changes[0].source == tc.fakeNodes[0].getHostPort() &&
-                ping.body.changes[0].status == "suspect";
+                ping.body.changes[0].source === tc.fakeNodes[0].getHostPort() &&
+                ping.body.changes[0].status === "suspect";
         })
     ];
 });
@@ -166,10 +166,10 @@ test2('ringpop sends piggyback info in ping response', 7, 20000, function(t, tc,
         }, "Test if piggybacked information is in ping response", function (ping) {
             return ping.body &&
                 ping.body.changes &&
-                ping.body.changes.length == 1 &&
+                ping.body.changes.length === 1 &&
                 ping.body.changes[0] &&
-                ping.body.changes[0].source == tc.fakeNodes[0].getHostPort() &&
-                ping.body.changes[0].status == "suspect";
+                ping.body.changes[0].source === tc.fakeNodes[0].getHostPort() &&
+                ping.body.changes[0].status === "suspect";
         })
     ];
 });
@@ -199,10 +199,10 @@ test2('ringpop sends piggyback info in ping-req request', 7, 20000, function(t, 
         }, "Test if piggybacked information is in ping", function (ping) {
             return ping.body &&
                 ping.body.changes &&
-                ping.body.changes.length == 1 &&
+                ping.body.changes.length === 1 &&
                 ping.body.changes[0] &&
-                ping.body.changes[0].source == tc.fakeNodes[0].getHostPort() &&
-                ping.body.changes[0].status == "suspect";
+                ping.body.changes[0].source === tc.fakeNodes[0].getHostPort() &&
+                ping.body.changes[0].status === "suspect";
         }),
 
         // consume other pingreq's
