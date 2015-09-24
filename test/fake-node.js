@@ -214,17 +214,19 @@ FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
 FakeNode.prototype.requestPingReq = function requestPingReq(target, callback, piggybackData) {
     var self = this;
 
-    var body = JSON.stringify({
+    var body = {
         source: self.getHostPort(),
         checksum: checksum(this.coordinator.getMembership()),
         changes: [],
         sourceIncarnationNumber: self.incarnationNumber,
         target: target,
-    });
+    };
 
     if (piggybackData !== undefined) {
         body.changes.push(piggybackData);
     }
+
+    body = JSON.stringify(body);
     
     self.channel.waitForIdentified({
         host: self.coordinator.sutHostPort

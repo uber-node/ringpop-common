@@ -101,8 +101,6 @@ function validateEventBody(t, tc, selector, msg, testFn) {
         var index = _.findIndex(list, selector);
         if (index < 0) return cb(null); // found no event
 
-        console.log("index:", index);
-
         t.ok(testFn(list[index]), msg, errDetails({
             body: list[index] && list[index].body
         }));
