@@ -36,6 +36,7 @@ function main() {
     require('./join-tests');
     require('./ping-tests');
     require('./ping-req-tests');
+    require('./piggyback-tests');
         
     // require('./network-blip-tests');
     // require('./revive-tests');

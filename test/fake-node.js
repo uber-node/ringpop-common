@@ -205,7 +205,7 @@ FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
 
                 var event = new events.ResponseEvent(res, arg2, arg3, self.getHostPort());
                 self.coordinator.emit('event', event);
-                callback();
+                callback(err, res, arg2, arg3);
             }
         );        
     });

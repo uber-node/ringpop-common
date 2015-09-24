@@ -1,3 +1,5 @@
+var safeJSONParse = require('./util').safeParse;
+
 var Types = {
     Join: 'Join',
     Ping: 'Ping',
@@ -33,6 +35,9 @@ function RequestEvent(req, arg2, arg3, receiver) {
     this.req = req;
     this.arg2 = arg2;
     this.arg3 = arg3;
+
+    this.head = safeJSONParse(arg2);
+    this.body = safeJSONParse(arg3);
 }
 
 function ResponseEvent(res, arg2, arg3, receiver) {
@@ -44,6 +49,9 @@ function ResponseEvent(res, arg2, arg3, receiver) {
     this.res = res;
     this.arg2 = arg2;
     this.arg3 = arg3;
+
+    this.head = safeJSONParse(arg2);
+    this.body = safeJSONParse(arg3);
 }
 
 module.exports = {

@@ -1,4 +1,5 @@
 var _ = require('lodash');
+var async = require('async');
 var glob = require('glob');
 var jsonschema = require('jsonschema');
 var events = require('./events');
@@ -50,6 +51,91 @@ function waitForPingReqs(t, tc, n) {
 
         cb(_.reject(list, {type: events.Types.PingReq, direction: 'request'}));
     }
+}
+
+function waitForEmptyPing(t, tc) {
+    // Waits for a ping with an empty changes list, and consumes all pings with changes in them
+    // usefull to wait for a 'stable' SUT before doing piggyback tests. Given that decay works in the SUT
+    return function waitForEmptyPing(list, cb) {
+        var pings = _.filter(list, {
+            type: events.Types.Ping,
+            direction: 'request'
+        });
+
+        if (pings.length === 0) {
+            // there is no ping, so by definition there will be no empty ping
+            return cb(null);
+        }
+
+        var nonEmptyPings = pings.filter(function (ping) {
+            return ping.body.changes && ping.body.changes.length > 0;
+        });
+
+        if (pings.length === nonEmptyPings.length) {
+            // all pings are non-empty
+            return cb(null);
+        }
+
+        // remove all pings that have changes piggy-backed
+        // list = list.filter(function (item) {
+        //     return !(
+        //         item.type === events.Types.Ping &&
+        //         item.direction === 'request' &&
+        //         item.body.changes &&
+        //         item.body.changes.length > 0
+        //     );
+        // });
+        
+        // remove all pings
+        list = _.reject(list, {
+            type: events.Types.Ping,
+            direction: 'request'
+        });
+
+        return cb(list);
+    };
+}
+
+function validateEventBody(t, tc, selector, msg, testFn) {
+    return function validateEventBody(list, cb) {
+        var index = _.findIndex(list, selector);
+        if (index < 0) return cb(null); // found no event
+
+        console.log("index:", index);
+
+        t.ok(testFn(list[index]), msg, errDetails({
+            body: list[index] && list[index].body
+        }));
+        list.splice(index, 1); // remove tested item from event list
+        return cb(list);
+    };
+}
+
+// prefered method since it should be faster, but need to send the correct checksum
+// this has the benefit of having checksum validation as well.
+function drainSUTDissemination(t, tc) {
+    return function drainSUTDissemination(list, cb){
+        var lastPing = null;
+        // use the first fake node to send all the pings needed
+        async.doWhilst(function sendPing(callback) {
+            tc.fakeNodes[0].requestPing(function (err, res, arg2, arg3) {
+                if (err) return callback(err);
+
+                lastPing = safeJSONParse(arg3);
+                console.dir(lastPing);
+                if (!lastPing) return callback(new Error("No ping body received"));
+
+                return callback();
+            });
+        }, function testIfPingIsEmpty() {
+            return lastPing.changes.length === 0;
+        }, function done(err) {
+            // throw err for now when present since cb is not the typical err first callback right now
+            if (err) throw err;
+
+            console.log(list.length);
+        });
+    };
 }
 
 function joinNewNode(t, tc, nodeIx) {
@@ -549,6 +635,9 @@ module.exports = {
     
     waitForJoins: waitForJoins,
     waitForPingReqs: waitForPingReqs,
+    waitForEmptyPing: waitForEmptyPing,
+    // drainSUTDissemination: drainSUTDissemination,
+    validateEventBody: validateEventBody,
     
     sendJoin: sendJoin,
     sendPing: sendPing,
