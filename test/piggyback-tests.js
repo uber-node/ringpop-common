@@ -28,9 +28,7 @@ test2('ringpop sends piggyback info in ping request', 7, 20000, function(t, tc, 
                 ping.body.changes[0] &&
                 ping.body.changes[0].source == tc.fakeNodes[0].getHostPort() &&
                 ping.body.changes[0].status == "suspect";
-        }),
-
-        dsl.expectOnlyPings(t, tc),
+        })
     ];
 });
 
@@ -49,7 +47,6 @@ test2('ringpop sends piggyback info in ping response', 7, 20000, function(t, tc,
         }),
         dsl.waitForPingResponse(t, tc, 0),
 
-
         // Send ping and validate the body
         dsl.sendPing(t, tc, 2),
         dsl.validateEventBody(t, tc, {
@@ -62,9 +59,7 @@ test2('ringpop sends piggyback info in ping response', 7, 20000, function(t, tc,
                 ping.body.changes[0] &&
                 ping.body.changes[0].source == tc.fakeNodes[0].getHostPort() &&
                 ping.body.changes[0].status == "suspect";
-        }),
-
-        dsl.expectOnlyPings(t, tc),
+        })
     ];
 });
 
@@ -94,9 +89,7 @@ test2('ringpop updates its dissimination list on pingreq', 7, 20000, function(t,
                 ping.body.changes[0] &&
                 ping.body.changes[0].source == tc.fakeNodes[0].getHostPort() &&
                 ping.body.changes[0].status == "suspect";
-        }),
-
-        dsl.expectOnlyPings(t, tc),
+        })
     ];
 });
 
@@ -117,9 +110,7 @@ test2('ringpop piggybacking decays', 7, 20000, function(t, tc, n) {
 
         // if the SUT decays the updates it will start pinging with 0 updates at some point
         // TODO do this with a set number of pings to the SUT to speed up the test
-        dsl.waitForEmptyPing(t, tc),
-
-        dsl.expectOnlyPings(t, tc),
+        dsl.waitForEmptyPing(t, tc)
     ];
 });
 
@@ -147,9 +138,7 @@ test2('ringpop piggybacking should ignore updates when it already knows about', 
             return !ping.body ||
                 !ping.body.changes ||
                 ping.body.changes.length === 0;
-        }),
-
-        dsl.expectOnlyPings(t, tc),
+        })
     ];
 });
 
