@@ -100,3 +100,26 @@ test2('ringpop updates its dissimination list on pingreq', 7, 20000, function(t,
     ];
 });
 
+test2('ringpop piggybacking decays', 7, 20000, function(t, tc, n) {
+    return [
+        dsl.waitForJoins(t, tc, n),
+        dsl.assertStats(t, tc, n+1, 0, 0),
+        // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
+        dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
+
+        // send information to be piggy backed
+        dsl.sendPing(t, tc, 0, {
+            sourceIx: 0,
+            subjectIx: 1,
+            status: 'suspect',
+        }),
+        dsl.waitForPingResponse(t, tc, 0),
+
+        // if the SUT decays the updates it will start pinging with 0 updates at some point
+        // TODO do this with a set number of pings to the SUT to speed up the test
+        dsl.waitForEmptyPing(t, tc),
+
+        dsl.expectOnlyPings(t, tc),
+    ];
+});
+
