@@ -9,6 +9,9 @@
   "dependencies": {
     "cli-color": "^0.3.2",
     "commander": "^2.6.0",
-    "farmhash": "^1.1.0"
+    "farmhash": "^1.1.0",
+    "zero-config": "^5.0.0",
+    "grafana-dash-gen": "uber/grafana-dash-gen#v1.0.1",
+    "strformat": "^0.0.7"
   }
 }
