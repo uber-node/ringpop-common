@@ -1,7 +1,7 @@
 {
     "grafana": {
         "cookie": "auth-openid=<your cookie here>",
-        "url": "https://grafana-dash-url"
+        "url": "https://grafana.example.com/grafana2/api/dashboards/db/"
     },
     "gen-dashboard": {
         "dashboard-title": "my-ringpop-dashboard",
