@@ -3,11 +3,23 @@
     "title": "Ping Response",
     "type": "object",
     "properties": {
+        "checksum": {
+            "type": "number"
+        },
         "changes": {
             "type": "array",
             "items": {
                 "$ref": "/Change"
             }
+        },
+        "source": {
+            "type": "string"
+        },
+        "sourceIncarnationNumber": {
+            "type": "number"
+        },
+        "target": {
+            "type": "string"
         }
     },
     "required": [
