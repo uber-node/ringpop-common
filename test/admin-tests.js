@@ -2,11 +2,13 @@ var events = require('./events');
 var test2 = require('./test-util').test2;
 var dsl = require('./ringpop-assert');
 
-// endpoints
-// /admin/debugClear
-// /admin/debugSet
-// /admin/lookup
-// /admin/stats
+// TODO endpoints
+//   /admin/debugClear (NOOP in go, toggle between ping logs in node2)
+//   /admin/debugSet
+// node only:
+//   /admin/join
+//   /admin/leave
+//   /admin/reload
 
 test2('endpoint: /admin/gossip/stop', 7, 5000, function(t, tc, n) {
     return [
@@ -104,6 +106,24 @@ test2('endpoint: /admin/lookup', 7, 5000, function(t, tc, n) {
             direction: 'response'
         }, "Wait for AdminLookup response", function (response) {
             // TODO test if the key is mapped to the right node
+            return true;
+        }),
+
+        dsl.expectOnlyPings(t, tc)
+    ];
+});
+
+test2('endpoint: /admin/stats', 7, 5000, function(t, tc, n) {
+    return [
+        dsl.waitForJoins(t, tc, n),
+        dsl.assertStats(t, tc, n+1, 0, 0),
+
+        dsl.callEndpoint(t, tc, '/admin/stats'),
+        dsl.validateEventBody(t, tc, {
+            type: events.Types.Stats,
+            direction: 'response'
+        }, "Wait for Stats response", function (response) {
+            // TODO do validation of specific values, the payload structure is already validated
             return true;
         }),
 
