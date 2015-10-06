@@ -214,6 +214,7 @@ FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
 FakeNode.prototype.requestPingReq = function requestPingReq(target, callback, piggybackData) {
     var self = this;
 
+
     var body = {
         source: self.getHostPort(),
         checksum: checksum(this.coordinator.getMembership()),

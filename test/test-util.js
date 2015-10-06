@@ -20,21 +20,22 @@ function test(msg, opts, cb) {
     });
 }
 
-function test2(str, n, deadline, callback) {
-    test(str, function(t) {
-
-        var tc = new TestCoordinator({
-            sut: {
-                program: getProgramPath(),
-                interpreter: getProgramInterpreter(),
-            },
-            numNodes: n,
-        });
-
-        tc.start(function onTCStarted() {
-            dsl.validate(t, tc, callback(t, tc, n), deadline);
-        });
-    })
+function test2(str, ns, deadline, callback) {
+    ns.forEach(function(n) {
+        test('cluster-size ' + n + ': ' + str, function(t) {
+            var tc = new TestCoordinator({
+                sut: {
+                    program: getProgramPath(),
+                    interpreter: getProgramInterpreter(),
+                },
+                numNodes: n,
+            });
+        
+            tc.start(function onTCStarted() {
+                dsl.validate(t, tc, callback(t, tc, n), deadline);
+            });
+        })
+    });
 }
 
 function prepareCluster(insert_fns) {
@@ -61,9 +62,12 @@ function prepareWithStatus(ix, status, insert_fns) {
     ];});
 }
 
+var clusterSizes = [1, 2, 3, 4, 5, 6, 7, 10, 21, 25, 30];
+
 module.exports = {
     test: test,
     test2: test2,
+    clusterSizes: clusterSizes,
     prepareCluster: prepareCluster,
     prepareWithStatus: prepareWithStatus,
 }

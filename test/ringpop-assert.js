@@ -332,49 +332,82 @@ function callEndpoint(t, tc, endpoint, body, validateEvent) {
     };
 }
 
-
-// function assertUpToDateIncarnationNumbers(t, tc) {
-//     return [
-//         requestAdminStats(tc),
-//         waitForStatsCheckIncarnationNumbers(t, tc),
-//     ];
-// }
-
-// function waitForStatsCheckIncarnationNumber(t, tc) {
-//     return function waitForStatsCheckIncarnationNumber(list, cb) {
-//         var ix = _.findIndex(list, {type: events.Types.Stats});
-//         if (ix === -1) {
-//             cb(null);
-//             return;
-//         }
-
-//         var stats = safeJSONParse(list[ix].arg3);
-//         var members = stats.membership.members;
-
-//         members.forEach(function(member) {
-//             var found = false;
-//             tc.fakeNodes.forEach(function(fakeNode)) {
-//                 if (member.address === fakeNode.getHostPort()) {
-//                     found = true;
-
-//                 }
-//             }
-//             if (!found) {
-//                 f.fail('member not found in fake nodes', errDetails(members));
-//                 return;
-//             }
-//         });
-        
-//         _.pullAt(list, ix);
-//         cb(list);
-//     }
-// }
-
-function assertStats(t, tc, a, s, f) {
+function assertCorrectIncarnationNumbers(t, tc) {
     return [
         requestAdminStats(tc),
-        waitForStatsCheckStatus(t, tc, a, s, f),
+        waitForStatsAssertCorrectIncarnationNumbers(t, tc),
     ];
+}
+
+function waitForStatsAssertCorrectIncarnationNumbers(t, tc) {
+    return function waitForStatsAssertCorrectIncarnationNumbers(list, cb) {
+        var ix = _.findIndex(list, {type: events.Types.Stats});
+        if (ix === -1) {
+            cb(null);
+            return;
+        }
+
+        var stats = safeJSONParse(list[ix].arg3);
+        var statsMembers = stats.membership.members;
+        tc.fakeNodes.forEach(function(fakeNode) {
+            // find member i in statsMembers
+            var ix = _.findIndex(statsMembers, {address: fakeNode.getHostPort()});
+            statsMembers[ix];
+            t.equal(statsMembers[ix].incarnationNumber, fakeNode.incarnationNumber, 
+                'same incarnationNumber ' + fakeNode.incarnationNumber, 
+                errDetails({ expected: fakeNode.incarnationNumber, received: statsMembers[ix]}));
+        });
+
+        _.pullAt(list, ix);
+        cb(list);
+    }
+}
+
+
+// members = {ix: {expected_field: 'expected_value', ...}, ix2: {...}, ... }
+function assertMembership(t, tc, members) {
+    return [
+        requestAdminStats(tc),
+        waitForStatsAssertMembership(t, tc, members),
+    ];
+}
+
+function waitForStatsAssertMembership(t, tc, members) {
+    return function waitForStatsAssertMembership(list, cb) {
+        var ix = _.findIndex(list, {type: events.Types.Stats});
+        if (ix === -1) {
+            cb(null);
+            return;
+        }
+
+        var stats = safeJSONParse(list[ix].arg3);
+        var statsMembers = stats.membership.members;
+        _.forEach(members, function(member, i) {
+            // find member i in statsMembers
+            var ix = _.findIndex(statsMembers, {address: tc.fakeNodes[i].getHostPort()});
+            received = statsMembers[ix];
+            expected = member;
+            _.forEach(member, function(value, field) {
+                t.equal(statsMembers[ix][field], value, 'assert membership', errDetails({ expected: expected, received: received}));
+            });
+        });
+
+        _.pullAt(list, ix);
+        cb(list);
+    }
+}
+
+function assertStats(t, tc, a, s, f, members) {
+    var result = [
+        requestAdminStats(tc),
+        waitForStatsAssertStatus(t, tc, a, s, f),
+    ];
+
+    if (members !== undefined) {
+        result.push(assertMembership(t, tc, members));
+    }
+
+    return result;
 }
 
 
@@ -388,8 +421,8 @@ function requestAdminStats(tc) {
     return f;
 }
 
-function waitForStatsCheckStatus(t, tc, alive, suspect, faulty) {
-    return function waitForStatsCheckStatus(list, cb) {
+function waitForStatsAssertStatus(t, tc, alive, suspect, faulty) {
+    return function waitForStatsAssertStatus(list, cb) {
         var ix = _.findIndex(list, {type: events.Types.Stats});
         if (ix === -1) {
             cb(null);
@@ -409,6 +442,55 @@ function waitForStatsCheckStatus(t, tc, alive, suspect, faulty) {
             t.fail('full stats check', errDetails(members));
         }
 
+        // check inc no of fakeNodes agains admin/stats
+        var stats = stats.membership.members;
+        tc.fakeNodes.forEach(function(fakeNode) {
+            // find member i in members
+            var memberIx = _.findIndex(members, {address: fakeNode.getHostPort()});
+            // check memberIx != -1
+            var member = members[memberIx];
+            t.equal(member.incarnationNumber, fakeNode.incarnationNumber, 
+                'same incarnationNumber ' + fakeNode.incarnationNumber, 
+                errDetails({ expected: fakeNode.incarnationNumber, received: member}));
+        });
+
+        // check inc no of real-node against admin/stats
+        var memberIx = _.findIndex(members, {address: tc.sutHostPort});
+        var member = members[memberIx];
+        t.equal(member.incarnationNumber, tc.sutIncarnationNumber, 
+            'same incarnationNumber as sut ' + tc.sutIncarnationNumber, 
+            errDetails({ expected: tc.sutIncarnationNumber, received: member}));
+
+
+        _.pullAt(list, ix);
+        cb(list);
+    }
+}
+
+function assertBumpedIncarnationNumber(t, tc) {
+    return [
+        requestAdminStats(tc),
+        waitForStatsAssertBumpedIncarnationNumber(t, tc),
+    ];
+}
+
+function waitForStatsAssertBumpedIncarnationNumber(t, tc) {
+    return function waitForStatsAssertBumpedIncarnationNumber(list, cb) {
+        var ix = _.findIndex(list, {type: events.Types.Stats});
+        if (ix === -1) {
+            cb(null);
+            return;
+        }
+
+        var stats = safeJSONParse(list[ix].arg3);
+        var members = stats.membership.members;        
+        var memberIx = _.findIndex(members, {address: tc.sutHostPort});
+        var member = members[memberIx];
+        t.true(member.incarnationNumber > tc.sutIncarnationNumber, 
+            'sut bumped incarnation number to ' + member.incarnationNumber, 
+            errDetails({ old: tc.sutIncarnationNumber, new: member.incarnationNumber}));
+        tc.sutIncarnationNumber = member.incarnationNumber;
+
         _.pullAt(list, ix);
         cb(list);
     }
@@ -417,7 +499,7 @@ function waitForStatsCheckStatus(t, tc, alive, suspect, faulty) {
 function assertRoundRobinPings(t, tc, pings, millis) {
     return [
         wait(millis),
-        expectRoundRobinPings(t, tc, pings)
+        expectRoundRobinPings(t, tc, pings),
     ];
 }
 
@@ -604,34 +686,6 @@ function validate(t, tc, scheme, deadline) {
 
 var uuid = require('node-uuid');
 
-// function piggyback(tc, sourceIx, subjectIx, status, id) {
-//     return function() {
-//         update = {};
-//         update.id = id || uuid.v4();
-       
-//         if(sourceIx === 'sut') { 
-//             update.source = tc.sutHostPort;
-//             update.sourceIncarnationNumber = 99999999;
-//         } else {
-//             update.source = tc.fakeNodes[sourceIx].getHostPort();    
-//             update.sourceIncarnationNumber = tc.fakeNodes[sourceIx].incarnationNumber;
-//         }
-
-//         if(subjectIx === 'sut') {
-//             update.address = tc.sutHostPort;
-//             update.sourceIncarnationNumber = 99999999;
-//         } else {
-//             update.address = tc.fakeNodes[subjectIx].getHostPort();
-//             update.incarnationNumber = tc.fakeNodes[subjectIx].incarnationNumber;
-//         }
-        
-//         update.status = status;
-
-//         console.log(update);
-//         return update;
-//     }
-// }
-
 // example opts = {
 //    sourceIx: 0,
 //    subjectIx: 1,
@@ -647,7 +701,7 @@ function piggyback(tc, opts) {
     update = {};
     update.id = opts.id || uuid.v4();
     update.status = opts.status;
-    
+
     if(opts.sourceIx === 'sut') { 
         update.source = tc.sutHostPort;
         update.sourceIncarnationNumber = tc.sutIncarnationNumber;
@@ -670,6 +724,9 @@ function piggyback(tc, opts) {
 
     if(opts.subjectIncNoDelta !== undefined) {
         update.incarnationNumber += opts.subjectIncNoDelta;
+        if(opts.subjectIncNoDelta > 0) {
+            tc.fakeNodes[opts.subjectIx].incarnationNumber += opts.subjectIncNoDelta;
+        }
     }
 
     return update;
@@ -699,6 +756,9 @@ module.exports = {
     
     assertRoundRobinPings: assertRoundRobinPings,
     assertStats: assertStats,
+    assertMembership: assertMembership,
+    assertCorrectIncarnationNumbers: assertCorrectIncarnationNumbers,
+    assertBumpedIncarnationNumber: assertBumpedIncarnationNumber,
     
     disableNode: disableNode,
     enableNode: enableNode,
@@ -714,4 +774,5 @@ module.exports = {
     waitForPingReqResponse: waitForPingReqResponse,
 
     piggyback: piggyback,
+
 };

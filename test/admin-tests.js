@@ -1,6 +1,7 @@
 var events = require('./events');
 var test2 = require('./test-util').test2;
 var dsl = require('./ringpop-assert');
+var clusterSizes = require('./test-util').clusterSizes;
 
 // TODO endpoints
 //   /admin/debugClear (NOOP in go, toggle between ping logs in node2)
@@ -8,7 +9,7 @@ var dsl = require('./ringpop-assert');
 // node only:
 //   /admin/reload
 
-test2('endpoint: /admin/gossip/stop', 7, 5000, function(t, tc, n) {
+test2('endpoint: /admin/gossip/stop', clusterSizes, 5000, function(t, tc, n) {
     return [
         dsl.waitForJoins(t, tc, n),
         dsl.assertStats(t, tc, n+1, 0, 0),
@@ -28,7 +29,7 @@ test2('endpoint: /admin/gossip/stop', 7, 5000, function(t, tc, n) {
     ];
 });
 
-test2('endpoint: /admin/gossip/start', 7, 5000, function(t, tc, n) {
+test2('endpoint: /admin/gossip/start', clusterSizes, 5000, function(t, tc, n) {
     return [
         dsl.waitForJoins(t, tc, n),
         dsl.assertStats(t, tc, n+1, 0, 0),
@@ -59,7 +60,7 @@ test2('endpoint: /admin/gossip/start', 7, 5000, function(t, tc, n) {
     ];
 });
 
-test2('endpoint: /admin/gossip/tick', 7, 5000, function(t, tc, n) {
+test2('endpoint: /admin/gossip/tick', clusterSizes, 5000, function(t, tc, n) {
     return [
         dsl.waitForJoins(t, tc, n),
         dsl.assertStats(t, tc, n+1, 0, 0),
@@ -94,7 +95,7 @@ test2('endpoint: /admin/gossip/tick', 7, 5000, function(t, tc, n) {
 });
 
 var lookupKey = 'Hello World ' + Math.random();
-test2('endpoint: /admin/lookup ('+lookupKey+')', 7, 5000, function(t, tc, n) {
+test2('endpoint: /admin/lookup ('+lookupKey+')', clusterSizes, 5000, function(t, tc, n) {
     return [
         dsl.waitForJoins(t, tc, n),
         dsl.assertStats(t, tc, n+1, 0, 0),
@@ -113,7 +114,7 @@ test2('endpoint: /admin/lookup ('+lookupKey+')', 7, 5000, function(t, tc, n) {
     ];
 });
 
-test2('endpoint: /admin/stats', 7, 5000, function(t, tc, n) {
+test2('endpoint: /admin/stats', clusterSizes, 5000, function(t, tc, n) {
     return [
         dsl.waitForJoins(t, tc, n),
         dsl.assertStats(t, tc, n+1, 0, 0),
@@ -131,7 +132,7 @@ test2('endpoint: /admin/stats', 7, 5000, function(t, tc, n) {
     ];
 });
 
-test2('endpoint: /admin/member/leave', 7, 5000, function(t, tc, n) {
+test2('endpoint: /admin/member/leave', clusterSizes, 5000, function(t, tc, n) {
     return [
         dsl.waitForJoins(t, tc, n),
         dsl.assertStats(t, tc, n+1, 0, 0),
@@ -165,7 +166,7 @@ test2('endpoint: /admin/member/leave', 7, 5000, function(t, tc, n) {
     ];
 });
 
-test2('endpoint: /admin/member/join', 7, 10000, function(t, tc, n) {
+test2('endpoint: /admin/member/join', clusterSizes, 10000, function(t, tc, n) {
     return [
         dsl.waitForJoins(t, tc, n),
         dsl.assertStats(t, tc, n+1, 0, 0),

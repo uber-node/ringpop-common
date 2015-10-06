@@ -36,8 +36,10 @@ function main() {
     require('./join-tests');
     require('./ping-tests');
     require('./ping-req-tests');
+    require('./incarnation-no-tests');
+    
     require('./piggyback-tests');
-    require('./admin-tests');        
+    require('./admin-tests');
 
     // require('./network-blip-tests');
     // require('./revive-tests');
