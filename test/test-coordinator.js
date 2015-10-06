@@ -162,6 +162,23 @@ TestCoordinator.prototype.getAdminStats = function getAdminStats(callback) {
     );
 };
 
+TestCoordinator.prototype.callEndpoint = function callEndpoint(endpoint, body, callback) {
+    var self = this;
+
+    self.adminChannel.request({serviceName: 'ringpop'}).send(endpoint, null, body?JSON.stringify(body):null,
+        function(err, res, arg2, arg3) {
+            if (err) {
+                console.log("CALL ENDPOINT ERROR", err, res);
+                return;
+            }
+
+            var event = new nodeEvents.ResponseEvent(res, arg2, arg3);
+            callback(event);
+            self.emit('event', event);
+        }
+    );
+};
+
 TestCoordinator.prototype.getMembership = function getMembership() {
     return this.getFakeNodes().map(function(node) {
         return node.toMemberInfo();

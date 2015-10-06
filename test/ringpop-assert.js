@@ -53,6 +53,24 @@ function waitForPingReqs(t, tc, n) {
     }
 }
 
+function waitForPing(t, tc) {
+    return function waitForPing(list, cb) {
+        var index = _.findIndex(list, {
+            type: events.Types.Ping,
+            direction: 'request'
+        });
+
+        if (index === -1) {
+            // there is no ping, continue
+            return cb(null);
+        }
+
+        list.splice(index, 1); // remove ping from list
+
+        return cb(list);
+    };
+}
+
 function waitForEmptyPing(t, tc) {
     // Waits for a ping with an empty changes list, and consumes all pings with changes in them
     // usefull to wait for a 'stable' SUT before doing piggyback tests. Given that decay works in the SUT
@@ -75,16 +93,6 @@ function waitForEmptyPing(t, tc) {
             // all pings are non-empty
             return cb(null);
         }
-
-        // remove all pings that have changes piggy-backed
-        // list = list.filter(function (item) {
-        //     return !(
-        //         item.type === events.Types.Ping &&
-        //         item.direction === 'request' &&
-        //         item.body.changes &&
-        //         item.body.changes.length > 0
-        //     );
-        // });
         
         // remove all pings
         list = _.reject(list, {
@@ -262,7 +270,9 @@ function waitForPingReqResponse(t, tc, nodeIx, targetIx, status) {
 // with a callback that manipulates the requested object
 // function waitForResponse(t, tc, type, nodeIx, validateResponseCB) {}
 
-function expectOnlyPings(t, tc) {
+// count is optional, when a number it will fail if there are pings
+
+function expectOnlyPings(t, tc, count) {
     return function expectOnlyPings(list, cb) {
         var pings = _.filter(list, {type: events.Types.Ping, direction: 'request'});
         t.equal(pings.length, list.length, 
@@ -271,6 +281,10 @@ function expectOnlyPings(t, tc) {
                 _.zip(_.pluck(list, 'type'), _.pluck(list, 'direction'))
             })
         );
+
+        if (typeof count === 'number') {
+            t.equal(pings.length, count, "Checking the number of pings");
+        } 
 
         cb(_.reject(list, {type: events.Types.Ping, direction: 'request'}));
     }
@@ -292,6 +306,25 @@ function expectOnlyPingsAndPingReqs(t, tc) {
         result = _.reject(result, {type: events.Types.PingReq, direction: 'request'});
         cb(result);
     }
+}
+
+function consumePings(t, tc) {
+    return function consumePings(list, cb) {
+        cb(_.reject(list, {type: events.Types.Ping, direction: 'request'}));
+    };
+}
+
+function callEndpoint(t, tc, endpoint, body, validateEvent) {
+    return function (list, cb) {
+        tc.callEndpoint(endpoint, body, function (event) {
+            // optional validate the event
+            if (validateEvent && typeof validateEvent === 'function') {
+                validateEvent(event.body);
+            }
+
+            return cb(list);
+        });
+    };
 }
 
 
@@ -633,9 +666,13 @@ module.exports = {
     
     waitForJoins: waitForJoins,
     waitForPingReqs: waitForPingReqs,
+    waitForPing: waitForPing,
     waitForEmptyPing: waitForEmptyPing,
     // drainSUTDissemination: drainSUTDissemination,
     validateEventBody: validateEventBody,
+
+    callEndpoint: callEndpoint,
+    consumePings: consumePings,
     
     sendJoin: sendJoin,
     sendPing: sendPing,

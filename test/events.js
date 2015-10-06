@@ -6,7 +6,9 @@ var Types = {
     PingReq: 'PingReq',
     ProxyReq: 'ProxyReq',
     UnknownRequest: 'UnknownRequest',
-    Stats: 'Stats'
+    Stats: 'Stats',
+    AdminGossipStart: 'AdminGossipStart',
+    AdminGossipStop: 'AdminGossipStop'
 };
 
 function endpointToEventType(endpoint) {
@@ -21,6 +23,10 @@ function endpointToEventType(endpoint) {
             return Types.ProxyReq;
         case '/admin/stats':
             return Types.Stats;
+        case '/admin/gossip/start':
+            return Types.AdminGossipStart;
+        case '/admin/gossip/stop':
+            return Types.AdminGossipStop;
         default:
             return Types.UnknownRequest;
     }

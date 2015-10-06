@@ -37,7 +37,8 @@ function main() {
     require('./ping-tests');
     require('./ping-req-tests');
     require('./piggyback-tests');
-        
+    require('./admin-tests');        
+
     // require('./network-blip-tests');
     // require('./revive-tests');
 }
