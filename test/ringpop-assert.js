@@ -283,11 +283,16 @@ function expectOnlyPings(t, tc, count) {
         );
 
         if (typeof count === 'number') {
-            t.equal(pings.length, count, "Checking the number of pings");
+            t.equal(pings.length, count, "Checking the number of pings", errDetails({
+                pings: _.zip(
+                    _.pluck(list, 'type'),
+                    _.pluck(list, 'direction')
+                )
+            }));
         } 
 
         cb(_.reject(list, {type: events.Types.Ping, direction: 'request'}));
-    }
+    };
 }
 
 function expectOnlyPingsAndPingReqs(t, tc) {
@@ -552,13 +557,19 @@ function validate(t, tc, scheme, deadline) {
     // try to run the fn that the cursor points to. The function indicates that it has
     // succeeded by yielding an updated eventList. If succeeded the cursor progresses 
     // to the next function.
+    var inProgress = false;
     var progressFromCursor = function() {
+        if (inProgress) return;
+        inProgress = true;
+
         if(cursor >= fns.length) {
             clearTimeout(timer);
             t.ok(true, 'validate done: all functions passed');
             tc.shutdown();
             tc.removeAllListeners('event');
             t.end();
+
+            inProgress = false;
             return;
         }
 
@@ -571,11 +582,14 @@ function validate(t, tc, scheme, deadline) {
         fns[cursor](eventList, function(result) {
             if (result === null) {
                 //wait for more events
+                inProgress = false;
                 return;
             }
             
             eventList = result;
             cursor++;
+
+            inProgress = false;
             progressFromCursor(true);
         });
     }
