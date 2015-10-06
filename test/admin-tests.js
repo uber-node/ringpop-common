@@ -7,7 +7,6 @@ var dsl = require('./ringpop-assert');
 // /admin/debugSet
 // /admin/lookup
 // /admin/stats
-// /admin/tick
 
 test2('endpoint: /admin/gossip/stop', 7, 5000, function(t, tc, n) {
     return [
@@ -60,7 +59,7 @@ test2('endpoint: /admin/gossip/start', 7, 5000, function(t, tc, n) {
     ];
 });
 
-test2('endpoint: /admin/tick', 7, 5000, function(t, tc, n) {
+test2('endpoint: /admin/gossip/tick', 7, 5000, function(t, tc, n) {
     return [
         dsl.waitForJoins(t, tc, n),
         dsl.assertStats(t, tc, n+1, 0, 0),
@@ -79,11 +78,12 @@ test2('endpoint: /admin/tick', 7, 5000, function(t, tc, n) {
 
         dsl.expectOnlyPings(t, tc, 0),
 
-        dsl.callEndpoint(t, tc, '/admin/tick'),
+        dsl.callEndpoint(t, tc, '/admin/gossip/tick'),
         dsl.validateEventBody(t, tc, {
-            type: events.Types.AdminTick,
+            type: events.Types.AdminGossipTick,
             direction: 'response'
-        }, "Wait for AdminTick response", function (response) {
+        }, "Wait for AdminGossipTick response", function (response) {
+            console.log("responded!");
             return true;
         }),
 
