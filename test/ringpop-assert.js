@@ -513,13 +513,15 @@ function createValidateEvent(t, tc) {
     // /admin/stats
     validators.response[events.Types.Stats] = bodyVerification("admin-status response", "/StatsResponse");
 
+    // /admin/lookup
+    validators.response[events.Types.AdminLookup] = bodyVerification("admin-lookup response", "/AdminLookupResponse");
+
     // TODO endpoints to specify and test
     // /admin/debugClear
     // /admin/debugSet
     // /admin/gossip
     // /admin/join
     // /admin/leave
-    // /admin/lookup
     // /admin/reload
     // /admin/tick
 

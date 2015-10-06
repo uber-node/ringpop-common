@@ -92,3 +92,21 @@ test2('endpoint: /admin/gossip/tick', 7, 5000, function(t, tc, n) {
         dsl.expectOnlyPings(t, tc, 1)
     ];
 });
+
+test2('endpoint: /admin/lookup', 7, 5000, function(t, tc, n) {
+    return [
+        dsl.waitForJoins(t, tc, n),
+        dsl.assertStats(t, tc, n+1, 0, 0),
+
+        dsl.callEndpoint(t, tc, '/admin/lookup', { key: 'Hello World' }),
+        dsl.validateEventBody(t, tc, {
+            type: events.Types.AdminLookup,
+            direction: 'response'
+        }, "Wait for AdminLookup response", function (response) {
+            // TODO test if the key is mapped to the right node
+            return true;
+        }),
+
+        dsl.expectOnlyPings(t, tc)
+    ];
+});

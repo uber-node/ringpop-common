@@ -9,7 +9,8 @@ var Types = {
     Stats: 'Stats',
     AdminGossipStart: 'AdminGossipStart',
     AdminGossipStop: 'AdminGossipStop',
-    AdminGossipTick: 'AdminGossipTick'
+    AdminGossipTick: 'AdminGossipTick',
+    AdminLookup: 'AdminLookup'
 };
 
 function endpointToEventType(endpoint) {
@@ -30,6 +31,8 @@ function endpointToEventType(endpoint) {
             return Types.AdminGossipStop;
         case '/admin/gossip/tick':
             return Types.AdminGossipTick;
+        case '/admin/lookup':
+            return Types.AdminLookup;
         default:
             return Types.UnknownRequest;
     }
