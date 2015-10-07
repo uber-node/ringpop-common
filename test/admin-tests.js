@@ -6,8 +6,6 @@ var dsl = require('./ringpop-assert');
 //   /admin/debugClear (NOOP in go, toggle between ping logs in node2)
 //   /admin/debugSet
 // node only:
-//   /admin/join
-//   /admin/leave
 //   /admin/reload
 
 test2('endpoint: /admin/gossip/stop', 7, 5000, function(t, tc, n) {
@@ -146,8 +144,8 @@ test2('endpoint: /admin/member/leave', 7, 5000, function(t, tc, n) {
         dsl.validateEventBody(t, tc, {
             type: events.Types.AdminMemberLeave,
             direction: 'response'
-        }, "Wait for Stats response", function (response) {
-            return response.arg3.toString() === 'ok';
+        }, "Waiting /admin/member/leave response", function (response) {
+            return response.arg3.toString() === 'ok' ||  (response.body && response.body.status === 'ok');
         }),
 
         // check status in ping
@@ -180,8 +178,8 @@ test2('endpoint: /admin/member/join', 7, 10000, function(t, tc, n) {
         dsl.validateEventBody(t, tc, {
             type: events.Types.AdminMemberLeave,
             direction: 'response'
-        }, "Wait for Stats response", function (response) {
-            return response.arg3.toString() === 'ok';
+        }, "Waiting /admin/member/leave response", function (response) {
+            return response.arg3.toString() === 'ok' || (response.body && response.body.status === 'ok');
         }),
 
         // check status in ping
@@ -202,8 +200,8 @@ test2('endpoint: /admin/member/join', 7, 10000, function(t, tc, n) {
         dsl.validateEventBody(t, tc, {
             type: events.Types.AdminMemberJoin,
             direction: 'response'
-        }, "Wait for Stats response", function (response) {
-            return response.arg3.toString() === 'rejoined';
+        }, "Waiting /admin/member/join response", function (response) {
+            return response.arg3.toString() === 'rejoined' || (response.body && response.body.status === 'rejoined');
         }),
 
         // check status in ping
