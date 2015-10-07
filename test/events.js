@@ -10,7 +10,9 @@ var Types = {
     AdminGossipStart: 'AdminGossipStart',
     AdminGossipStop: 'AdminGossipStop',
     AdminGossipTick: 'AdminGossipTick',
-    AdminLookup: 'AdminLookup'
+    AdminLookup: 'AdminLookup',
+    AdminMemberLeave: 'AdminMemberLeave',
+    AdminMemberJoin: 'AdminMemberJoin'
 };
 
 function endpointToEventType(endpoint) {
@@ -33,6 +35,10 @@ function endpointToEventType(endpoint) {
             return Types.AdminGossipTick;
         case '/admin/lookup':
             return Types.AdminLookup;
+        case '/admin/member/leave':
+            return Types.AdminMemberLeave;
+        case '/admin/member/join':
+            return Types.AdminMemberJoin;
         default:
             return Types.UnknownRequest;
     }

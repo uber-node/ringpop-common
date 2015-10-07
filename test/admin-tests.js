@@ -132,3 +132,93 @@ test2('endpoint: /admin/stats', 7, 5000, function(t, tc, n) {
         dsl.expectOnlyPings(t, tc)
     ];
 });
+
+test2('endpoint: /admin/member/leave', 7, 5000, function(t, tc, n) {
+    return [
+        dsl.waitForJoins(t, tc, n),
+        dsl.assertStats(t, tc, n+1, 0, 0),
+
+        // this makes testing the piggy backed status easier
+        dsl.waitForEmptyPing(t, tc),
+
+        // instruct node to leave cluster
+        dsl.callEndpoint(t, tc, '/admin/member/leave'),
+        dsl.validateEventBody(t, tc, {
+            type: events.Types.AdminMemberLeave,
+            direction: 'response'
+        }, "Wait for Stats response", function (response) {
+            return response.arg3.toString() === 'ok';
+        }),
+
+        // check status in ping
+        dsl.sendPing(t, tc, 0),
+        dsl.validateEventBody(t, tc, {
+            type: events.Types.Ping,
+            direction: 'response'
+        }, "Test if ping contains leave message for SUT", function (ping) {
+            return ping.body &&
+                ping.body.changes &&           
+                ping.body.changes.length === 1 &&
+                ping.body.changes[0].address === tc.sutHostPort &&
+                ping.body.changes[0].status === 'leave';
+        }),
+
+        dsl.expectOnlyPings(t, tc)
+    ];
+});
+
+test2('endpoint: /admin/member/join', 7, 10000, function(t, tc, n) {
+    return [
+        dsl.waitForJoins(t, tc, n),
+        dsl.assertStats(t, tc, n+1, 0, 0),
+
+        // this makes testing the piggy backed status easier
+        dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
+
+        // instruct node to leave cluster
+        dsl.callEndpoint(t, tc, '/admin/member/leave'),
+        dsl.validateEventBody(t, tc, {
+            type: events.Types.AdminMemberLeave,
+            direction: 'response'
+        }, "Wait for Stats response", function (response) {
+            return response.arg3.toString() === 'ok';
+        }),
+
+        // check status in ping
+        dsl.sendPing(t, tc, 0),
+        dsl.validateEventBody(t, tc, {
+            type: events.Types.Ping,
+            direction: 'response'
+        }, "Test if ping contains leave message for SUT", function (ping) {
+            return ping.body &&
+                ping.body.changes &&           
+                ping.body.changes.length === 1 &&
+                ping.body.changes[0].address === tc.sutHostPort &&
+                ping.body.changes[0].status === 'leave';
+        }),
+
+        // rejoin
+        dsl.callEndpoint(t, tc, '/admin/member/join'),
+        dsl.validateEventBody(t, tc, {
+            type: events.Types.AdminMemberJoin,
+            direction: 'response'
+        }, "Wait for Stats response", function (response) {
+            return response.arg3.toString() === 'rejoined';
+        }),
+
+        // check status in ping
+        dsl.sendPing(t, tc, 0),
+        dsl.validateEventBody(t, tc, {
+            type: events.Types.Ping,
+            direction: 'response'
+        }, "Test if ping contains alive message for SUT", function (ping) {
+            return ping.body &&
+                ping.body.changes &&           
+                ping.body.changes.length === 1 &&
+                ping.body.changes[0].address === tc.sutHostPort &&
+                ping.body.changes[0].status === 'alive';
+        }),
+
+        dsl.expectOnlyPings(t, tc)
+    ];
+});

@@ -4,6 +4,7 @@
     "enum": [
         "alive",
         "suspect",
-        "faulty"
+        "faulty",
+        "leave"
     ]
 }
