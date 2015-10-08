@@ -545,6 +545,24 @@ function disableNode(t, tc, ix) {
     return f;
 }
 
+function disableAllNodes(t, tc) {
+    return function disableAllNodes(list, cb) {
+        tc.fakeNodes.forEach(function (fn) {
+            fn.shutdown();
+        });
+        cb(list);
+    };
+}
+
+function disableAllNodesPing(t, tc) {
+    return function disableAllNodesPing(list, cb) {
+        tc.fakeNodes.forEach(function (fn) {
+            fn.disablePing();
+        });
+        cb(list);
+    };
+}
+
 function enableNode(t, tc, ix, incarnationNumber) {
     var f = _.once(function(list, cb) {
         tc.fakeNodes[ix].start();
@@ -761,6 +779,8 @@ module.exports = {
     assertBumpedIncarnationNumber: assertBumpedIncarnationNumber,
     
     disableNode: disableNode,
+    disableAllNodes: disableAllNodes,
+    disableAllNodesPing: disableAllNodesPing,
     enableNode: enableNode,
 
     sendPings: sendPings,

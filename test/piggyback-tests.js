@@ -193,7 +193,7 @@ test2('ringpop sends piggyback info in ping-req request', clusterSizes, 20000, f
         dsl.waitForPingResponse(t, tc, 0),
 
         // cause the SUT to send a ping-req
-        dsl.disableNode(t, tc, 1),
+        dsl.disableAllNodesPing(t, tc),
 
         // Wait for a ping from the SUT and validate that it has the piggybacked information in there
         dsl.validateEventBody(t, tc, {

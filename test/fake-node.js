@@ -18,6 +18,8 @@ function FakeNode(options) {
 
     this.endpoints = {};
     this.enableEndpoints();
+
+    this.pingEnabled = true;
 }
 
 FakeNode.prototype.enableEndpoints = function enableEndpoints() {
@@ -100,7 +102,17 @@ FakeNode.prototype.joinHandler = function joinHandler(req, res, arg2, arg3) {
     return handleJoin(req, res, this.toMemberInfo(), membership);
 };
 
+FakeNode.prototype.disablePing = function disablePing() {
+    this.pingEnabled = false;
+};
+
+FakeNode.prototype.enablePing = function enablePing() {
+    this.pingEnabled = true;
+};
+
 FakeNode.prototype.pingHandler = function pingHandler(req, res, arg2, arg3) {
+    if (!this.pingEnabled) return; // Do nothing when disabled
+
     return handlePing(res);
 };
 
