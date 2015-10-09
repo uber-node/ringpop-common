@@ -23,7 +23,7 @@ test2('ringpop sends piggyback info in ping request', clusterSizes, 20000, prepa
         dsl.validateEventBody(t, tc, {
             type: events.Types.Ping,
             direction: 'request'
-        }, "Test if piggybacked information is in ping", function (ping) {
+        }, "Test if piggybacked information is in ping request", function (ping) {
             return ping.body &&
                 ping.body.changes &&
                 ping.body.changes.length === 1 &&
@@ -51,7 +51,7 @@ test2('ringpop updates its dissimination list on pingreq', clusterSizes, 20000, 
         dsl.validateEventBody(t, tc, {
             type: events.Types.Ping,
             direction: 'request'
-        }, "Test if piggybacked information is in ping", function (ping) {
+        }, "Test if piggybacked information is in ping request", function (ping) {
             return ping.body &&
                 ping.body.changes &&
                 ping.body.changes.length === 1 &&
@@ -129,7 +129,7 @@ test2('ringpop piggybacking should ignore updates when it already knows about', 
         dsl.validateEventBody(t, tc, {
             type: events.Types.Ping,
             direction: 'request'
-        }, "Test if piggybacked information is not in ping", function (ping) {
+        }, "Test if piggybacked information is not in ping request", function (ping) {
             return !ping.body ||
                 !ping.body.changes ||
                 ping.body.changes.length === 0;
@@ -186,7 +186,7 @@ test2('ringpop sends piggyback info in ping-req request', clusterSizes, 20000, p
         dsl.validateEventBody(t, tc, {
             type: events.Types.PingReq,
             direction: 'request'
-        }, "Test if piggybacked information is in ping", function (ping) {
+        }, "Test if piggybacked information is in pingreq request", function (ping) {
             return ping.body &&
                 ping.body.changes &&
                 ping.body.changes.length === 1 &&

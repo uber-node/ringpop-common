@@ -320,7 +320,7 @@ function consumePings(t, tc) {
 }
 
 function callEndpoint(t, tc, endpoint, body, validateEvent) {
-    return function (list, cb) {
+    return function callEndpoint(list, cb) {
         tc.callEndpoint(endpoint, body, function (event) {
             // optional validate the event
             if (validateEvent && typeof validateEvent === 'function') {
@@ -584,7 +584,7 @@ function createValidateEvent(t, tc) {
     });
 
     function bodyVerification(name, schema) {
-        return function (event, body) {
+        return function verifyBodyForEvent(event, body) {
             var result = validator.validate(body, schema, { propertyName: name.replace(' ','-') });
             t.equals(result.errors.length, 0, "JSON Validation: " + name, errDetails({
                 errors: _.pluck(result.errors, "stack"),
@@ -625,14 +625,14 @@ function createValidateEvent(t, tc) {
     // /admin/reload
     // /admin/tick
 
-    return function (event) {
+    return function validateIncommingEvent(event) {
         var type = event.type;
         var direction = event.direction;
 
         var validator = validators[direction][type];
         if (!validator) return; // nothing to test here
 
-        validator(event, safeJSONParse(event.arg3));
+        validator(event, event.body);
     }; 
 }
 
