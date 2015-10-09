@@ -22,6 +22,7 @@ test2('endpoint: /admin/gossip/stop', clusterSizes, 5000, function(t, tc, n) {
             return true;
         }),
 
+        dsl.wait(10), // racecondition if a ping was inbound during stopping
         dsl.consumePings(t, tc),
         dsl.wait(1000), // normally you would expect pings to be transfered in this time
 
@@ -42,10 +43,8 @@ test2('endpoint: /admin/gossip/start', clusterSizes, 5000, function(t, tc, n) {
             return true;
         }),
 
+        dsl.wait(10), // racecondition if a ping was inbound during stopping
         dsl.consumePings(t, tc),
-        dsl.wait(1000), // normally you would expect pings to be transfered in this time
-
-        dsl.expectOnlyPings(t, tc, 0),
 
         dsl.callEndpoint(t, tc, '/admin/gossip/start'),
         dsl.validateEventBody(t, tc, {
@@ -74,10 +73,8 @@ test2('endpoint: /admin/gossip/tick', clusterSizes, 5000, function(t, tc, n) {
             return true;
         }),
 
+        dsl.wait(10), // racecondition if a ping was inbound during stopping
         dsl.consumePings(t, tc),
-        dsl.wait(1000), // normally you would expect pings to be transfered in this time
-
-        dsl.expectOnlyPings(t, tc, 0),
 
         dsl.callEndpoint(t, tc, '/admin/gossip/tick'),
         dsl.validateEventBody(t, tc, {
