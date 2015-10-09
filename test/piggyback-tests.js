@@ -1,14 +1,13 @@
 var events = require('./events');
 var test2 = require('./test-util').test2;
+var prepareCluster = require('./test-util').prepareCluster;
 var dsl = require('./ringpop-assert');
 var _ = require('lodash');
 var clusterSizes = require('./test-util').clusterSizes;
 clusterSizes = _.filter(clusterSizes, function(n) { return n > 2; });
 
-test2('ringpop sends piggyback info in ping request', clusterSizes, 20000, function(t, tc, n) {
+test2('ringpop sends piggyback info in ping request', clusterSizes, 20000, prepareCluster(function(t, tc, n) {
     return [
-        dsl.waitForJoins(t, tc, n),
-        dsl.assertStats(t, tc, n+1, 0, 0),
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
 
@@ -33,12 +32,10 @@ test2('ringpop sends piggyback info in ping request', clusterSizes, 20000, funct
                 ping.body.changes[0].status === "suspect";
         })
     ];
-});
+}));
 
-test2('ringpop updates its dissimination list on pingreq', clusterSizes, 20000, function(t, tc, n) {
+test2('ringpop updates its dissimination list on pingreq', clusterSizes, 20000, prepareCluster(function(t, tc, n) {
     return [
-        dsl.waitForJoins(t, tc, n),
-        dsl.assertStats(t, tc, n+1, 0, 0),
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
 
@@ -63,12 +60,10 @@ test2('ringpop updates its dissimination list on pingreq', clusterSizes, 20000, 
                 ping.body.changes[0].status === "suspect";
         })
     ];
-});
+}));
 
-test2('ringpop sends piggyback info in ping-req response', clusterSizes, 20000, function(t, tc, n) {
+test2('ringpop sends piggyback info in ping-req response', clusterSizes, 20000, prepareCluster(function(t, tc, n) {
     return [
-        dsl.waitForJoins(t, tc, n),
-        dsl.assertStats(t, tc, n+1, 0, 0),
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
 
@@ -95,12 +90,10 @@ test2('ringpop sends piggyback info in ping-req response', clusterSizes, 20000, 
                 ping.body.changes[0].status === "suspect";
         })
     ];
-});
+}));
 
-test2('ringpop piggybacking decays', clusterSizes, 20000, function(t, tc, n) {
+test2('ringpop piggybacking decays', clusterSizes, 20000, prepareCluster(function(t, tc, n) {
     return [
-        dsl.waitForJoins(t, tc, n),
-        dsl.assertStats(t, tc, n+1, 0, 0),
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
 
@@ -116,12 +109,10 @@ test2('ringpop piggybacking decays', clusterSizes, 20000, function(t, tc, n) {
         // TODO do this with a set number of pings to the SUT to speed up the test
         dsl.waitForEmptyPing(t, tc)
     ];
-});
+}));
 
-test2('ringpop piggybacking should ignore updates when it already knows about', clusterSizes, 20000, function(t, tc, n) {
+test2('ringpop piggybacking should ignore updates when it already knows about', clusterSizes, 20000, prepareCluster(function(t, tc, n) {
     return [
-        dsl.waitForJoins(t, tc, n),
-        dsl.assertStats(t, tc, n+1, 0, 0),
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
 
@@ -144,12 +135,10 @@ test2('ringpop piggybacking should ignore updates when it already knows about', 
                 ping.body.changes.length === 0;
         })
     ];
-});
+}));
 
-test2('ringpop sends piggyback info in ping response', clusterSizes, 20000, function(t, tc, n) {
+test2('ringpop sends piggyback info in ping response', clusterSizes, 20000, prepareCluster(function(t, tc, n) {
     return [
-        dsl.waitForJoins(t, tc, n),
-        dsl.assertStats(t, tc, n+1, 0, 0),
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
 
@@ -175,12 +164,10 @@ test2('ringpop sends piggyback info in ping response', clusterSizes, 20000, func
                 ping.body.changes[0].status === "suspect";
         })
     ];
-});
+}));
 
-test2('ringpop sends piggyback info in ping-req request', clusterSizes, 20000, function(t, tc, n) {
+test2('ringpop sends piggyback info in ping-req request', clusterSizes, 20000, prepareCluster(function(t, tc, n) {
     return [
-        dsl.waitForJoins(t, tc, n),
-        dsl.assertStats(t, tc, n+1, 0, 0),
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
 
@@ -206,9 +193,6 @@ test2('ringpop sends piggyback info in ping-req request', clusterSizes, 20000, f
                 ping.body.changes[0] &&
                 ping.body.changes[0].source === tc.fakeNodes[0].getHostPort() &&
                 ping.body.changes[0].status === "suspect";
-        }),
-
-        // consume other pingreq's
-        dsl.waitForPingReqs(t, tc, 2),
+        })
     ];
-});
+}));
