@@ -100,7 +100,7 @@ test2('endpoint: /admin/lookup ('+lookupKey+')', clusterSizes, 5000, function(t,
         dsl.waitForJoins(t, tc, n),
         dsl.assertStats(t, tc, n+1, 0, 0),
 
-        dsl.callEndpoint(t, tc, '/admin/lookup', lookupKey),
+        dsl.callEndpoint(t, tc, '/admin/lookup', { key: lookupKey}),
         dsl.validateEventBody(t, tc, {
             type: events.Types.AdminLookup,
             direction: 'response'

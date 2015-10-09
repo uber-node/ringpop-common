@@ -72,7 +72,7 @@ TestCoordinator.prototype.lookup = function(key) {
     var matchingNode;
     var matchingHash;
 
-    var hash = farmhash.hash32(key);
+    var hash = farmhash.fingerprint32(key);
 
     function isBetterMatch(newHash) {
         if (!matchingNode) return true; // 1 node is better than no node
@@ -92,9 +92,7 @@ TestCoordinator.prototype.lookup = function(key) {
     hostPorts.forEach(function (hostPort) {
         // iterate over all vnodes for that host
         for (var i=0; i<self.replicaPoints; i++) {
-            var currentHash = farmhash.hash32(hostPort + i);
-
-            console.log(hostPort + i, currentHash);
+            var currentHash = farmhash.fingerprint32(hostPort + i);
 
             if (isBetterMatch(currentHash)) {
                 matchingNode = hostPort;
