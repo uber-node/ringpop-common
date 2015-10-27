@@ -9,6 +9,7 @@
   "dependencies": {
     "cli-color": "^0.3.2",
     "commander": "^2.6.0",
-    "farmhash": "^1.1.0"
+    "farmhash": "^1.1.0",
+    "uber-licence": "^1.5.4"
   }
 }
