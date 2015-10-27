@@ -1,0 +1,49 @@
+{
+    "grafana": {
+        "cookie": "auth-openid=<your cookie here>",
+        "url": "https://grafana.example.com/grafana2/api/dashboards/db/"
+    },
+    "gen-dashboard": {
+        "dashboard-title": "my-ringpop-dashboard",
+        "template": {
+            "system": {
+                "process-cpu": "{system-path}.cpu.user",
+                "process-rss": "{system-path}.memory.rss",
+                "process-fds": "{system-path}.num_fds"
+            },
+            "gossip": {
+                "ping-send": "{counts-path}.ping.send",
+                "ping-recv": "{counts-path}.ping.recv",
+                "ping-p95": "{timers-path}.ping.p95",
+                "ping-p99": "{timers-path}.ping.p99",
+                "ping-req-send": "{counts-path}.ping-req.send",
+                "ping-req-recv": "{counts-path}.ping-req.recv",
+                "ping-req-p95": "{timers-path}.ping-req.p95",
+                "ping-req-p99": "{timers-path}.ping-req.p99",
+                "protocol-freq-p99": "{timers-path}.protocol.frequency.p99"
+            },
+            "bootstrap": {
+                "join-p95": "{timers-path}.join.p95"
+            },
+            "membership": {
+                "full-sync": "{counts-path}.full-sync",
+                "membership-update-alive": "{counts-path}.membership-update.alive",
+                "membership-update-suspect": "{counts-path}.membership-update.suspect",
+                "membership-update-faulty": "{counts-path}.membership-update.faulty",
+                "compute-checksum-p95": "{timers-path}.compute-checksum.p95",
+                "compute-checksum-p99": "{timers-path}.compute-checksum.p99",
+                "compute-checksum-upper": "{timers-path}.compute-checksum.upper"
+            },
+            "dissemination": {
+                "max-piggyback": "{gauges-path}.max-piggyback"
+            }
+        },
+        "variable": {
+            "dc": "your-data-center",
+            "system-path": "stats.{dc}.system",
+            "counts-path": "stats.{dc}.counts",
+            "timers-path": "stats.{dc}.timers",
+            "gauges-path": "stats.{dc}.gauges"
+        }
+    }
+}
