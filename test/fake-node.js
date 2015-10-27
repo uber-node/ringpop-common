@@ -73,8 +73,8 @@ FakeNode.prototype.start = function start(callback) {
 
     callback = callback || function() {};
     var port = self.port || 0;
-    self.channel.listen(port, self.host, function onListen() {
-        self.port = self.channel.address().port;
+    self.tchannel.listen(port, self.host, function onListen() {
+        self.port = self.tchannel.address().port;
         return callback();
     });
 };
