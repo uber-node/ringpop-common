@@ -161,6 +161,7 @@ function waitForPingReqResponse(t, tc, nodeIx, targetIx, status) {
         t.equal(arg3.target, tc.fakeNodes[targetIx].getHostPort(),
             'check target of the response',
             errDetails({"ping-req-response": arg3}));
+
         t.equal(arg3.pingStatus, status, 
             'check target ping status of the response', 
             errDetails({"ping-req-response": arg3}));
@@ -238,12 +239,9 @@ function waitForStats(t, tc, alive, suspect, faulty) {
         var s = _.filter(members, {status: 'suspect'}).length;
         var f = _.filter(members, {status: 'faulty'}).length;
 
-        t.equal(a, alive, 'check number of alive nodes');
-        t.equal(s, suspect, 'check number of suspect nodes');
-        t.equal(f, faulty, 'check number of faulty nodes');
-        if(a !== alive || s !== suspect || f !== faulty) {
-            t.fail('full stats check', errDetails(members));
-        }
+        t.equal(a, alive, 'check number of alive nodes', errDetails(members));
+        t.equal(s, suspect, 'check number of suspect nodes', errDetails(members));
+        t.equal(f, faulty, 'check number of faulty nodes', errDetails(members));
 
         _.pullAt(list, ix);
         cb(list);
@@ -257,7 +255,7 @@ function assertRoundRobinPings(t, tc, pings, millis) {
     ];
 }
 
-// imidiately checks for n-1, n or n+1 pings
+// immediately checks for n-1, n or n+1 pings
 function expectRoundRobinPings(t, tc, n) {
     return function expectRoundRobinPings(list, cb) {
         var pings = _.filter(list, {type: events.Types.Ping});

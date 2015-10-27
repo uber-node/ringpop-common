@@ -10,7 +10,7 @@ var checksum = require('./membership-checksum').checksum;
 function FakeNode(options) {
     this.coordinator = options.coordinator;
     this.host = options.host;
-    this.port = undefined; // set at listen time
+    this.port = options.port;
     this.incarnationNumber = 1337;
     
     this.tchannel = undefined;
