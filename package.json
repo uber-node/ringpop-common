@@ -15,7 +15,7 @@
     "uber-licence": "^1.5.4",
     "zero-config": "^5.0.0"
   },
-  "pre-commit": {
+  "pre-commit": [
       "check-licence"
-  }
+  ]
 }
