@@ -19,7 +19,7 @@ The test scripts will invoke the ringpop binary with the following command-line 
 
 ## Examples
 
-There are test binaries for included in both the ringpop-node and [ringpop-go](https://github.com/uber/ringpop-go) projects.
+There are test binaries for included in both the [ringpop-node](https://github.com/uber/ringpop-node) and [ringpop-go](https://github.com/uber/ringpop-go) projects.
 
 ### Running integration tests against ringpop-node
 
