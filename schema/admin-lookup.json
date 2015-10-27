@@ -1,0 +1,14 @@
+{
+    "id": "/AdminLookupResponse",
+    "title": "/admin/lookup response",
+    "type": "object",
+    "properties": {
+        "dest": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "dest"
+    ],
+    "additionalProperties": false
+}

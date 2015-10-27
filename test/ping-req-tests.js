@@ -1,165 +1,167 @@
-var createCoordinator = require('./it-tests').createCoordinator;
 var events = require('./events');
-test = require('./util').test;
 var dsl = require('./ringpop-assert');
+var test2 = require('./test-util').test2;
+var prepareCluster = require('./test-util').prepareCluster;
+var prepareWithStatus = require('./test-util').prepareWithStatus;
+var _ = require('lodash');
+var clusterSizes = require('./test-util').clusterSizes;
+clusterSizes = _.filter(clusterSizes, function(n) { return n > 1; });
 
-test('ping-req real-node with a disabled target', function(t) {
-    var nNodes = 8;
-    var tc = createCoordinator(nNodes);
-    tc.start();
 
-    dsl.validate(t, tc, [
-        dsl.waitForJoins(t, tc, nNodes),
-        dsl.assertStats(t, tc, nNodes+1, 0, 0),
+test2('ping-req real-node with a disabled target', clusterSizes, 20000, 
+    prepareCluster(function(t, tc, n) { return [
         dsl.disableNode(t, tc, 1),
         dsl.sendPingReq(t, tc, 0, 1),
         dsl.waitForPingReqResponse(t, tc, 0, 1, false),
         // do not make suspect after ping status = false
-        dsl.assertStats(t, tc, nNodes+1, 0, 0),
-        dsl.expectOnlyPings(t, tc),
-    ], 20000);
-});
+        dsl.assertStats(t, tc, n+1, 0, 0),
+    ];})
+);
 
-test('ping-req real-node with enabled target', function(t) {
-    var nNodes = 8;
-    var tc = createCoordinator(nNodes);
-    tc.start();
-
-    dsl.validate(t, tc, [
-        dsl.waitForJoins(t, tc, nNodes),
-        dsl.assertStats(t, tc, nNodes+1, 0, 0),
+test2('ping-req real-node with enabled target', clusterSizes, 20000, 
+    prepareCluster(function(t, tc, n) { return [
+        // do not disable node
         dsl.sendPingReq(t, tc, 0, 1),
         dsl.waitForPingReqResponse(t, tc, 0, 1, true),
-        dsl.assertStats(t, tc, nNodes+1, 0, 0),
-        dsl.expectOnlyPings(t, tc),
-    ], 20000);
-});
-
-test('alive, suspect, faulty cycle in 7-node cluster', function(t) {
-    var n = 7;
-    var tc = createCoordinator(n);
-    tc.start();
-
-    dsl.validate(t, tc, [
-        dsl.waitForJoins(t, tc, 6),
+        // safety check
         dsl.assertStats(t, tc, n+1, 0, 0),
-        dsl.assertRoundRobinPings(t, tc, 5, 1000),
-        dsl.disableNode(t, tc, 0),
+    ];})
+);
+
+test2('become suspect through disabling ping response', clusterSizes, 20000, 
+    prepareCluster(function(t, tc, n) { return [
+        dsl.disableNode(t, tc, 1),
         dsl.waitForPingReqs(t, tc, 3),
         dsl.wait(100),
-        dsl.assertStats(t, tc, n, 1, 0),
+        dsl.assertStats(t, tc, n, 1, 0, {1: {status: 'suspect'}}),
+    ];})
+);
+
+test2('5-second suspect window', clusterSizes, 20000, 
+    prepareWithStatus(1, 'suspect', function(t, tc, n) { return [
+        dsl.assertStats(t, tc, n, 1, 0, {1: {status: 'suspect'}}),
         dsl.wait(4000),
-        dsl.assertStats(t, tc, n, 1, 0),
-        dsl.wait(1000),
-        dsl.assertStats(t, tc, n, 0, 1),
+        dsl.assertStats(t, tc, n, 1, 0, {1: {status: 'suspect'}}),
+        dsl.wait(1100),
+        dsl.assertStats(t, tc, n, 0, 1, {1: {status: 'faulty'}}),
         dsl.wait(5000),
-        dsl.assertStats(t, tc, n, 0, 1),
-        dsl.expectOnlyPingsAndPingReqs(t, tc),
-    ], 20000);
-});
+        dsl.assertStats(t, tc, n, 0, 1, {1: {status: 'faulty'}}),
+    ];})
+);
 
-test('alive, suspect, alive (via re-join) cycle in 7-node cluster', function(t) {
-    var n = 7;
-    var tc = createCoordinator(n);
-    tc.start();
+function testSetStatusViaPiggyback(ns, status, deltaAlive, nSuspect, nFaulty) {
+    test2('prepare node with status ' + status, ns, 20000, 
+        prepareWithStatus(1, status, function(t, tc, n) { return [
+                dsl.assertStats(t, tc, n + deltaAlive, nSuspect, nFaulty, {1: {status: status}}),
+        ];})
+    );
+}
 
-    dsl.validate(t, tc, [
-        dsl.waitForJoins(t, tc, 6),
-        dsl.assertStats(t, tc, n+1, 0, 0),
-        dsl.assertRoundRobinPings(t, tc, 5, 1000),
-        dsl.disableNode(t, tc, 0),
-        dsl.waitForPingReqs(t, tc, 3),
-        dsl.wait(100),
-        dsl.assertStats(t, tc, n, 1, 0),
-        dsl.wait(3000),
-        dsl.assertStats(t, tc, n, 1, 0),
-        dsl.enableNode(t, tc, 0, 1338),
-        dsl.sendJoin(t, tc, 0),
-        dsl.waitForJoinResponse(t, tc, 0),
-        dsl.assertStats(t, tc, n+1, 0, 0),
-        dsl.expectOnlyPingsAndPingReqs(t, tc),
-    ], 20000);
-});
+testSetStatusViaPiggyback(clusterSizes, 'alive',   1, 0, 0);
+testSetStatusViaPiggyback(clusterSizes, 'suspect', 0, 1, 0);
+testSetStatusViaPiggyback(clusterSizes, 'faulty',  0, 0, 1);
 
-test('alive, suspect, faulty, alive (via re-join) cycle in 7-node cluster', function(t) {
-    var n = 7;
-    var tc = createCoordinator(n);
-    tc.start();
+test2('change nodes status to suspect piggybacked on a ping-req', _.filter(clusterSizes, function(n) { return n > 2; }), 20000, 
+    prepareCluster(function(t, tc, n) { return [
+        // do not disable node
+        dsl.sendPingReq(t, tc, 0, 1, 
+            {sourceIx: 0, subjectIx: 2, status: 'suspect'}),
+        dsl.waitForPingReqResponse(t, tc, 0, 1, true),
+        // check if piggyback update has taken effect
+        dsl.assertStats(t, tc, n, 1, 0, {2: {status: 'suspect'}}),
+    ];})
+);
 
-    dsl.validate(t, tc, [
-        dsl.waitForJoins(t, tc, 6),
-        dsl.assertStats(t, tc, n+1, 0, 0),
-        dsl.assertRoundRobinPings(t, tc, 5, 1000),
-        dsl.disableNode(t, tc, 0),
-        dsl.waitForPingReqs(t, tc, 3),
-        dsl.wait(100),
-        dsl.assertStats(t, tc, n, 1, 0),
-        dsl.wait(4000),
-        dsl.assertStats(t, tc, n, 1, 0),
-        dsl.wait(1000),
-        dsl.assertStats(t, tc, n, 0, 1),
-        dsl.wait(5000),
-        dsl.assertStats(t, tc, n, 0, 1),
-        dsl.enableNode(t, tc, 0, 1338),
-        dsl.sendJoin(t, tc, 0),
-        dsl.waitForJoinResponse(t, tc, 0),
-        dsl.assertStats(t, tc, n+1, 0, 0),
-        dsl.expectOnlyPingsAndPingReqs(t, tc),
-    ], 20000);
-});
+function joinFrom(n, status, incNoDelta, deltaAlive, nSuspect, nFaulty) {
+    test2('join from ' + status + ' with incNoDelta ' + incNoDelta, n, 20000, 
+        prepareWithStatus(0, status, function(t, tc, n) {
+            if (incNoDelta > 0) {
+                status = 'alive';
+            }
+            return [
+                dsl.disableNode(t, tc, 0),
+                dsl.enableNode(t, tc, 0, tc.fakeNodes[0].incarnationNumber+incNoDelta),
+                dsl.sendJoin(t, tc, 0),
+                dsl.waitForJoinResponse(t, tc, 0),
+                // we expect the node to get rejected if incNoDelta<0, 
+                // so the actual incarnation number has to be set so that
+                // assertStats compares to the expected incarnationNumbers
+                function(list, cb) {
+                    if (incNoDelta < 0) {
+                        tc.fakeNodes[0].incarnationNumber -= incNoDelta;
+                    }
+                    cb(list);
+                },
+                dsl.assertStats(t, tc, n + deltaAlive, nSuspect, nFaulty, {0: {status: status}}),
+            ];
+        })
+    );
+}
 
-test('don\'t bump up incarnation number and fail to revive from suspect because of it', function(t) {
-    var n = 7;
-    var tc = createCoordinator(n);
-    tc.start();
+joinFrom(clusterSizes, 'alive', -1, 1, 0, 0);
+joinFrom(clusterSizes, 'alive',  0, 1, 0, 0);
+joinFrom(clusterSizes, 'alive',  1, 1, 0, 0);
 
-    dsl.validate(t, tc, [
-        dsl.waitForJoins(t, tc, 6),
-        dsl.assertStats(t, tc, n+1, 0, 0),
-        dsl.assertRoundRobinPings(t, tc, 5, 1000),
-        dsl.disableNode(t, tc, 0),
-        dsl.waitForPingReqs(t, tc, 3),
-        dsl.wait(100),
-        dsl.assertStats(t, tc, n, 1, 0),
-        dsl.wait(3000),
-        dsl.assertStats(t, tc, n, 1, 0),
-        dsl.enableNode(t, tc, 0, 1337),
-        dsl.sendJoin(t, tc, 0),
-        dsl.waitForJoinResponse(t, tc, 0),
-        dsl.assertStats(t, tc, n, 1, 0),
-        dsl.wait(2000),
-        dsl.assertStats(t, tc, n, 0, 1),
-        dsl.wait(1000),
-        dsl.assertStats(t, tc, n, 0, 1),
-        dsl.expectOnlyPingsAndPingReqs(t, tc),
-    ], 20000);
-});
+joinFrom(clusterSizes, 'suspect', -1, 0, 1, 0);
+joinFrom(clusterSizes, 'suspect',  0, 0, 1, 0);
+joinFrom(clusterSizes, 'suspect',  1, 1, 0, 0);
 
-test('don\'t bump up incarnation number and fail to revive from faulty because of it', function(t) {
-    var n = 7;
-    var tc = createCoordinator(n);
-    tc.start();
+joinFrom(clusterSizes, 'faulty', -1, 0, 0, 1);
+joinFrom(clusterSizes, 'faulty',  0, 0, 0, 1);
+joinFrom(clusterSizes, 'faulty',  1, 1, 0, 0);
 
-    dsl.validate(t, tc, [
-        dsl.waitForJoins(t, tc, 6),
-        dsl.assertStats(t, tc, n+1, 0, 0),
-        dsl.assertRoundRobinPings(t, tc, 5, 1000),
-        dsl.disableNode(t, tc, 0),
-        dsl.waitForPingReqs(t, tc, 3),
-        dsl.wait(100),
-        dsl.assertStats(t, tc, n, 1, 0),
-        dsl.wait(4000),
-        dsl.assertStats(t, tc, n, 1, 0),
-        dsl.wait(1000),
-        dsl.assertStats(t, tc, n, 0, 1),
-        dsl.wait(5000),
-        dsl.assertStats(t, tc, n, 0, 1),
-        dsl.enableNode(t, tc, 0, 1337),
-        dsl.sendJoin(t, tc, 0),
-        dsl.waitForJoinResponse(t, tc, 0),
-        dsl.assertStats(t, tc, n, 0, 1),
-        dsl.expectOnlyPingsAndPingReqs(t, tc),
-    ], 20000);
-});
+// piggyback {alive, suspect, faulty} status of fake-node
+// who is {alive, suspect, faulty} with {lower, equal, higher}
+// incarnation number than the fake-node (27 combinations)
+function changeStatus(ns, initial, newState, finalState, incNoDelta, deltaAlive, nSuspect, nFaulty) {
+    var ix = 1;
+    test2('change status from ' + initial + ', to ' + newState + 
+        ' with incNoDelta ' + incNoDelta + ' via piggybacking', 
+        ns, 20000, prepareWithStatus(ix, initial, function(t, tc, n) {
+            expectedMembers = {}
+            expectedMembers[ix] = {status: finalState};
+            return [
+                dsl.sendPing(t, tc, 0, 
+                    {sourceIx: 0, subjectIx: ix, status: newState, subjectIncNoDelta: incNoDelta}),
+                dsl.waitForPingResponse(t, tc, 0),
+                dsl.assertStats(t, tc, n + deltaAlive, nSuspect, nFaulty, expectedMembers),
+            ];
+        })
+    );
+}
 
+changeStatus(clusterSizes, 'alive',  'alive', 'alive', -1, 1, 0, 0);
+changeStatus(clusterSizes, 'alive',  'alive', 'alive',  0, 1, 0, 0);
+changeStatus(clusterSizes, 'alive',  'alive', 'alive',  1, 1, 0, 0);
 
+changeStatus(clusterSizes, 'alive',  'suspect', 'alive',  -1, 1, 0, 0);
+changeStatus(clusterSizes, 'alive',  'suspect', 'suspect', 0, 0, 1, 0);
+changeStatus(clusterSizes, 'alive',  'suspect', 'suspect', 1, 0, 1, 0);
+
+changeStatus(clusterSizes, 'alive',  'faulty', 'alive', -1, 1, 0, 0);
+changeStatus(clusterSizes, 'alive',  'faulty', 'faulty', 0, 0, 0, 1);
+changeStatus(clusterSizes, 'alive',  'faulty', 'faulty', 1, 0, 0, 1);
+
+changeStatus(clusterSizes, 'suspect', 'alive', 'suspect', -1, 0, 1, 0);
+changeStatus(clusterSizes, 'suspect', 'alive', 'suspect',  0, 0, 1, 0);
+changeStatus(clusterSizes, 'suspect', 'alive', 'alive',   1, 1, 0, 0);
+
+changeStatus(clusterSizes, 'suspect', 'suspect', 'suspect', -1, 0, 1, 0);
+changeStatus(clusterSizes, 'suspect', 'suspect', 'suspect', 0,  0, 1, 0);
+changeStatus(clusterSizes, 'suspect', 'suspect', 'suspect', 1,  0, 1, 0);
+
+changeStatus(clusterSizes, 'suspect', 'faulty', 'suspect', -1, 0, 1, 0);
+changeStatus(clusterSizes, 'suspect', 'faulty', 'faulty',  0,  0, 0, 1);
+changeStatus(clusterSizes, 'suspect', 'faulty', 'faulty',  1,  0, 0, 1);
+
+changeStatus(clusterSizes, 'faulty',  'alive', 'faulty', -1, 0, 0, 1);
+changeStatus(clusterSizes, 'faulty',  'alive', 'faulty', 0,  0, 0, 1);
+changeStatus(clusterSizes, 'faulty',  'alive', 'alive',  1,  1, 0, 0);
+
+changeStatus(clusterSizes, 'faulty',  'suspect', 'faulty', -1, 0, 0, 1);
+changeStatus(clusterSizes, 'faulty',  'suspect', 'faulty',  0, 0, 0, 1);
+changeStatus(clusterSizes, 'faulty',  'suspect', 'suspect', 1, 0, 1, 0);
+
+changeStatus(clusterSizes, 'faulty',  'faulty', 'faulty', -1, 0, 0, 1);
+changeStatus(clusterSizes, 'faulty',  'faulty', 'faulty',  0, 0, 0, 1);
+changeStatus(clusterSizes, 'faulty',  'faulty', 'faulty',  1, 0, 0, 1);

@@ -11,15 +11,6 @@ function handlePingReq(req, res, pingStatus) {
 	
 	res.sendOk(null, JSON.stringify(response));
 }
-    
-
-// JSON.stringify({
-//     changes: ringpop.dissemination.issueAsReceiver(source,
-//         sourceIncarnationNumber, checksum),
-//     pingStatus: isOk,
-//     target: target
-// }
-
 
 module.exports = {
     handlePingReq: handlePingReq,
@@ -42,9 +33,11 @@ module.exports = {
 //     "source": "10.80.134.35:3000",
 //     "sourceIncarnationNumber": 1440006862476,
 //     "target": "10.80.134.35:3001"
-//     },
+// }
 
-
-//     "hostInfo": "10.80.134.35:53811",
-//     "time": 2752
+//{
+//     changes: ringpop.dissemination.issueAsReceiver(source,
+//         sourceIncarnationNumber, checksum),
+//     pingStatus: isOk,
+//     target: target
 // }

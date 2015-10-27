@@ -1,10 +1,18 @@
+var safeJSONParse = require('./util').safeParse;
+
 var Types = {
     Join: 'Join',
     Ping: 'Ping',
     PingReq: 'PingReq',
     ProxyReq: 'ProxyReq',
     UnknownRequest: 'UnknownRequest',
-    Stats: 'Stats'
+    Stats: 'Stats',
+    AdminGossipStart: 'AdminGossipStart',
+    AdminGossipStop: 'AdminGossipStop',
+    AdminGossipTick: 'AdminGossipTick',
+    AdminLookup: 'AdminLookup',
+    AdminMemberLeave: 'AdminMemberLeave',
+    AdminMemberJoin: 'AdminMemberJoin'
 };
 
 function endpointToEventType(endpoint) {
@@ -19,6 +27,18 @@ function endpointToEventType(endpoint) {
             return Types.ProxyReq;
         case '/admin/stats':
             return Types.Stats;
+        case '/admin/gossip/start':
+            return Types.AdminGossipStart;
+        case '/admin/gossip/stop':
+            return Types.AdminGossipStop;
+        case '/admin/gossip/tick':
+            return Types.AdminGossipTick;
+        case '/admin/lookup':
+            return Types.AdminLookup;
+        case '/admin/member/leave':
+            return Types.AdminMemberLeave;
+        case '/admin/member/join':
+            return Types.AdminMemberJoin;
         default:
             return Types.UnknownRequest;
     }
@@ -33,6 +53,9 @@ function RequestEvent(req, arg2, arg3, receiver) {
     this.req = req;
     this.arg2 = arg2;
     this.arg3 = arg3;
+
+    this.head = safeJSONParse(arg2);
+    this.body = safeJSONParse(arg3);
 }
 
 function ResponseEvent(res, arg2, arg3, receiver) {
@@ -44,6 +67,9 @@ function ResponseEvent(res, arg2, arg3, receiver) {
     this.res = res;
     this.arg2 = arg2;
     this.arg3 = arg3;
+
+    this.head = safeJSONParse(arg2);
+    this.body = safeJSONParse(arg3);
 }
 
 module.exports = {

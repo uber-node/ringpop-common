@@ -61,7 +61,6 @@ function findLocalIP(interfaces) {
     }
 
     return getIPv4Addr('en0') || getIPv4Addr('eth0') || '127.0.0.1';
-
 }
 
 function logMsg(who, msg) {
@@ -76,22 +75,6 @@ function range(start, end) {
     return res;
 }
 
-// test is like normal tape test but also prints t.error.details if a fail occured
-var Test = require('tape');
-function test(msg, opts, cb) {
-    var t = Test(msg, opts, cb);
-    t.on('result', function(res) {
-        if(!res.ok && res.error.details !== undefined) {
-            console.log('============== error details ===============');
-            console.log();
-            console.log(res.error.details);
-            console.log();
-            console.log('============================================');
-            console.log();
-        }
-    });
-}
-
 module.exports = {
     safeParse: safeParse,
     parseArg: parseArg,
@@ -100,5 +83,4 @@ module.exports = {
     logMsg: logMsg,
     range: range,
     makeHostPort: makeHostPort,
-    test: test,
 };

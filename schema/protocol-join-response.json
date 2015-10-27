@@ -1,0 +1,57 @@
+{
+    "id": "/JoinResponse",
+    "title": "Join Response",
+    "type": "object",
+    "properties": {
+        "app": {
+            "type": "string"
+        },
+        "coordinator": {
+            "type": "string"
+        },
+        "membership": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "source": {
+                        "type": "string"
+                    },
+                    "address": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "/Status"
+                    },
+                    "incarnationNumber": {
+                        "type": "number"
+                    },
+
+                    "timestamp": {
+                        "type": "number"
+                    },
+                    "sourceIncarnationNumber": {
+                        "type": "number"
+                    }
+                },
+                "required": [
+                    "source",
+                    "address",
+                    "status",
+                    "incarnationNumber"
+                ],
+                "additionalProperties": false
+            }
+        },
+        "membershipChecksum": {
+            "type": "number"
+        }
+    },
+    "required": [
+        "app",
+        "coordinator",
+        "membership",
+        "membershipChecksum"
+    ],
+    "additionalProperties": false
+}

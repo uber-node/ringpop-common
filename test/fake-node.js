@@ -18,6 +18,8 @@ function FakeNode(options) {
 
     this.endpoints = {};
     this.enableEndpoints();
+
+    this.pingEnabled = true;
 }
 
 FakeNode.prototype.enableEndpoints = function enableEndpoints() {
@@ -100,7 +102,17 @@ FakeNode.prototype.joinHandler = function joinHandler(req, res, arg2, arg3) {
     return handleJoin(req, res, this.toMemberInfo(), membership);
 };
 
+FakeNode.prototype.disablePing = function disablePing() {
+    this.pingEnabled = false;
+};
+
+FakeNode.prototype.enablePing = function enablePing() {
+    this.pingEnabled = true;
+};
+
 FakeNode.prototype.pingHandler = function pingHandler(req, res, arg2, arg3) {
+    if (!this.pingEnabled) return; // Do nothing when disabled
+
     return handlePing(res);
 };
 
@@ -161,16 +173,22 @@ FakeNode.prototype.requestJoin = function requestJoin(callback) {
     });
 }
 
-FakeNode.prototype.requestPing = function requestPing(callback) {
+FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
     var self = this;
+
+    var changes = [];
+    if (piggybackData !== undefined) {
+        changes.push(piggybackData);
+    }
 
     var body = JSON.stringify({
         source: self.getHostPort(),
         checksum: checksum(self.coordinator.getMembership()),
-        changes: [],
+        changes: changes,
         sourceIncarnationNumber: self.incarnationNumber,
     });
 
+    
     self.channel.waitForIdentified({
         host: self.coordinator.sutHostPort
     }, function onIdentified(err) {
@@ -199,23 +217,30 @@ FakeNode.prototype.requestPing = function requestPing(callback) {
 
                 var event = new events.ResponseEvent(res, arg2, arg3, self.getHostPort());
                 self.coordinator.emit('event', event);
-                callback();
+                callback(err, res, arg2, arg3);
             }
         );        
     });
 }
 
-FakeNode.prototype.requestPingReq = function requestPingReq(target, callback) {
+FakeNode.prototype.requestPingReq = function requestPingReq(target, callback, piggybackData) {
     var self = this;
 
-    var body = JSON.stringify({
+
+    var body = {
         source: self.getHostPort(),
         checksum: checksum(this.coordinator.getMembership()),
         changes: [],
         sourceIncarnationNumber: self.incarnationNumber,
         target: target,
-    });
+    };
 
+    if (piggybackData !== undefined) {
+        body.changes.push(piggybackData);
+    }
+
+    body = JSON.stringify(body);
+    
     self.channel.waitForIdentified({
         host: self.coordinator.sutHostPort
     }, function onIdentified(err) {

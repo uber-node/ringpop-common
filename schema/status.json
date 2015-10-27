@@ -1,0 +1,10 @@
+{
+    "id": "/Status",
+    "title": "Status",
+    "enum": [
+        "alive",
+        "suspect",
+        "faulty",
+        "leave"
+    ]
+}

@@ -1,0 +1,35 @@
+{
+    "id": "/Change",
+    "title": "Change",
+    "type": "object",
+    "properties": {
+        "address": {
+            "type": "string"
+        },
+        "status": {
+            "$ref": "/Status"
+        },
+        "incarnationNumber": {
+            "type": "number"
+        },
+        "source": {
+            "type": "string"
+        },
+        "id": {
+            "type": "string"
+        },
+        "sourceIncarnationNumber": {
+            "type": "number"
+        },
+        "timestamp": {
+            "type": "number"
+        }
+    },
+    "required": [
+        "address",
+        "status",
+        "incarnationNumber",
+        "source"
+    ],
+    "additionalProperties": false
+}
