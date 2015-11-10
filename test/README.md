@@ -1,10 +1,12 @@
 # ringpop integration tests
 
-These tests can be run against any ringpop application that exposes the `/admin/*` endpoints.
+These tests can be run against any ringpop application that exposes the `/admin/*` endpoints and command-line parameters specified below.
+
+The ringpop-node and ringpop-go projects provide test executables that are compatible out-of-the-box. See the *Examples* section below for instructions on how to run the integration tests against those codebases.
 
 ## Usage
 
-To run the tests, pass the path to a ringpop application binary:
+To run the tests, pass the path to a ringpop application executable:
 
 	cd tests/
 	npm install
@@ -12,14 +14,14 @@ To run the tests, pass the path to a ringpop application binary:
 
 ## Command-line parameters
 
-The test scripts will invoke the ringpop binary with the following command-line parameters. The application must start up and accept these parameters, otherwise the tests will fail:
+The test scripts will invoke the ringpop executable with the following command-line parameters. The application must start up and accept these parameters, otherwise the tests will fail:
 
 * `--hosts=<file>`: Should set the path to the JSON file containing a list of bootstrap hosts. The test scripts will create this file automatically.
 * `--listen=<host:port>` Should set the interface address and port that the ringpop application should listen on. The test scripts will use this address to connect via TChannel and issue requests.
 
 ## Examples
 
-There are test binaries for included in both the [ringpop-node](https://github.com/uber/ringpop-node) and [ringpop-go](https://github.com/uber/ringpop-go) projects.
+There are test executables for included in both the [ringpop-node](https://github.com/uber/ringpop-node) and [ringpop-go](https://github.com/uber/ringpop-go) projects.
 
 ### Running integration tests against ringpop-node
 
@@ -44,7 +46,7 @@ Clone and install dependencies for tests in ringpop-common:
 	git clone git@github.com:uber/ringpop-common.git
 	(cd ringpop-common/test && npm install)
 
-Install ringpop-go and build the `testpop` binary:
+Install ringpop-go and build the `testpop` executable:
 
 	go get -u github.com/uber/ringpop-go
 	(cd $GOPATH/src/github.com/uber/ringpop-go/scripts/testpop &&
