@@ -50,7 +50,7 @@ Install ringpop-go and build the `testpop` executable:
 
 	go get -u github.com/uber/ringpop-go
 	(cd $GOPATH/src/github.com/uber/ringpop-go/scripts/testpop &&
-		go build)
+		godep go build)
 
 Run the tests:
 
