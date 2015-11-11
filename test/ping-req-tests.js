@@ -24,11 +24,11 @@ var test2 = require('./test-util').test2;
 var prepareCluster = require('./test-util').prepareCluster;
 var prepareWithStatus = require('./test-util').prepareWithStatus;
 var _ = require('lodash');
-var clusterSizes = require('./it-tests').getClusterSizes();
-clusterSizes = _.filter(clusterSizes, function(n) { return n > 1; });
+var getClusterSizes = require('./it-tests').getClusterSizes;
+clusterSizes = _.filter(getClusterSizes(), function(n) { return n > 1; });
 
 
-test2('ping-req real-node with a disabled target', clusterSizes, 20000, 
+test2('ping-req real-node with a disabled target', getClusterSizes(), 20000, 
     prepareCluster(function(t, tc, n) { return [
         dsl.disableNode(t, tc, 1),
         dsl.sendPingReq(t, tc, 0, 1),
@@ -38,7 +38,7 @@ test2('ping-req real-node with a disabled target', clusterSizes, 20000,
     ];})
 );
 
-test2('ping-req real-node with enabled target', clusterSizes, 20000, 
+test2('ping-req real-node with enabled target', getClusterSizes(), 20000, 
     prepareCluster(function(t, tc, n) { return [
         // do not disable node
         dsl.sendPingReq(t, tc, 0, 1),
@@ -48,7 +48,7 @@ test2('ping-req real-node with enabled target', clusterSizes, 20000,
     ];})
 );
 
-test2('become suspect through disabling ping response', clusterSizes, 20000, 
+test2('become suspect through disabling ping response', getClusterSizes(), 20000, 
     prepareCluster(function(t, tc, n) { return [
         dsl.disableNode(t, tc, 1),
         dsl.waitForPingReqs(t, tc, 3),
@@ -57,7 +57,7 @@ test2('become suspect through disabling ping response', clusterSizes, 20000,
     ];})
 );
 
-test2('5-second suspect window', clusterSizes, 20000, 
+test2('5-second suspect window', getClusterSizes(), 20000, 
     prepareWithStatus(1, 'suspect', function(t, tc, n) { return [
         dsl.assertStats(t, tc, n, 1, 0, {1: {status: 'suspect'}}),
         dsl.wait(4000),
@@ -77,11 +77,11 @@ function testSetStatusViaPiggyback(ns, status, deltaAlive, nSuspect, nFaulty) {
     );
 }
 
-testSetStatusViaPiggyback(clusterSizes, 'alive',   1, 0, 0);
-testSetStatusViaPiggyback(clusterSizes, 'suspect', 0, 1, 0);
-testSetStatusViaPiggyback(clusterSizes, 'faulty',  0, 0, 1);
+testSetStatusViaPiggyback(getClusterSizes(), 'alive',   1, 0, 0);
+testSetStatusViaPiggyback(getClusterSizes(), 'suspect', 0, 1, 0);
+testSetStatusViaPiggyback(getClusterSizes(), 'faulty',  0, 0, 1);
 
-test2('change nodes status to suspect piggybacked on a ping-req', _.filter(clusterSizes, function(n) { return n > 2; }), 20000, 
+test2('change nodes status to suspect piggybacked on a ping-req', _.filter(getClusterSizes(), function(n) { return n > 2; }), 20000, 
     prepareCluster(function(t, tc, n) { return [
         // do not disable node
         dsl.sendPingReq(t, tc, 0, 1, 
@@ -118,17 +118,17 @@ function joinFrom(n, status, incNoDelta, deltaAlive, nSuspect, nFaulty) {
     );
 }
 
-joinFrom(clusterSizes, 'alive', -1, 1, 0, 0);
-joinFrom(clusterSizes, 'alive',  0, 1, 0, 0);
-joinFrom(clusterSizes, 'alive',  1, 1, 0, 0);
+joinFrom(getClusterSizes(), 'alive', -1, 1, 0, 0);
+joinFrom(getClusterSizes(), 'alive',  0, 1, 0, 0);
+joinFrom(getClusterSizes(), 'alive',  1, 1, 0, 0);
 
-joinFrom(clusterSizes, 'suspect', -1, 0, 1, 0);
-joinFrom(clusterSizes, 'suspect',  0, 0, 1, 0);
-joinFrom(clusterSizes, 'suspect',  1, 1, 0, 0);
+joinFrom(getClusterSizes(), 'suspect', -1, 0, 1, 0);
+joinFrom(getClusterSizes(), 'suspect',  0, 0, 1, 0);
+joinFrom(getClusterSizes(), 'suspect',  1, 1, 0, 0);
 
-joinFrom(clusterSizes, 'faulty', -1, 0, 0, 1);
-joinFrom(clusterSizes, 'faulty',  0, 0, 0, 1);
-joinFrom(clusterSizes, 'faulty',  1, 1, 0, 0);
+joinFrom(getClusterSizes(), 'faulty', -1, 0, 0, 1);
+joinFrom(getClusterSizes(), 'faulty',  0, 0, 0, 1);
+joinFrom(getClusterSizes(), 'faulty',  1, 1, 0, 0);
 
 // piggyback {alive, suspect, faulty} status of fake-node
 // who is {alive, suspect, faulty} with {lower, equal, higher}
@@ -150,38 +150,38 @@ function changeStatus(ns, initial, newState, finalState, incNoDelta, deltaAlive,
     );
 }
 
-changeStatus(clusterSizes, 'alive',  'alive', 'alive', -1, 1, 0, 0);
-changeStatus(clusterSizes, 'alive',  'alive', 'alive',  0, 1, 0, 0);
-changeStatus(clusterSizes, 'alive',  'alive', 'alive',  1, 1, 0, 0);
+changeStatus(getClusterSizes(), 'alive',  'alive', 'alive', -1, 1, 0, 0);
+changeStatus(getClusterSizes(), 'alive',  'alive', 'alive',  0, 1, 0, 0);
+changeStatus(getClusterSizes(), 'alive',  'alive', 'alive',  1, 1, 0, 0);
 
-changeStatus(clusterSizes, 'alive',  'suspect', 'alive',  -1, 1, 0, 0);
-changeStatus(clusterSizes, 'alive',  'suspect', 'suspect', 0, 0, 1, 0);
-changeStatus(clusterSizes, 'alive',  'suspect', 'suspect', 1, 0, 1, 0);
+changeStatus(getClusterSizes(), 'alive',  'suspect', 'alive',  -1, 1, 0, 0);
+changeStatus(getClusterSizes(), 'alive',  'suspect', 'suspect', 0, 0, 1, 0);
+changeStatus(getClusterSizes(), 'alive',  'suspect', 'suspect', 1, 0, 1, 0);
 
-changeStatus(clusterSizes, 'alive',  'faulty', 'alive', -1, 1, 0, 0);
-changeStatus(clusterSizes, 'alive',  'faulty', 'faulty', 0, 0, 0, 1);
-changeStatus(clusterSizes, 'alive',  'faulty', 'faulty', 1, 0, 0, 1);
+changeStatus(getClusterSizes(), 'alive',  'faulty', 'alive', -1, 1, 0, 0);
+changeStatus(getClusterSizes(), 'alive',  'faulty', 'faulty', 0, 0, 0, 1);
+changeStatus(getClusterSizes(), 'alive',  'faulty', 'faulty', 1, 0, 0, 1);
 
-changeStatus(clusterSizes, 'suspect', 'alive', 'suspect', -1, 0, 1, 0);
-changeStatus(clusterSizes, 'suspect', 'alive', 'suspect',  0, 0, 1, 0);
-changeStatus(clusterSizes, 'suspect', 'alive', 'alive',   1, 1, 0, 0);
+changeStatus(getClusterSizes(), 'suspect', 'alive', 'suspect', -1, 0, 1, 0);
+changeStatus(getClusterSizes(), 'suspect', 'alive', 'suspect',  0, 0, 1, 0);
+changeStatus(getClusterSizes(), 'suspect', 'alive', 'alive',   1, 1, 0, 0);
 
-changeStatus(clusterSizes, 'suspect', 'suspect', 'suspect', -1, 0, 1, 0);
-changeStatus(clusterSizes, 'suspect', 'suspect', 'suspect', 0,  0, 1, 0);
-changeStatus(clusterSizes, 'suspect', 'suspect', 'suspect', 1,  0, 1, 0);
+changeStatus(getClusterSizes(), 'suspect', 'suspect', 'suspect', -1, 0, 1, 0);
+changeStatus(getClusterSizes(), 'suspect', 'suspect', 'suspect', 0,  0, 1, 0);
+changeStatus(getClusterSizes(), 'suspect', 'suspect', 'suspect', 1,  0, 1, 0);
 
-changeStatus(clusterSizes, 'suspect', 'faulty', 'suspect', -1, 0, 1, 0);
-changeStatus(clusterSizes, 'suspect', 'faulty', 'faulty',  0,  0, 0, 1);
-changeStatus(clusterSizes, 'suspect', 'faulty', 'faulty',  1,  0, 0, 1);
+changeStatus(getClusterSizes(), 'suspect', 'faulty', 'suspect', -1, 0, 1, 0);
+changeStatus(getClusterSizes(), 'suspect', 'faulty', 'faulty',  0,  0, 0, 1);
+changeStatus(getClusterSizes(), 'suspect', 'faulty', 'faulty',  1,  0, 0, 1);
 
-changeStatus(clusterSizes, 'faulty',  'alive', 'faulty', -1, 0, 0, 1);
-changeStatus(clusterSizes, 'faulty',  'alive', 'faulty', 0,  0, 0, 1);
-changeStatus(clusterSizes, 'faulty',  'alive', 'alive',  1,  1, 0, 0);
+changeStatus(getClusterSizes(), 'faulty',  'alive', 'faulty', -1, 0, 0, 1);
+changeStatus(getClusterSizes(), 'faulty',  'alive', 'faulty', 0,  0, 0, 1);
+changeStatus(getClusterSizes(), 'faulty',  'alive', 'alive',  1,  1, 0, 0);
 
-changeStatus(clusterSizes, 'faulty',  'suspect', 'faulty', -1, 0, 0, 1);
-changeStatus(clusterSizes, 'faulty',  'suspect', 'faulty',  0, 0, 0, 1);
-changeStatus(clusterSizes, 'faulty',  'suspect', 'suspect', 1, 0, 1, 0);
+changeStatus(getClusterSizes(), 'faulty',  'suspect', 'faulty', -1, 0, 0, 1);
+changeStatus(getClusterSizes(), 'faulty',  'suspect', 'faulty',  0, 0, 0, 1);
+changeStatus(getClusterSizes(), 'faulty',  'suspect', 'suspect', 1, 0, 1, 0);
 
-changeStatus(clusterSizes, 'faulty',  'faulty', 'faulty', -1, 0, 0, 1);
-changeStatus(clusterSizes, 'faulty',  'faulty', 'faulty',  0, 0, 0, 1);
-changeStatus(clusterSizes, 'faulty',  'faulty', 'faulty',  1, 0, 0, 1);
+changeStatus(getClusterSizes(), 'faulty',  'faulty', 'faulty', -1, 0, 0, 1);
+changeStatus(getClusterSizes(), 'faulty',  'faulty', 'faulty',  0, 0, 0, 1);
+changeStatus(getClusterSizes(), 'faulty',  'faulty', 'faulty',  1, 0, 0, 1);

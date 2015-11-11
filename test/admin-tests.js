@@ -22,7 +22,7 @@ var events = require('./events');
 var test2 = require('./test-util').test2;
 var prepareCluster = require('./test-util').prepareCluster;
 var dsl = require('./ringpop-assert');
-var clusterSizes = require('./it-tests').getClusterSizes();
+var getClusterSizes = require('./it-tests').getClusterSizes;
 
 // TODO endpoints
 //   /admin/debugClear (NOOP in go, toggle between ping logs in node2)
@@ -30,7 +30,7 @@ var clusterSizes = require('./it-tests').getClusterSizes();
 // node only:
 //   /admin/reload
 
-test2('endpoint: /admin/gossip/stop', clusterSizes, 5000, prepareCluster(function(t,tc,n) {
+test2('endpoint: /admin/gossip/stop', getClusterSizes(), 5000, prepareCluster(function(t,tc,n) {
     return [
         dsl.callEndpoint(t, tc, '/admin/gossip/stop'),
         dsl.validateEventBody(t, tc, {
@@ -48,7 +48,7 @@ test2('endpoint: /admin/gossip/stop', clusterSizes, 5000, prepareCluster(functio
     ];
 }));
 
-test2('endpoint: /admin/gossip/start', clusterSizes, 5000, prepareCluster(function(t, tc, n) {
+test2('endpoint: /admin/gossip/start', getClusterSizes(), 5000, prepareCluster(function(t, tc, n) {
     return [
         dsl.callEndpoint(t, tc, '/admin/gossip/stop'),
         dsl.validateEventBody(t, tc, {
@@ -73,7 +73,7 @@ test2('endpoint: /admin/gossip/start', clusterSizes, 5000, prepareCluster(functi
     ];
 }));
 
-test2('endpoint: /admin/gossip/tick', clusterSizes, 5000, prepareCluster(function(t, tc, n) {
+test2('endpoint: /admin/gossip/tick', getClusterSizes(), 5000, prepareCluster(function(t, tc, n) {
     return [
         // stop gossip before invoking tick to make sure the tick is from the invocation
         dsl.callEndpoint(t, tc, '/admin/gossip/stop'),
@@ -103,7 +103,7 @@ test2('endpoint: /admin/gossip/tick', clusterSizes, 5000, prepareCluster(functio
 }));
 
 var lookupKey = 'Hello World ' + Math.random();
-test2('endpoint: /admin/lookup ('+lookupKey+')', clusterSizes, 5000, prepareCluster(function(t, tc, n) {
+test2('endpoint: /admin/lookup ('+lookupKey+')', getClusterSizes(), 5000, prepareCluster(function(t, tc, n) {
     return [
         dsl.callEndpoint(t, tc, '/admin/lookup', { key: lookupKey}),
         dsl.validateEventBody(t, tc, {
@@ -117,7 +117,7 @@ test2('endpoint: /admin/lookup ('+lookupKey+')', clusterSizes, 5000, prepareClus
     ];
 }));
 
-test2('endpoint: /admin/stats', clusterSizes, 5000, prepareCluster(function(t, tc, n) {
+test2('endpoint: /admin/stats', getClusterSizes(), 5000, prepareCluster(function(t, tc, n) {
     return [
         dsl.callEndpoint(t, tc, '/admin/stats'),
         dsl.validateEventBody(t, tc, {
@@ -130,7 +130,7 @@ test2('endpoint: /admin/stats', clusterSizes, 5000, prepareCluster(function(t, t
     ];
 }));
 
-test2('endpoint: /admin/member/leave', clusterSizes, 5000, prepareCluster(function(t, tc, n) {
+test2('endpoint: /admin/member/leave', getClusterSizes(), 5000, prepareCluster(function(t, tc, n) {
     return [
         // this makes testing the piggy backed status easier
         dsl.waitForEmptyPing(t, tc),
@@ -159,7 +159,7 @@ test2('endpoint: /admin/member/leave', clusterSizes, 5000, prepareCluster(functi
     ];
 }));
 
-test2('endpoint: /admin/member/join', clusterSizes, 10000, prepareCluster(function(t, tc, n) {
+test2('endpoint: /admin/member/join', getClusterSizes(), 10000, prepareCluster(function(t, tc, n) {
     return [
         // this makes testing the piggy backed status easier
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
