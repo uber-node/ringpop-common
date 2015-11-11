@@ -23,7 +23,7 @@ var test2 = require('./test-util').test2;
 var prepareCluster = require('./test-util').prepareCluster;
 var dsl = require('./ringpop-assert');
 var _ = require('lodash');
-var clusterSizes = require('./test-util').clusterSizes;
+var clusterSizes = require('./it-tests').getClusterSizes();
 clusterSizes = _.filter(clusterSizes, function(n) { return n > 2; });
 
 test2('ringpop sends piggyback info in ping request', clusterSizes, 20000, prepareCluster(function(t, tc, n) {

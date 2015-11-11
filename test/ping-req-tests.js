@@ -24,7 +24,7 @@ var test2 = require('./test-util').test2;
 var prepareCluster = require('./test-util').prepareCluster;
 var prepareWithStatus = require('./test-util').prepareWithStatus;
 var _ = require('lodash');
-var clusterSizes = require('./test-util').clusterSizes;
+var clusterSizes = require('./it-tests').getClusterSizes();
 clusterSizes = _.filter(clusterSizes, function(n) { return n > 1; });
 
 

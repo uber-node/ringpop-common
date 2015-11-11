@@ -23,7 +23,7 @@ var util = require('util');
 var test2 = require('./test-util').test2;
 var dsl = require('./ringpop-assert');
 var prepareCluster = require('./test-util').prepareCluster;
-var clusterSizes = require('./test-util').clusterSizes;
+var clusterSizes = require('./it-tests').getClusterSizes();
 
 function joinFakeCluster(n) {
     test2('join cluster of 1+' + n + ' nodes', [n], 20000, 

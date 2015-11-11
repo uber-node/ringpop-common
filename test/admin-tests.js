@@ -22,7 +22,7 @@ var events = require('./events');
 var test2 = require('./test-util').test2;
 var prepareCluster = require('./test-util').prepareCluster;
 var dsl = require('./ringpop-assert');
-var clusterSizes = require('./test-util').clusterSizes;
+var clusterSizes = require('./it-tests').getClusterSizes();
 
 // TODO endpoints
 //   /admin/debugClear (NOOP in go, toggle between ping logs in node2)

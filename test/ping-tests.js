@@ -22,7 +22,7 @@ var events = require('./events');
 var test2 = require('./test-util').test2;
 var dsl = require('./ringpop-assert');
 var prepareCluster = require('./test-util').prepareCluster;
-var clusterSizes = require('./test-util').clusterSizes;
+var clusterSizes = require('./it-tests').getClusterSizes();
 var _ = require('lodash');
 
 test2('fair round robin pings', _.filter(clusterSizes, function(n) { return n > 5; }) , 20000, 

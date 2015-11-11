@@ -24,11 +24,13 @@ var farmhash = require('farmhash');
 var TestCoordinator = require('./test-coordinator');
 var dsl = require('./ringpop-assert');
 var programPath, programInterpreter;
+var clusterSizes = [1, 2, 3, 4, 5, 6, 7, 10, 21, 25, 30];
 
 
-function main() {
+function main() {   
     program
         .version(require('../package.json').version)
+        .option('-s, --sizes <clusterSizes>', 'Test against these sizes (requires json array)')
         .option('-i, --interpreter <interpreter>', 'Interpreter that runs program.')
         .arguments('<program>')
         .description('it-test performs an integration test on a ringpop program')
@@ -38,6 +40,9 @@ function main() {
                 programPath = './' + programPath;
             }
             programInterpreter = options.interpreter;
+            if (options.sizes) {
+                clusterSizes = JSON.parse(options.sizes);
+            }
         });
 
     program.parse(process.argv);
@@ -73,10 +78,15 @@ function getProgramInterpreter() {
     return programInterpreter;
 }
 
+function getClusterSizes() {
+    return clusterSizes;
+}
+
 // ./util uses this so we want to export it before require('./util') happens somewhere
 module.exports = {
     getProgramInterpreter: getProgramInterpreter,
     getProgramPath: getProgramPath,
+    getClusterSizes: getClusterSizes,
 };
 
 if (require.main === module) {
