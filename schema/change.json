@@ -28,8 +28,7 @@
     "required": [
         "address",
         "status",
-        "incarnationNumber",
-        "source"
+        "incarnationNumber"
     ],
     "additionalProperties": false
 }
