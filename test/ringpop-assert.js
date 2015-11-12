@@ -171,6 +171,17 @@ function joinNewNode(t, tc, nodeIx) {
     ];
 }
 
+function removeFakeNode(t, tc) {
+    var f = _.once(function addNode(list, cb) {
+        var n = tc.fakeNodes.length;
+        tc.fakeNodes[n-1].shutdown();
+        tc.fakeNodes = tc.fakeNodes.slice(0, n-1);
+        cb(list);
+    });
+    f.callerName = 'removeFakeNode';
+    return f;
+}
+
 function addFakeNode(t, tc) {
     var f = _.once(function addNode(list, cb) {
         var node = tc.createFakeNode();
@@ -468,6 +479,10 @@ function waitForStatsAssertStatus(t, tc, alive, suspect, faulty) {
             // find member i in members
             var memberIx = _.findIndex(members, {address: fakeNode.getHostPort()});
             // check memberIx != -1
+            if(memberIx === -1) {
+                t.fail('member not found in membership');
+                return
+            }
             var member = members[memberIx];
             t.equal(member.incarnationNumber, fakeNode.incarnationNumber, 
                 'same incarnationNumber ' + fakeNode.incarnationNumber, 
@@ -809,10 +824,10 @@ module.exports = {
 
     addFakeNode: addFakeNode,
     joinNewNode: joinNewNode,
+    removeFakeNode: removeFakeNode,
     waitForJoinResponse: waitForJoinResponse,
 
     waitForPingReqResponse: waitForPingReqResponse,
 
     piggyback: piggyback,
-
 };

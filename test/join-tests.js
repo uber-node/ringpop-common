@@ -44,7 +44,10 @@ test2('join ringpop with fake node', getClusterSizes(), 20000,
         dsl.joinNewNode(t, tc, n),
         dsl.waitForJoinResponse(t, tc, n),
         dsl.wait(100),
-        dsl.assertStats(t, tc, n+2, 0, 0),
+        // node is supposed to disseminate itself
+        // remove this node to keep in sync with membership of real node
+        dsl.removeFakeNode(t, tc),
+        dsl.assertStats(t, tc, n+1, 0, 0),
         dsl.expectOnlyPings(t, tc),
     ];})
 );
