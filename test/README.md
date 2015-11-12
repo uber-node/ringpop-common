@@ -6,11 +6,22 @@ The ringpop-node and ringpop-go projects provide test executables that are compa
 
 ## Usage
 
+it-tests.js performs an integration test on a ringpop program
+```
+  Usage: it-tests [options] <program>
+
+  Options:
+    -h, --help                       output usage information
+    -V, --version                    output the version number
+    -s, --sizes <clusterSizes>       Cluster sizes to test against. Default: '[1,2,3,4,5,6,7,10,21,25,30]'
+    -i, --interpreter <interpreter>  Interpreter that runs program.
+```
+
 To run the tests, pass the path to a ringpop application executable:
 
 	cd tests/
 	npm install
-	node ./it-tests.js ~/uber/projects/ringpop-node/main.js
+	node ./it-tests.js -i node ~/uber/projects/ringpop-node/main.js
 
 ## Command-line parameters
 

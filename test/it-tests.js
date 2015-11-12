@@ -30,10 +30,11 @@ var clusterSizes = [1, 2, 3, 4, 5, 6, 7, 10, 21, 25, 30];
 function main() {   
     program
         .version(require('../package.json').version)
-        .option('-s, --sizes <clusterSizes>', 'Test against these sizes (requires json array)')
+        .option('-s, --sizes <clusterSizes>', 'Cluster sizes to test against. Default: \'' +
+             JSON.stringify(clusterSizes) + '\'')
         .option('-i, --interpreter <interpreter>', 'Interpreter that runs program.')
         .arguments('<program>')
-        .description('it-test performs an integration test on a ringpop program')
+        .description('it-tests.js performs an integration test on a ringpop program')
         .action(function onAction(path, options) {
             programPath = path;
             if (programPath[0] !== '/') {
