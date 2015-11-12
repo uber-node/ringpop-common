@@ -95,21 +95,15 @@ test2('change nodes status to suspect piggybacked on a ping-req', _.filter(getCl
 function joinFrom(n, status, incNoDelta, deltaAlive, nSuspect, nFaulty) {
     test2('join from ' + status + ' with incNoDelta ' + incNoDelta, n, 20000, 
         prepareWithStatus(0, status, function(t, tc, n) {
-            if (incNoDelta > 0) {
-                status = 'alive';
-            }
             return [
                 dsl.disableNode(t, tc, 0),
                 dsl.enableNode(t, tc, 0, tc.fakeNodes[0].incarnationNumber+incNoDelta),
                 dsl.sendJoin(t, tc, 0),
                 dsl.waitForJoinResponse(t, tc, 0),
-                // we expect the node to get rejected if incNoDelta<0, 
-                // so the actual incarnation number has to be set so that
-                // assertStats compares to the expected incarnationNumbers
+                // We expect the node to not accept the join but not change it's own membership
+                // A node is expected to disseminate its own existence
                 function(list, cb) {
-                    if (incNoDelta < 0) {
-                        tc.fakeNodes[0].incarnationNumber -= incNoDelta;
-                    }
+                    tc.fakeNodes[0].incarnationNumber -= incNoDelta;
                     cb(list);
                 },
                 dsl.assertStats(t, tc, n + deltaAlive, nSuspect, nFaulty, {0: {status: status}}),
@@ -122,13 +116,13 @@ joinFrom(getClusterSizes(), 'alive', -1, 1, 0, 0);
 joinFrom(getClusterSizes(), 'alive',  0, 1, 0, 0);
 joinFrom(getClusterSizes(), 'alive',  1, 1, 0, 0);
 
-joinFrom(getClusterSizes(), 'suspect', -1, 0, 1, 0);
-joinFrom(getClusterSizes(), 'suspect',  0, 0, 1, 0);
-joinFrom(getClusterSizes(), 'suspect',  1, 1, 0, 0);
+joinFrom(clusterSizes, 'suspect', -1, 0, 1, 0);
+joinFrom(clusterSizes, 'suspect',  0, 0, 1, 0);
+joinFrom(clusterSizes, 'suspect',  1, 0, 1, 0);
 
-joinFrom(getClusterSizes(), 'faulty', -1, 0, 0, 1);
-joinFrom(getClusterSizes(), 'faulty',  0, 0, 0, 1);
-joinFrom(getClusterSizes(), 'faulty',  1, 1, 0, 0);
+joinFrom(clusterSizes, 'faulty', -1, 0, 0, 1);
+joinFrom(clusterSizes, 'faulty',  0, 0, 0, 1);
+joinFrom(clusterSizes, 'faulty',  1, 0, 0, 1);
 
 // piggyback {alive, suspect, faulty} status of fake-node
 // who is {alive, suspect, faulty} with {lower, equal, higher}
