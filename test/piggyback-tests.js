@@ -23,10 +23,10 @@ var test2 = require('./test-util').test2;
 var prepareCluster = require('./test-util').prepareCluster;
 var dsl = require('./ringpop-assert');
 var _ = require('lodash');
-var clusterSizes = require('./test-util').clusterSizes;
-clusterSizes = _.filter(clusterSizes, function(n) { return n > 2; });
+var getClusterSizes = require('./it-tests').getClusterSizes;
+clusterSizes = _.filter(getClusterSizes(), function(n) { return n > 2; });
 
-test2('ringpop sends piggyback info in ping request', clusterSizes, 20000, prepareCluster(function(t, tc, n) {
+test2('ringpop sends piggyback info in ping request', getClusterSizes(), 20000, prepareCluster(function(t, tc, n) {
     return [
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
@@ -54,7 +54,7 @@ test2('ringpop sends piggyback info in ping request', clusterSizes, 20000, prepa
     ];
 }));
 
-test2('ringpop updates its dissimination list on pingreq', clusterSizes, 20000, prepareCluster(function(t, tc, n) {
+test2('ringpop updates its dissimination list on pingreq', getClusterSizes(), 20000, prepareCluster(function(t, tc, n) {
     return [
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
@@ -82,7 +82,7 @@ test2('ringpop updates its dissimination list on pingreq', clusterSizes, 20000, 
     ];
 }));
 
-test2('ringpop sends piggyback info in ping-req response', clusterSizes, 20000, prepareCluster(function(t, tc, n) {
+test2('ringpop sends piggyback info in ping-req response', getClusterSizes(), 20000, prepareCluster(function(t, tc, n) {
     return [
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
@@ -112,7 +112,7 @@ test2('ringpop sends piggyback info in ping-req response', clusterSizes, 20000, 
     ];
 }));
 
-test2('ringpop piggybacking decays', clusterSizes, 20000, prepareCluster(function(t, tc, n) {
+test2('ringpop piggybacking decays', getClusterSizes(), 20000, prepareCluster(function(t, tc, n) {
     return [
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
@@ -131,7 +131,7 @@ test2('ringpop piggybacking decays', clusterSizes, 20000, prepareCluster(functio
     ];
 }));
 
-test2('ringpop piggybacking should ignore updates when it already knows about', clusterSizes, 20000, prepareCluster(function(t, tc, n) {
+test2('ringpop piggybacking should ignore updates when it already knows about', getClusterSizes(), 20000, prepareCluster(function(t, tc, n) {
     return [
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
@@ -157,7 +157,7 @@ test2('ringpop piggybacking should ignore updates when it already knows about', 
     ];
 }));
 
-test2('ringpop sends piggyback info in ping response', clusterSizes, 20000, prepareCluster(function(t, tc, n) {
+test2('ringpop sends piggyback info in ping response', getClusterSizes(), 20000, prepareCluster(function(t, tc, n) {
     return [
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
@@ -186,7 +186,7 @@ test2('ringpop sends piggyback info in ping response', clusterSizes, 20000, prep
     ];
 }));
 
-test2('ringpop sends piggyback info in ping-req request', clusterSizes, 20000, prepareCluster(function(t, tc, n) {
+test2('ringpop sends piggyback info in ping-req request', getClusterSizes(), 20000, prepareCluster(function(t, tc, n) {
     return [
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point

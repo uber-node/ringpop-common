@@ -23,7 +23,7 @@ var util = require('util');
 var test2 = require('./test-util').test2;
 var dsl = require('./ringpop-assert');
 var prepareCluster = require('./test-util').prepareCluster;
-var clusterSizes = require('./test-util').clusterSizes;
+var getClusterSizes = require('./it-tests').getClusterSizes;
 
 function joinFakeCluster(n) {
     test2('join cluster of 1+' + n + ' nodes', [n], 20000, 
@@ -34,11 +34,12 @@ function joinFakeCluster(n) {
     );
 }
 
+var clusterSizes = getClusterSizes();
 clusterSizes.forEach(function(n) {
     joinFakeCluster(n);
 });
 
-test2('join ringpop with fake node', clusterSizes, 20000, 
+test2('join ringpop with fake node', getClusterSizes(), 20000, 
     prepareCluster(function(t, tc, n) { return [
         dsl.joinNewNode(t, tc, n),
         dsl.waitForJoinResponse(t, tc, n),

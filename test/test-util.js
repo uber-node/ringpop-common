@@ -18,11 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-dsl = require('./ringpop-assert');
-TestCoordinator = require('./test-coordinator');
-getProgramPath = require('./it-tests').getProgramPath;
-getProgramInterpreter = require('./it-tests').getProgramInterpreter;
-
+var dsl = require('./ringpop-assert');
+var TestCoordinator = require('./test-coordinator');
+var getProgramPath = require('./it-tests').getProgramPath;
+var getProgramInterpreter = require('./it-tests').getProgramInterpreter;
 // test is like normal tape test but also prints t.error.details if a fail occured
 var Test = require('tape');
 function test(msg, opts, cb) {
@@ -82,12 +81,10 @@ function prepareWithStatus(ix, status, insert_fns) {
     ];});
 }
 
-var clusterSizes = [1, 2, 3, 4, 5, 6, 7, 10, 21, 25, 30];
 
 module.exports = {
     test: test,
     test2: test2,
-    clusterSizes: clusterSizes,
     prepareCluster: prepareCluster,
     prepareWithStatus: prepareWithStatus,
 }
