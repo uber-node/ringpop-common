@@ -36,10 +36,11 @@ function joinFakeCluster(n) {
             dsl.validateEventBody(t, tc, {
                 type: events.Types.Ping,
                 direction: 'request'
-            }, "Check if node doesn't disseminate join list", function (ping) {
+            }, "Check if node doesn't disseminate join list and only disseminates itself", function (ping) {
                 return ping.body && ping.body.changes &&
                     ping.body.changes.length === 1 &&
-                    ping.body.changes[0].status === 'alive'
+                    ping.body.changes[0].status === 'alive' &&
+                    ping.body.changes[0].address === tc.sutHostPort
             }),
 
             dsl.expectOnlyPings(t, tc),
