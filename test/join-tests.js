@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+var _ = require('lodash');
 var events = require('./events');
 var util = require('util');
 var test2 = require('./test-util').test2;
@@ -30,6 +31,18 @@ function joinFakeCluster(n) {
     test2('join cluster of 1+' + n + ' nodes', [n], 20000, 
         prepareCluster(function(t, tc, n) { return [
             dsl.assertStats(t, tc, n+1, 0, 0),
+            
+            // Wait for a ping from the SUT and validate that it has the piggybacked information in there
+            dsl.validateEventBody(t, tc, {
+                type: events.Types.Ping,
+                direction: 'request'
+            }, "Check if node doesn't disseminate join list and only disseminates itself", function (ping) {
+                return ping.body && ping.body.changes &&
+                    ping.body.changes.length === 1 &&
+                    ping.body.changes[0].status === 'alive' &&
+                    ping.body.changes[0].address === tc.sutHostPort
+            }),
+
             dsl.expectOnlyPings(t, tc),
         ];})
     );
