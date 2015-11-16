@@ -69,6 +69,7 @@ test2('5-second suspect window', getClusterSizes(), 20000,
     ];})
 );
 
+
 function testSetStatusViaPiggyback(ns, status, deltaAlive, nSuspect, nFaulty) {
     test2('prepare node with status ' + status, ns, 20000, 
         prepareWithStatus(1, status, function(t, tc, n) { return [
@@ -91,91 +92,3 @@ test2('change nodes status to suspect piggybacked on a ping-req', _.filter(getCl
         dsl.assertStats(t, tc, n, 1, 0, {2: {status: 'suspect'}}),
     ];})
 );
-
-function joinFrom(n, status, incNoDelta, deltaAlive, nSuspect, nFaulty) {
-    test2('join from ' + status + ' with incNoDelta ' + incNoDelta, n, 20000, 
-        prepareWithStatus(0, status, function(t, tc, n) {
-            return [
-                dsl.disableNode(t, tc, 0),
-                dsl.enableNode(t, tc, 0, tc.fakeNodes[0].incarnationNumber+incNoDelta),
-                dsl.sendJoin(t, tc, 0),
-                dsl.waitForJoinResponse(t, tc, 0),
-                // We expect the node to not accept the join but not change it's own membership
-                // A node is expected to disseminate its own existence
-                function(list, cb) {
-                    tc.fakeNodes[0].incarnationNumber -= incNoDelta;
-                    cb(list);
-                },
-                dsl.assertStats(t, tc, n + deltaAlive, nSuspect, nFaulty, {0: {status: status}}),
-            ];
-        })
-    );
-}
-
-joinFrom(getClusterSizes(), 'alive', -1, 1, 0, 0);
-joinFrom(getClusterSizes(), 'alive',  0, 1, 0, 0);
-joinFrom(getClusterSizes(), 'alive',  1, 1, 0, 0);
-
-joinFrom(clusterSizes, 'suspect', -1, 0, 1, 0);
-joinFrom(clusterSizes, 'suspect',  0, 0, 1, 0);
-joinFrom(clusterSizes, 'suspect',  1, 0, 1, 0);
-
-joinFrom(clusterSizes, 'faulty', -1, 0, 0, 1);
-joinFrom(clusterSizes, 'faulty',  0, 0, 0, 1);
-joinFrom(clusterSizes, 'faulty',  1, 0, 0, 1);
-
-// piggyback {alive, suspect, faulty} status of fake-node
-// who is {alive, suspect, faulty} with {lower, equal, higher}
-// incarnation number than the fake-node (27 combinations)
-function changeStatus(ns, initial, newState, finalState, incNoDelta, deltaAlive, nSuspect, nFaulty) {
-    var ix = 1;
-    test2('change status from ' + initial + ', to ' + newState + 
-        ' with incNoDelta ' + incNoDelta + ' via piggybacking', 
-        ns, 20000, prepareWithStatus(ix, initial, function(t, tc, n) {
-            expectedMembers = {}
-            expectedMembers[ix] = {status: finalState};
-            return [
-                dsl.sendPing(t, tc, 0, 
-                    {sourceIx: 0, subjectIx: ix, status: newState, subjectIncNoDelta: incNoDelta}),
-                dsl.waitForPingResponse(t, tc, 0),
-                dsl.assertStats(t, tc, n + deltaAlive, nSuspect, nFaulty, expectedMembers),
-            ];
-        })
-    );
-}
-
-changeStatus(getClusterSizes(), 'alive',  'alive', 'alive', -1, 1, 0, 0);
-changeStatus(getClusterSizes(), 'alive',  'alive', 'alive',  0, 1, 0, 0);
-changeStatus(getClusterSizes(), 'alive',  'alive', 'alive',  1, 1, 0, 0);
-
-changeStatus(getClusterSizes(), 'alive',  'suspect', 'alive',  -1, 1, 0, 0);
-changeStatus(getClusterSizes(), 'alive',  'suspect', 'suspect', 0, 0, 1, 0);
-changeStatus(getClusterSizes(), 'alive',  'suspect', 'suspect', 1, 0, 1, 0);
-
-changeStatus(getClusterSizes(), 'alive',  'faulty', 'alive', -1, 1, 0, 0);
-changeStatus(getClusterSizes(), 'alive',  'faulty', 'faulty', 0, 0, 0, 1);
-changeStatus(getClusterSizes(), 'alive',  'faulty', 'faulty', 1, 0, 0, 1);
-
-changeStatus(getClusterSizes(), 'suspect', 'alive', 'suspect', -1, 0, 1, 0);
-changeStatus(getClusterSizes(), 'suspect', 'alive', 'suspect',  0, 0, 1, 0);
-changeStatus(getClusterSizes(), 'suspect', 'alive', 'alive',   1, 1, 0, 0);
-
-changeStatus(getClusterSizes(), 'suspect', 'suspect', 'suspect', -1, 0, 1, 0);
-changeStatus(getClusterSizes(), 'suspect', 'suspect', 'suspect', 0,  0, 1, 0);
-changeStatus(getClusterSizes(), 'suspect', 'suspect', 'suspect', 1,  0, 1, 0);
-
-changeStatus(getClusterSizes(), 'suspect', 'faulty', 'suspect', -1, 0, 1, 0);
-changeStatus(getClusterSizes(), 'suspect', 'faulty', 'faulty',  0,  0, 0, 1);
-changeStatus(getClusterSizes(), 'suspect', 'faulty', 'faulty',  1,  0, 0, 1);
-
-changeStatus(getClusterSizes(), 'faulty',  'alive', 'faulty', -1, 0, 0, 1);
-changeStatus(getClusterSizes(), 'faulty',  'alive', 'faulty', 0,  0, 0, 1);
-changeStatus(getClusterSizes(), 'faulty',  'alive', 'alive',  1,  1, 0, 0);
-
-changeStatus(getClusterSizes(), 'faulty',  'suspect', 'faulty', -1, 0, 0, 1);
-changeStatus(getClusterSizes(), 'faulty',  'suspect', 'faulty',  0, 0, 0, 1);
-changeStatus(getClusterSizes(), 'faulty',  'suspect', 'suspect', 1, 0, 1, 0);
-
-changeStatus(getClusterSizes(), 'faulty',  'faulty', 'faulty', -1, 0, 0, 1);
-changeStatus(getClusterSizes(), 'faulty',  'faulty', 'faulty',  0, 0, 0, 1);
-changeStatus(getClusterSizes(), 'faulty',  'faulty', 'faulty',  1, 0, 0, 1);
