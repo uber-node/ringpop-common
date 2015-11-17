@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-var _ = require('lodash');
 var events = require('./events');
 var util = require('util');
 var test2 = require('./test-util').test2;
@@ -40,7 +39,7 @@ function joinFakeCluster(n) {
                 return ping.body && ping.body.changes &&
                     ping.body.changes.length === 1 &&
                     ping.body.changes[0].status === 'alive' &&
-                    ping.body.changes[0].address === tc.sutHostPort
+                    ping.body.changes[0].address === tc.sutHostPort;
             }),
 
             dsl.expectOnlyPings(t, tc),
