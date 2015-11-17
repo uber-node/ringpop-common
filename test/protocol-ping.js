@@ -39,7 +39,7 @@ function noResponseHandler() {
 module.exports = {
     handlePing: handlePing,
     pingNotOkHandler: pingNotOkHandler,
-}
+};
 
 // PING REQUEST
 // just call the endpoint (empty arg3)

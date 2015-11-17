@@ -53,7 +53,7 @@ function test2(str, ns, deadline, callback) {
             tc.start(function onTCStarted() {
                 dsl.validate(t, tc, callback(t, tc, n), deadline);
             });
-        })
+        });
     });
 }
 
@@ -65,7 +65,7 @@ function prepareCluster(insert_fns) {
             insert_fns(t, tc, n),
             dsl.expectOnlyPingsAndPingReqs(t, tc),
         ];
-    }
+    };
 }
 
 function prepareWithStatus(ix, status, insert_fns) {
@@ -87,4 +87,4 @@ module.exports = {
     test2: test2,
     prepareCluster: prepareCluster,
     prepareWithStatus: prepareWithStatus,
-}
+};

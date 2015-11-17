@@ -59,7 +59,7 @@ FakeNode.prototype.enableEndpoints = function enableEndpoints() {
         path: '/proxy/req',
         handler: this.proxyReqHandler.bind(this)
     };    
-}
+};
 
 FakeNode.prototype.start = function start(callback) {
     var self = this;
@@ -110,12 +110,12 @@ FakeNode.prototype.toMemberInfo = function toMemberInfo() {
         port: this.port,
         status: 'alive',
         incarnationNumber: this.incarnationNumber,
-    }
-}
+    };
+};
 
 FakeNode.prototype.changeEndpoint = function modifyEndpoint(endpoint, handler) {
     this.endpoints[endpoint].handler = handler;
-}
+};
 
 FakeNode.prototype.joinHandler = function joinHandler(req, res, arg2, arg3) {
     var membership = this.coordinator.getMembership(); 
@@ -191,7 +191,7 @@ FakeNode.prototype.requestJoin = function requestJoin(callback) {
         );
 
     });
-}
+};
 
 FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
     var self = this;
@@ -241,7 +241,7 @@ FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
             }
         );        
     });
-}
+};
 
 FakeNode.prototype.requestPingReq = function requestPingReq(target, callback, piggybackData) {
     var self = this;
@@ -293,7 +293,7 @@ FakeNode.prototype.requestPingReq = function requestPingReq(target, callback, pi
             }
         );        
     });
-}
+};
 
 //TODO(wieger): combine requestPing, requestPingReq and requestJoin into one function
 
@@ -318,4 +318,4 @@ function createLogger(name) {
     }
 }
 
-module.exports = FakeNode
+module.exports = FakeNode;
