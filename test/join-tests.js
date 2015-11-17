@@ -47,8 +47,7 @@ function joinFakeCluster(n) {
     );
 }
 
-var clusterSizes = getClusterSizes();
-clusterSizes.forEach(function(n) {
+getClusterSizes().forEach(function(n) {
     joinFakeCluster(n);
 });
 
@@ -85,15 +84,15 @@ function joinFrom(n, status, incNoDelta, deltaAlive, nSuspect, nFaulty) {
     );
 }
 
-joinFrom(getClusterSizes(), 'alive', -1, 1, 0, 0);
-joinFrom(getClusterSizes(), 'alive',  0, 1, 0, 0);
-joinFrom(getClusterSizes(), 'alive',  1, 1, 0, 0);
+joinFrom(getClusterSizes(2), 'alive', -1, 1, 0, 0);
+joinFrom(getClusterSizes(2), 'alive',  0, 1, 0, 0);
+joinFrom(getClusterSizes(2), 'alive',  1, 1, 0, 0);
 
-joinFrom(clusterSizes, 'suspect', -1, 0, 1, 0);
-joinFrom(clusterSizes, 'suspect',  0, 0, 1, 0);
-joinFrom(clusterSizes, 'suspect',  1, 0, 1, 0);
+joinFrom(getClusterSizes(2), 'suspect', -1, 0, 1, 0);
+joinFrom(getClusterSizes(2), 'suspect',  0, 0, 1, 0);
+joinFrom(getClusterSizes(2), 'suspect',  1, 0, 1, 0);
 
-joinFrom(clusterSizes, 'faulty', -1, 0, 0, 1);
-joinFrom(clusterSizes, 'faulty',  0, 0, 0, 1);
-joinFrom(clusterSizes, 'faulty',  1, 0, 0, 1);
+joinFrom(getClusterSizes(2), 'faulty', -1, 0, 0, 1);
+joinFrom(getClusterSizes(2), 'faulty',  0, 0, 0, 1);
+joinFrom(getClusterSizes(2), 'faulty',  1, 0, 0, 1);
 

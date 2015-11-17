@@ -26,7 +26,7 @@ var prepareWithStatus = require('./test-util').prepareWithStatus;
 var getClusterSizes = require('./it-tests').getClusterSizes;
 var _ = require('lodash');
 
-test2('fair round robin pings', _.filter(getClusterSizes(), function(n) { return n > 5; }) , 20000, 
+test2('fair round robin pings', getClusterSizes(7) , 20000, 
     prepareCluster(function(t, tc, n) { return [
         dsl.assertRoundRobinPings(t, tc, 30, 6000),
     ];})
@@ -62,38 +62,38 @@ function changeStatus(ns, initial, newState, finalState, incNoDelta, deltaAlive,
     );
 }
 
-changeStatus(getClusterSizes(), 'alive',  'alive', 'alive', -1, 1, 0, 0);
-changeStatus(getClusterSizes(), 'alive',  'alive', 'alive',  0, 1, 0, 0);
-changeStatus(getClusterSizes(), 'alive',  'alive', 'alive',  1, 1, 0, 0);
+changeStatus(getClusterSizes(2), 'alive',  'alive', 'alive', -1, 1, 0, 0);
+changeStatus(getClusterSizes(2), 'alive',  'alive', 'alive',  0, 1, 0, 0);
+changeStatus(getClusterSizes(2), 'alive',  'alive', 'alive',  1, 1, 0, 0);
 
-changeStatus(getClusterSizes(), 'alive',  'suspect', 'alive',  -1, 1, 0, 0);
-changeStatus(getClusterSizes(), 'alive',  'suspect', 'suspect', 0, 0, 1, 0);
-changeStatus(getClusterSizes(), 'alive',  'suspect', 'suspect', 1, 0, 1, 0);
+changeStatus(getClusterSizes(2), 'alive',  'suspect', 'alive',  -1, 1, 0, 0);
+changeStatus(getClusterSizes(2), 'alive',  'suspect', 'suspect', 0, 0, 1, 0);
+changeStatus(getClusterSizes(2), 'alive',  'suspect', 'suspect', 1, 0, 1, 0);
 
-changeStatus(getClusterSizes(), 'alive',  'faulty', 'alive', -1, 1, 0, 0);
-changeStatus(getClusterSizes(), 'alive',  'faulty', 'faulty', 0, 0, 0, 1);
-changeStatus(getClusterSizes(), 'alive',  'faulty', 'faulty', 1, 0, 0, 1);
+changeStatus(getClusterSizes(2), 'alive',  'faulty', 'alive', -1, 1, 0, 0);
+changeStatus(getClusterSizes(2), 'alive',  'faulty', 'faulty', 0, 0, 0, 1);
+changeStatus(getClusterSizes(2), 'alive',  'faulty', 'faulty', 1, 0, 0, 1);
 
-changeStatus(getClusterSizes(), 'suspect', 'alive', 'suspect', -1, 0, 1, 0);
-changeStatus(getClusterSizes(), 'suspect', 'alive', 'suspect',  0, 0, 1, 0);
-changeStatus(getClusterSizes(), 'suspect', 'alive', 'alive',   1, 1, 0, 0);
+changeStatus(getClusterSizes(2), 'suspect', 'alive', 'suspect', -1, 0, 1, 0);
+changeStatus(getClusterSizes(2), 'suspect', 'alive', 'suspect',  0, 0, 1, 0);
+changeStatus(getClusterSizes(2), 'suspect', 'alive', 'alive',   1, 1, 0, 0);
 
-changeStatus(getClusterSizes(), 'suspect', 'suspect', 'suspect', -1, 0, 1, 0);
-changeStatus(getClusterSizes(), 'suspect', 'suspect', 'suspect', 0,  0, 1, 0);
-changeStatus(getClusterSizes(), 'suspect', 'suspect', 'suspect', 1,  0, 1, 0);
+changeStatus(getClusterSizes(2), 'suspect', 'suspect', 'suspect', -1, 0, 1, 0);
+changeStatus(getClusterSizes(2), 'suspect', 'suspect', 'suspect', 0,  0, 1, 0);
+changeStatus(getClusterSizes(2), 'suspect', 'suspect', 'suspect', 1,  0, 1, 0);
 
-changeStatus(getClusterSizes(), 'suspect', 'faulty', 'suspect', -1, 0, 1, 0);
-changeStatus(getClusterSizes(), 'suspect', 'faulty', 'faulty',  0,  0, 0, 1);
-changeStatus(getClusterSizes(), 'suspect', 'faulty', 'faulty',  1,  0, 0, 1);
+changeStatus(getClusterSizes(2), 'suspect', 'faulty', 'suspect', -1, 0, 1, 0);
+changeStatus(getClusterSizes(2), 'suspect', 'faulty', 'faulty',  0,  0, 0, 1);
+changeStatus(getClusterSizes(2), 'suspect', 'faulty', 'faulty',  1,  0, 0, 1);
 
-changeStatus(getClusterSizes(), 'faulty',  'alive', 'faulty', -1, 0, 0, 1);
-changeStatus(getClusterSizes(), 'faulty',  'alive', 'faulty', 0,  0, 0, 1);
-changeStatus(getClusterSizes(), 'faulty',  'alive', 'alive',  1,  1, 0, 0);
+changeStatus(getClusterSizes(2), 'faulty',  'alive', 'faulty', -1, 0, 0, 1);
+changeStatus(getClusterSizes(2), 'faulty',  'alive', 'faulty', 0,  0, 0, 1);
+changeStatus(getClusterSizes(2), 'faulty',  'alive', 'alive',  1,  1, 0, 0);
 
-changeStatus(getClusterSizes(), 'faulty',  'suspect', 'faulty', -1, 0, 0, 1);
-changeStatus(getClusterSizes(), 'faulty',  'suspect', 'faulty',  0, 0, 0, 1);
-changeStatus(getClusterSizes(), 'faulty',  'suspect', 'suspect', 1, 0, 1, 0);
+changeStatus(getClusterSizes(2), 'faulty',  'suspect', 'faulty', -1, 0, 0, 1);
+changeStatus(getClusterSizes(2), 'faulty',  'suspect', 'faulty',  0, 0, 0, 1);
+changeStatus(getClusterSizes(2), 'faulty',  'suspect', 'suspect', 1, 0, 1, 0);
 
-changeStatus(getClusterSizes(), 'faulty',  'faulty', 'faulty', -1, 0, 0, 1);
-changeStatus(getClusterSizes(), 'faulty',  'faulty', 'faulty',  0, 0, 0, 1);
-changeStatus(getClusterSizes(), 'faulty',  'faulty', 'faulty',  1, 0, 0, 1);
+changeStatus(getClusterSizes(2), 'faulty',  'faulty', 'faulty', -1, 0, 0, 1);
+changeStatus(getClusterSizes(2), 'faulty',  'faulty', 'faulty',  0, 0, 0, 1);
+changeStatus(getClusterSizes(2), 'faulty',  'faulty', 'faulty',  1, 0, 0, 1);
