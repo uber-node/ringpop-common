@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+var _ = require('lodash');
 var program = require('commander');
 var fs = require('fs');
 var farmhash = require('farmhash');
@@ -79,7 +80,10 @@ function getProgramInterpreter() {
     return programInterpreter;
 }
 
-function getClusterSizes() {
+function getClusterSizes(min) {
+    if (min) {
+        return _.filter(clusterSizes, function(n) { return n >= min; });
+    }
     return clusterSizes;
 }
 

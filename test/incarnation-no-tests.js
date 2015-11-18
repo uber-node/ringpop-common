@@ -25,10 +25,8 @@ var prepareCluster = require('./test-util').prepareCluster;
 var prepareWithStatus = require('./test-util').prepareWithStatus;
 var _ = require('lodash');
 var getClusterSizes = require('./it-tests').getClusterSizes;
-clusterSizes = _.filter(getClusterSizes(), function(n) { return n > 1; });
 
-
-test2('ringpop doesn\'t bump incarnation number after being piggybacked to alive', getClusterSizes(), 20000, 
+test2('ringpop doesn\'t bump incarnation number after being piggybacked to alive', getClusterSizes(2), 20000, 
     prepareCluster(function(t, tc, n) { return [
         // do not disable node
         dsl.sendPing(t, tc, 0, 
@@ -39,7 +37,7 @@ test2('ringpop doesn\'t bump incarnation number after being piggybacked to alive
     ];})
 );
 
-test2('ringpop bumps incarnation number after being piggybacked to suspect', getClusterSizes(), 20000, 
+test2('ringpop bumps incarnation number after being piggybacked to suspect', getClusterSizes(2), 20000, 
     prepareCluster(function(t, tc, n) { return [
         // do not disable node
         dsl.sendPing(t, tc, 0, 
@@ -52,7 +50,7 @@ test2('ringpop bumps incarnation number after being piggybacked to suspect', get
     ];})
 );
 
-test2('ringpop bumps incarnation number after being piggybacked to faulty', getClusterSizes(), 20000, 
+test2('ringpop bumps incarnation number after being piggybacked to faulty', getClusterSizes(2), 20000, 
     prepareCluster(function(t, tc, n) { return [
         // do not disable node
         dsl.sendPing(t, tc, 0, 
