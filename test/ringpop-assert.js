@@ -70,7 +70,7 @@ function waitForPingReqs(t, tc, n) {
             errDetails({pingReqs: pingReqs}));
 
         cb(_.reject(list, {type: events.Types.PingReq, direction: 'request'}));
-    }
+    };
 }
 
 function waitForPing(t, tc) {
@@ -294,7 +294,7 @@ function waitForPingReqResponse(t, tc, nodeIx, targetIx, status) {
 
         _.pullAt(list, _.indexOf(list, pingReqs[0]));
         cb(list);
-    }
+    };
 }
 
 // TODO(wieger): make general request for ping, pingreqs, join
@@ -337,11 +337,11 @@ function expectOnlyPingsAndPingReqs(t, tc) {
             })
         );
 
-        var result = list
+        var result = list;
         result = _.reject(result, {type: events.Types.Ping, direction: 'request'});
         result = _.reject(result, {type: events.Types.PingReq, direction: 'request'});
         cb(result);
-    }
+    };
 }
 
 function consumePings(t, tc) {
@@ -383,7 +383,6 @@ function waitForStatsAssertCorrectIncarnationNumbers(t, tc) {
         tc.fakeNodes.forEach(function(fakeNode) {
             // find member i in statsMembers
             var ix = _.findIndex(statsMembers, {address: fakeNode.getHostPort()});
-            statsMembers[ix];
             t.equal(statsMembers[ix].incarnationNumber, fakeNode.incarnationNumber, 
                 'same incarnationNumber ' + fakeNode.incarnationNumber, 
                 errDetails({ expected: fakeNode.incarnationNumber, received: statsMembers[ix]}));
@@ -391,7 +390,7 @@ function waitForStatsAssertCorrectIncarnationNumbers(t, tc) {
 
         _.pullAt(list, ix);
         cb(list);
-    }
+    };
 }
 
 
@@ -425,7 +424,7 @@ function waitForStatsAssertMembership(t, tc, members) {
 
         _.pullAt(list, ix);
         cb(list);
-    }
+    };
 }
 
 function assertStats(t, tc, a, s, f, members) {
@@ -474,14 +473,13 @@ function waitForStatsAssertStatus(t, tc, alive, suspect, faulty) {
         }
 
         // check inc no of fakeNodes agains admin/stats
-        var stats = stats.membership.members;
         tc.fakeNodes.forEach(function(fakeNode) {
             // find member i in members
             var memberIx = _.findIndex(members, {address: fakeNode.getHostPort()});
             // check memberIx != -1
             if(memberIx === -1) {
                 t.fail('member not found in membership');
-                return
+                return;
             }
             var member = members[memberIx];
             t.equal(member.incarnationNumber, fakeNode.incarnationNumber, 
@@ -499,7 +497,7 @@ function waitForStatsAssertStatus(t, tc, alive, suspect, faulty) {
 
         _.pullAt(list, ix);
         cb(list);
-    }
+    };
 }
 
 function assertBumpedIncarnationNumber(t, tc) {
@@ -528,7 +526,7 @@ function waitForStatsAssertBumpedIncarnationNumber(t, tc) {
 
         _.pullAt(list, ix);
         cb(list);
-    }
+    };
 }
 
 function assertRoundRobinPings(t, tc, pings, millis) {
@@ -568,7 +566,7 @@ function expectRoundRobinPings(t, tc, n) {
             errDetails({sliceFreqs: sliceFreqs}));
 
         cb(_.reject(list, {type: events.Types.Ping}));
-    }
+    };
 }
 
 function disableNode(t, tc, ix) {
@@ -729,7 +727,7 @@ function validate(t, tc, scheme, deadline) {
             inProgress = false;
             progressFromCursor(true);
         });
-    }
+    };
 
     tc.on('event', function(event) {
         eventList.push(event);

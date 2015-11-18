@@ -42,6 +42,6 @@ module.exports.checksum = function checksum(members) {
             member.incarnationNumber + ';';
     }
 
-    checksumString = checksumString.slice(0, -1)
+    checksumString = checksumString.slice(0, -1);
     return farmhash.hash32(checksumString);
 };

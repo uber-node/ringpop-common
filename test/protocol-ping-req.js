@@ -34,7 +34,7 @@ function handlePingReq(req, res, pingStatus) {
 
 module.exports = {
     handlePingReq: handlePingReq,
-}
+};
 
 
 // PING-REQ REQUEST (arg3)

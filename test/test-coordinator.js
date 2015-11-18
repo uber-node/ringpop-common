@@ -47,7 +47,7 @@ function validateSetupOptions(options) {
     }
 
     if (!fs.existsSync(options.sut.program)) {
-        throw new Error('Test program ' + options.program + ' does not exist.')
+        throw new Error('Test program ' + options.program + ' does not exist.');
     }
 }
 
@@ -59,7 +59,7 @@ function TestCoordinator(options) {
     this.replicaPoints = 100; // default from node implementation
 
     this.fakeNodes = [];
-    this.sutHostPort = makeHostPort('127.0.0.1', _.random(10000, 30000))
+    this.sutHostPort = makeHostPort('127.0.0.1', _.random(10000, 30000));
     this.sutProgram = options.sut.program;
     this.sutInterpreter = options.sut.interpreter;
     this.sutProc = undefined;
@@ -246,7 +246,7 @@ TestCoordinator.prototype.getMembership = function getMembership() {
     return this.getFakeNodes().map(function(node) {
         return node.toMemberInfo();
     });
-}
+};
 
 TestCoordinator.prototype.shutdown = function shutdown() {
     if(this.adminChannel.topChannel.destroyed === false) {
@@ -284,6 +284,6 @@ TestCoordinator.prototype.getFakeNodes = function getFakeNodes() {
 
 TestCoordinator.prototype.getSUTHostPort = function getSUTHostPort() {
     return this.sutHostPort;
-}
+};
 
 module.exports = TestCoordinator;

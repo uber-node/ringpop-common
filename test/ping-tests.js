@@ -50,7 +50,7 @@ function changeStatus(ns, initial, newState, finalState, incNoDelta, deltaAlive,
     test2('change status from ' + initial + ', to ' + newState + 
         ' with incNoDelta ' + incNoDelta + ' via piggybacking', 
         ns, 20000, prepareWithStatus(ix, initial, function(t, tc, n) {
-            expectedMembers = {}
+            expectedMembers = {};
             expectedMembers[ix] = {status: finalState};
             return [
                 dsl.sendPing(t, tc, 0, 

@@ -96,40 +96,4 @@ module.exports = {
     Types: Types,
     RequestEvent: RequestEvent,
     ResponseEvent: ResponseEvent
-}
-
-
-
-// function getEventType(event) {
-//     if(event.direction == 'request') {
-//         switch(event.endpoint) {
-//             case '/protocol/join':
-//                 return Types.Join;
-//             case '/protocol/ping':
-//                 return Types.Ping;
-//             case '/protocol/ping-req':
-//                 return Types.PingReq;
-//             case '/proxy/req':
-//                 return Types.ProxyReq;
-//             default:
-//                 return Types.UnknownRequest;
-//         }
-//     }
-
-//     if(event.direction == 'response') {
-//         switch(event.endpoint) {        
-//             case '/protocol/join':
-//                 return Types.JoinResponse;
-//             case '/protocol/ping':
-//                 return Types.PingResponse;
-//             case '/protocol/ping-req':
-//                 return Types.PingReqResponse;
-//             // case '/proxy/req':
-//             //     return Types.ProxyReq;
-//             case '/admin/stats':
-//                 return Types.StatsResponse;
-//             default:
-//                 return Types.UnknownRequest;
-//         }
-//     }
-// }
+};
