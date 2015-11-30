@@ -1,5 +1,8 @@
 # ringpop-common
-The home for all things Ringpop.
+Ringpop is a library for scalable, fault-tolerant application layer sharding.
+There are currently implementations of it in Node.js and Go. ringpop-common
+is the home for cross-language compatible tools and documentation for all
+of Ringpop's implementations.
 
 # Layout
 * admin/ is the place to find CLI tools for live operation of Ringpop
