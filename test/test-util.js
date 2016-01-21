@@ -28,13 +28,13 @@ function test(msg, opts, cb) {
     var t = Test(msg, opts, cb);
     t.on('result', function(res) {
         if(!res.ok && res.error.details !== undefined) {
-            console.error('============== error details ===============');
-            console.error();
-            console.error(typeof res.error.details === 'object' ?
+            console.log('============== error details ===============');
+            console.log();
+            console.log(typeof res.error.details === 'object' ?
                 JSON.stringify(res.error.details, null, 2) : res.error.details);
-            console.error();
-            console.error('============================================');
-            console.error();
+            console.log();
+            console.log('============================================');
+            console.log();
         }
     });
 }
