@@ -60,9 +60,8 @@ Clone and install dependencies for tests in ringpop-common:
 Install ringpop-go and build the `testpop` executable:
 
 	go get -u github.com/uber/ringpop-go
-	(cd $GOPATH/src/github.com/uber/ringpop-go/scripts/testpop &&
-		godep go build)
+	(cd $GOPATH/src/github.com/uber/ringpop-go && make testpop)
 
 Run the tests:
 
-	node ringpop-common/test/it-tests.js $GOPATH/src/github.com/uber/ringpop-go/scripts/testpop/testpop
+	node ringpop-common/test/it-tests.js $GOPATH/src/github.com/uber/ringpop-go/testpop
