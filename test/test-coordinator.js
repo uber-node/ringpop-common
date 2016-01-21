@@ -169,7 +169,7 @@ TestCoordinator.prototype.startSUT = function startSUT() {
     }
 
     newProc.on('error', function(err) {
-        console.log('Error: ' + err.message + ', failed to spawn ' +  self.sutProgram + ' on ' + self.sutHostPort);
+        console.error('Error: ' + err.message + ', failed to spawn ' +  self.sutProgram + ' on ' + self.sutHostPort);
     });
 
     var who = util.format('sut:%s', this.sutHostPort);
@@ -214,7 +214,7 @@ TestCoordinator.prototype.getAdminStats = function getAdminStats(callback) {
     self.adminChannel.request({serviceName: 'ringpop'}).send('/admin/stats', null, null,
         function(err, res, arg2, arg3) {
             if (err) {
-                console.log("GET ADMIN STATS ERROR", err, res);
+                console.error("GET ADMIN STATS ERROR", err, res);
                 return;
             }
 
@@ -231,7 +231,7 @@ TestCoordinator.prototype.callEndpoint = function callEndpoint(endpoint, body, c
     self.adminChannel.request({serviceName: 'ringpop'}).send(endpoint, null, (typeof body === 'object')?JSON.stringify(body):body,
         function(err, res, arg2, arg3) {
             if (err) {
-                console.log("CALL ENDPOINT ERROR", err, res);
+                console.error("CALL ENDPOINT ERROR", err, res);
                 return;
             }
 
