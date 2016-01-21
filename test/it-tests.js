@@ -50,12 +50,12 @@ function main() {
     program.parse(process.argv);
 
     if (!programPath) {
-        console.log('Error: program is required');
+        console.error('Error: program is required');
         process.exit(1);
     }
 
     if (!fs.existsSync(programPath)) {
-        console.log('Error: program ' + programPath + ' does not exist. Check path');
+        console.error('Error: program ' + programPath + ' does not exist. Check path');
         process.exit(1);
     }
 

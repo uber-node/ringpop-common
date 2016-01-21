@@ -95,7 +95,7 @@ function tickAll() {
             var durMs = Date.now() - start;
             completed.push(durMs);
             if (err) {
-                console.log(color.red('err: ' + err.message + ' [' + host + ']'));
+                console.error(color.red('err: ' + err.message + ' [' + host + ']'));
             } else {
                 var csum = safeParse(arg3.toString()).checksum;
                 if (csums[csum] === undefined) {
@@ -125,7 +125,7 @@ function statsAll() {
             var durMs = Date.now() - start;
             completed.push(durMs);
             if (err) {
-                console.log(color.red('err: ' + err.message + ' [' + host + ']'));
+                console.error(color.red('err: ' + err.message + ' [' + host + ']'));
             } else {
                 var membership = JSON.stringify(safeParse(arg3).membership.members);
                 
@@ -175,7 +175,7 @@ function protocolStatsAll() {
             completed.push(durMs);
             var port = host.replace(localIP + ':', '');
             if (err) {
-                console.log(color.red('err: ' + err.message + ' [' + port + ']'));
+                console.error(color.red('err: ' + err.message + ' [' + port + ']'));
             } else {
                 var bodyObj = safeParse(arg3.toString());
                 stats[port] = formatStats(bodyObj.protocol);
@@ -366,13 +366,13 @@ function ClusterProc(port) {
     var self = this;
 
     newProc.on('error', function(err) {
-        console.log('Error: ' + err.message + ', failed to spawn ' +
+        console.error('Error: ' + err.message + ', failed to spawn ' +
             programPath + ' on ' + self.hostPort);
     });
 
     newProc.on('exit', function(code) {
         if (code !== null) {
-            console.log('Program ' + programPath + ' ended with exit code ' + code);
+            console.error('Program ' + programPath + ' ended with exit code ' + code);
         }
     });
 
@@ -577,17 +577,17 @@ program.on('--help', function onHelp() {
 program.parse(process.argv);
 
 if (!programPath) {
-    console.log('Error: program is required');
+    console.error('Error: program is required');
     process.exit(1);
 }
 
 if (!fs.existsSync(programPath)) {
-    console.log('Error: program ' + programPath + ' does not exist. Check path');
+    console.error('Error: program ' + programPath + ' does not exist. Check path');
     process.exit(1);
 }
 
 if (isNaN(procsToStart)) {
-    console.log('Error: number of processes to start is not an integer');
+    console.error('Error: number of processes to start is not an integer');
     process.exit(1);
 }
 

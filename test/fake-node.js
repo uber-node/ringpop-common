@@ -179,7 +179,7 @@ FakeNode.prototype.requestJoin = function requestJoin(callback) {
         }).send('/protocol/join', null, body,
             function(err, res, arg2, arg3) {
                 if (err) {
-                    console.log("TChannel Response Error", err, res);
+                    console.error("TChannel Response Error", err, res);
                     callback();
                     return;
                 }
@@ -230,7 +230,7 @@ FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
         }).send('/protocol/ping', null, body,
             function(err, res, arg2, arg3) {
                 if (err) {
-                    console.log("TChannel Response Error", err, res);
+                    console.error("TChannel Response Error", err, res);
                     // callback();
                     return;
                 }
@@ -282,7 +282,7 @@ FakeNode.prototype.requestPingReq = function requestPingReq(target, callback, pi
         }).send('/protocol/ping-req', null, body,
             function(err, res, arg2, arg3) {
                 if (err) {
-                    console.log("TChannel Response Error", err, res);
+                    console.error("TChannel Response Error", err, res);
                     // callback();
                     return;
                 }
