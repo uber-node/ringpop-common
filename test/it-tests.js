@@ -27,6 +27,8 @@ var dsl = require('./ringpop-assert');
 var programPath, programInterpreter;
 var clusterSizes = [1, 2, 3, 4, 5, 6, 7, 10, 21, 25, 30];
 
+// Global counter to record how many tests have failed.
+var testFailures = 0;
 
 function main() {   
     program
@@ -70,6 +72,11 @@ function main() {
 
     // require('./network-blip-tests');
     // require('./revive-tests');
+
+    // If one or more tests failed, exit with a non-zero exit code.
+    if (testFailures > 0) {
+        process.exit(1);
+    }
 }
 
 function getProgramPath() {
@@ -87,11 +94,18 @@ function getClusterSizes(min) {
     return clusterSizes;
 }
 
+// Exported function that increments the testFailures counter. Called by the
+// tests when a failure occurs.
+function incrementFailureCount() {
+    testFailures++;
+}
+
 // ./util uses this so we want to export it before require('./util') happens somewhere
 module.exports = {
     getProgramInterpreter: getProgramInterpreter,
     getProgramPath: getProgramPath,
     getClusterSizes: getClusterSizes,
+    incrementFailureCount: incrementFailureCount,
 };
 
 if (require.main === module) {
