@@ -1,0 +1,86 @@
+#!/bin/bash
+#
+# Tap parser that filters out test success and only prints the errors and
+# test summary.
+#
+# The parser keeps a buffer of all output during a test (including non-tap
+# data). If that test has a failing assertion, the entire buffer is printed.
+#
+# This filter adds one non-standard tap output line:
+#
+#    #: This is an example line that will be printed immediately
+#
+# You can use the "#:" prefix to a line and it will be passed through the
+# filter to stdout. This is using for printing status information.
+#
+declare test_name=
+declare test_error=false
+declare buffer=
+declare exit_code=0
+
+#
+# Add the passed-in data to the buffer.
+#
+_add_to_buffer() {
+	for data in "$@"; do
+		buffer="$buffer"$'\n'"$data"
+	done
+}
+
+#
+# Print the name of the test and the contents of the current buffer.
+#
+_print_last_test_error() {
+	if $test_error; then
+		echo >&2
+		echo -e "\033[1;31m${test_name}\033[0m" >&2
+		echo "$buffer" >&2
+	fi
+}
+
+while IFS= read -r line; do
+	case $line in
+		\#*)
+			# Beginning of new test...
+
+			# If there was an error during the last test, print the error
+			# before resetting
+			_print_last_test_error
+
+			# Reset the test name, buffer, etc.
+			test_name="$line"
+			test_error=false
+			buffer=
+			;;
+
+		"# tests"|"# pass"|"# fail")
+			# Immediately print summary lines
+			echo "$line"
+			;;
+
+		\#:*)
+			# Use the special syntax "#: Foo..." and these lines will also be
+			# printed immediately.
+			echo "$line"
+			;;
+
+		"not ok"*)
+			_add_to_buffer "$line"
+
+			# Flag a failure
+			test_error=true
+			exit_code=1
+			;;
+
+		*)
+			# For all normal lines, add them to the buffer; the buffer will
+			# only be printed if the test fails.
+			_add_to_buffer "$line"
+			;;
+	esac
+done
+
+# Print last test output if there was an error
+_print_last_test_error
+
+exit $exit_code
