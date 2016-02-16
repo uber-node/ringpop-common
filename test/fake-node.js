@@ -39,7 +39,7 @@ function FakeNode(options) {
     this.endpoints = {};
     this.enableEndpoints();
 
-    this.pingEnabled = true;
+    this.enabled = true;
 }
 
 FakeNode.prototype.enableEndpoints = function enableEndpoints() {
@@ -63,7 +63,7 @@ FakeNode.prototype.enableEndpoints = function enableEndpoints() {
 
 FakeNode.prototype.start = function start(callback) {
     var self = this;
-    self.enabled = true;
+
     self.tchannel = new TChannel();
     self.channel = this.tchannel.makeSubChannel({
         serviceName: 'ringpop'
@@ -122,21 +122,23 @@ FakeNode.prototype.joinHandler = function joinHandler(req, res, arg2, arg3) {
     return handleJoin(req, res, this.toMemberInfo(), membership);
 };
 
-FakeNode.prototype.disablePing = function disablePing() {
-    this.pingEnabled = false;
+FakeNode.prototype.disable = function disable() {
+    this.enabled = false;
 };
 
-FakeNode.prototype.enablePing = function enablePing() {
-    this.pingEnabled = true;
+FakeNode.prototype.enable = function enable() {
+    this.enabled = true;
 };
 
 FakeNode.prototype.pingHandler = function pingHandler(req, res, arg2, arg3) {
-    if (!this.pingEnabled) return; // Do nothing when disabled
+    if (!this.enabled) return; // Do nothing when disabled
 
     return handlePing(res);
 };
 
 FakeNode.prototype.pingReqHandler = function pingReqHandler(req, res, arg2, arg3) {
+    if (!this.enabled) return; // Do nothing when disabled
+
     // is the target alive?
     var target = safeParse(arg3).target;
     var status = true;
