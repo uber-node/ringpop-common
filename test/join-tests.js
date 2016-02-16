@@ -27,10 +27,10 @@ var prepareWithStatus = require('./test-util').prepareWithStatus;
 var getClusterSizes = require('./it-tests').getClusterSizes;
 
 function joinFakeCluster(n) {
-    test2('join cluster of 1+' + n + ' nodes', [n], 20000, 
+    test2('join cluster of 1+' + n + ' nodes', [n], 20000,
         prepareCluster(function(t, tc, n) { return [
             dsl.assertStats(t, tc, n+1, 0, 0),
-            
+
             // Wait for a ping from the SUT and validate that it has the piggybacked information in there
             dsl.validateEventBody(t, tc, {
                 type: events.Types.Ping,
@@ -51,7 +51,7 @@ getClusterSizes().forEach(function(n) {
     joinFakeCluster(n);
 });
 
-test2('join ringpop with fake node', getClusterSizes(), 20000, 
+test2('join ringpop with fake node', getClusterSizes(), 20000,
     prepareCluster(function(t, tc, n) { return [
         dsl.joinNewNode(t, tc, n),
         dsl.waitForJoinResponse(t, tc, n),
@@ -65,7 +65,7 @@ test2('join ringpop with fake node', getClusterSizes(), 20000,
 );
 
 function joinFrom(n, status, incNoDelta, deltaAlive, nSuspect, nFaulty) {
-    test2('join from ' + status + ' with incNoDelta ' + incNoDelta, n, 20000, 
+    test2('join from ' + status + ' with incNoDelta ' + incNoDelta, n, 20000,
         prepareWithStatus(0, status, function(t, tc, n) {
             return [
                 dsl.disableNode(t, tc, 0),

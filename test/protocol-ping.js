@@ -46,7 +46,7 @@ module.exports = {
 
 // PING RESPONSE (arg3)
 // { changes: [] }
-// 
+//
 // where changes is array of these:
 // { source: '10.80.134.35:3000',
 //   address: '10.80.134.35:3006',

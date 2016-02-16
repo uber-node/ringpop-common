@@ -151,7 +151,7 @@ test2('endpoint: /admin/member/leave', getClusterSizes(), 10000, prepareCluster(
             direction: 'response'
         }, "Test if ping contains leave message for SUT", function (ping) {
             return ping.body &&
-                ping.body.changes &&           
+                ping.body.changes &&
                 ping.body.changes.length === 1 &&
                 ping.body.changes[0].address === tc.sutHostPort &&
                 ping.body.changes[0].status === 'leave';
@@ -180,7 +180,7 @@ test2('endpoint: /admin/member/join', getClusterSizes(), 10000, prepareCluster(f
             direction: 'response'
         }, "Test if ping contains leave message for SUT", function (ping) {
             return ping.body &&
-                ping.body.changes &&           
+                ping.body.changes &&
                 ping.body.changes.length === 1 &&
                 ping.body.changes[0].address === tc.sutHostPort &&
                 ping.body.changes[0].status === 'leave';
@@ -202,7 +202,7 @@ test2('endpoint: /admin/member/join', getClusterSizes(), 10000, prepareCluster(f
             direction: 'response'
         }, "Test if ping contains alive message for SUT", function (ping) {
             return ping.body &&
-                ping.body.changes &&           
+                ping.body.changes &&
                 ping.body.changes.length === 1 &&
                 ping.body.changes[0].address === tc.sutHostPort &&
                 ping.body.changes[0].status === 'alive';

@@ -30,7 +30,7 @@ var clusterSizes = [1, 2, 3, 4, 5, 6, 7, 10, 21, 25, 30];
 // Global counter to record how many tests have failed.
 var testFailures = 0;
 
-function main() {   
+function main() {
     program
         .version(require('../package.json').version)
         .option('-s, --sizes <clusterSizes>', 'Cluster sizes to test against. Default: \'' +
@@ -66,7 +66,7 @@ function main() {
     require('./ping-tests');
     require('./ping-req-tests');
     require('./incarnation-no-tests');
-    
+
     require('./piggyback-tests');
     require('./admin-tests');
 
