@@ -26,7 +26,7 @@ var prepareWithStatus = require('./test-util').prepareWithStatus;
 var _ = require('lodash');
 var getClusterSizes = require('./it-tests').getClusterSizes;
 
-test2('ping-req real-node with a disabled target', getClusterSizes(2), 20000, 
+test2('ping-req real-node with a disabled target', getClusterSizes(2), 20000,
     prepareCluster(function(t, tc, n) { return [
         dsl.disableNode(t, tc, 1),
         dsl.sendPingReq(t, tc, 0, 1),
@@ -36,7 +36,7 @@ test2('ping-req real-node with a disabled target', getClusterSizes(2), 20000,
     ];})
 );
 
-test2('ping-req real-node with enabled target', getClusterSizes(2), 20000, 
+test2('ping-req real-node with enabled target', getClusterSizes(2), 20000,
     prepareCluster(function(t, tc, n) { return [
         // do not disable node
         dsl.sendPingReq(t, tc, 0, 1),
@@ -46,7 +46,7 @@ test2('ping-req real-node with enabled target', getClusterSizes(2), 20000,
     ];})
 );
 
-test2('become suspect through disabling ping response', getClusterSizes(2), 20000, 
+test2('become suspect through disabling ping response', getClusterSizes(2), 20000,
     prepareCluster(function(t, tc, n) { return [
         dsl.disableNode(t, tc, 1),
         dsl.waitForPingReqs(t, tc, 3),
@@ -55,7 +55,7 @@ test2('become suspect through disabling ping response', getClusterSizes(2), 2000
     ];})
 );
 
-test2('5-second suspect window', getClusterSizes(2), 20000, 
+test2('5-second suspect window', getClusterSizes(2), 20000,
     prepareWithStatus(1, 'suspect', function(t, tc, n) { return [
         dsl.assertStats(t, tc, n, 1, 0, {1: {status: 'suspect'}}),
         dsl.wait(4000),
@@ -69,7 +69,7 @@ test2('5-second suspect window', getClusterSizes(2), 20000,
 
 
 function testSetStatusViaPiggyback(ns, status, deltaAlive, nSuspect, nFaulty) {
-    test2('prepare node with status ' + status, ns, 20000, 
+    test2('prepare node with status ' + status, ns, 20000,
         prepareWithStatus(1, status, function(t, tc, n) { return [
                 dsl.assertStats(t, tc, n + deltaAlive, nSuspect, nFaulty, {1: {status: status}}),
         ];})
@@ -80,10 +80,10 @@ testSetStatusViaPiggyback(getClusterSizes(2), 'alive',   1, 0, 0);
 testSetStatusViaPiggyback(getClusterSizes(2), 'suspect', 0, 1, 0);
 testSetStatusViaPiggyback(getClusterSizes(2), 'faulty',  0, 0, 1);
 
-test2('change nodes status to suspect piggybacked on a ping-req', _.filter(getClusterSizes(), function(n) { return n > 2; }), 20000, 
+test2('change nodes status to suspect piggybacked on a ping-req', _.filter(getClusterSizes(), function(n) { return n > 2; }), 20000,
     prepareCluster(function(t, tc, n) { return [
         // do not disable node
-        dsl.sendPingReq(t, tc, 0, 1, 
+        dsl.sendPingReq(t, tc, 0, 1,
             {sourceIx: 0, subjectIx: 2, status: 'suspect'}),
         dsl.waitForPingReqResponse(t, tc, 0, 1, true),
         // check if piggyback update has taken effect

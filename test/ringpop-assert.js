@@ -47,8 +47,8 @@ function waitForJoins(t, tc, n) {
             cb(null);
             return;
         }
-        
-        t.equals(joins.length, n, 'check number of joins', 
+
+        t.equals(joins.length, n, 'check number of joins',
             errDetails({journal: _.pluck(list, 'endpoint')}));
 
         //XXX: a bit wonky to get sutIncarnationNumber like this
@@ -113,7 +113,7 @@ function waitForEmptyPing(t, tc) {
             // all pings are non-empty
             return cb(null);
         }
-        
+
         // remove all pings
         list = _.reject(list, {
             type: events.Types.Ping,
@@ -210,7 +210,7 @@ function sendPings(t, tc, nodeIxs) {
 function sendPing(t, tc, nodeIx, piggybackOpts) {
     var f = _.once(function sendPing(list, cb) {
         var piggybackData = piggyback(tc, piggybackOpts);
-        
+
         tc.fakeNodes[nodeIx].requestPing(function() {
             cb(list);
         }, piggybackData);
@@ -231,7 +231,7 @@ function waitForPingResponse(t, tc, nodeIx) {
         pings = _.filter(pings, function(event) {
             return event.receiver === tc.fakeNodes[nodeIx].getHostPort();
         });
-        
+
         if(pings.length === 0) {
             cb(null);
             return;
@@ -248,7 +248,7 @@ function waitForJoinResponse(t, tc, nodeIx) {
         joins = _.filter(joins, function(event) {
             return event.receiver === tc.fakeNodes[nodeIx].getHostPort();
         });
-        
+
         if(joins.length === 0) {
             cb(null);
             return;
@@ -277,7 +277,7 @@ function waitForPingReqResponse(t, tc, nodeIx, targetIx, status) {
         pingReqs = _.filter(pingReqs, function(event) {
             return event.receiver === tc.fakeNodes[nodeIx].getHostPort();
         });
-        
+
         if(pingReqs.length === 0) {
             cb(null);
             return;
@@ -288,8 +288,8 @@ function waitForPingReqResponse(t, tc, nodeIx, targetIx, status) {
         t.equal(arg3.target, tc.fakeNodes[targetIx].getHostPort(),
             'check target of the response',
             errDetails({"ping-req-response": arg3}));
-        t.equal(arg3.pingStatus, status, 
-            'check target ping status of the response', 
+        t.equal(arg3.pingStatus, status,
+            'check target ping status of the response',
             errDetails({"ping-req-response": arg3}));
 
         _.pullAt(list, _.indexOf(list, pingReqs[0]));
@@ -306,9 +306,9 @@ function waitForPingReqResponse(t, tc, nodeIx, targetIx, status) {
 function expectOnlyPings(t, tc, count) {
     return function expectOnlyPings(list, cb) {
         var pings = _.filter(list, {type: events.Types.Ping, direction: 'request'});
-        t.equal(pings.length, list.length, 
+        t.equal(pings.length, list.length,
             'check if all remaining events are Pings',
-            errDetails({eventTypes: 
+            errDetails({eventTypes:
                 _.zip(_.pluck(list, 'type'), _.pluck(list, 'direction'))
             })
         );
@@ -320,7 +320,7 @@ function expectOnlyPings(t, tc, count) {
                     _.pluck(list, 'direction')
                 )
             }));
-        } 
+        }
 
         cb(_.reject(list, {type: events.Types.Ping, direction: 'request'}));
     };
@@ -330,9 +330,9 @@ function expectOnlyPingsAndPingReqs(t, tc) {
     return function expectOnlyPingsAndPingReqs(list, cb) {
         var pings = _.filter(list, {type: events.Types.Ping, direction: 'request'});
         var pingReqs = _.filter(list, {type: events.Types.PingReq, direction: 'request'});
-        t.equal(pings.length + pingReqs.length, list.length, 
+        t.equal(pings.length + pingReqs.length, list.length,
             'check if all remaining events are pings or ping-reqs',
-            errDetails({eventTypes: 
+            errDetails({eventTypes:
                 _.zip(_.pluck(list, 'type'), _.pluck(list, 'direction'))
             })
         );
@@ -383,8 +383,8 @@ function waitForStatsAssertCorrectIncarnationNumbers(t, tc) {
         tc.fakeNodes.forEach(function(fakeNode) {
             // find member i in statsMembers
             var ix = _.findIndex(statsMembers, {address: fakeNode.getHostPort()});
-            t.equal(statsMembers[ix].incarnationNumber, fakeNode.incarnationNumber, 
-                'same incarnationNumber ' + fakeNode.incarnationNumber, 
+            t.equal(statsMembers[ix].incarnationNumber, fakeNode.incarnationNumber,
+                'same incarnationNumber ' + fakeNode.incarnationNumber,
                 errDetails({ expected: fakeNode.incarnationNumber, received: statsMembers[ix]}));
         });
 
@@ -482,16 +482,16 @@ function waitForStatsAssertStatus(t, tc, alive, suspect, faulty) {
                 return;
             }
             var member = members[memberIx];
-            t.equal(member.incarnationNumber, fakeNode.incarnationNumber, 
-                'same incarnationNumber ' + fakeNode.incarnationNumber, 
+            t.equal(member.incarnationNumber, fakeNode.incarnationNumber,
+                'same incarnationNumber ' + fakeNode.incarnationNumber,
                 errDetails({ expected: fakeNode.incarnationNumber, received: member}));
         });
 
         // check inc no of real-node against admin/stats
         var memberIx = _.findIndex(members, {address: tc.sutHostPort});
         var member = members[memberIx];
-        t.equal(member.incarnationNumber, tc.sutIncarnationNumber, 
-            'same incarnationNumber as sut ' + tc.sutIncarnationNumber, 
+        t.equal(member.incarnationNumber, tc.sutIncarnationNumber,
+            'same incarnationNumber as sut ' + tc.sutIncarnationNumber,
             errDetails({ expected: tc.sutIncarnationNumber, received: member}));
 
 
@@ -516,11 +516,11 @@ function waitForStatsAssertBumpedIncarnationNumber(t, tc) {
         }
 
         var stats = safeJSONParse(list[ix].arg3);
-        var members = stats.membership.members;        
+        var members = stats.membership.members;
         var memberIx = _.findIndex(members, {address: tc.sutHostPort});
         var member = members[memberIx];
-        t.true(member.incarnationNumber > tc.sutIncarnationNumber, 
-            'sut bumped incarnation number to ' + member.incarnationNumber, 
+        t.true(member.incarnationNumber > tc.sutIncarnationNumber,
+            'sut bumped incarnation number to ' + member.incarnationNumber,
             errDetails({ old: tc.sutIncarnationNumber, new: member.incarnationNumber}));
         tc.sutIncarnationNumber = member.incarnationNumber;
 
@@ -554,14 +554,14 @@ function expectRoundRobinPings(t, tc, n) {
         var hostPortFreqs = _.countBy(pings);
         var min = _.min(_.values(hostPortFreqs));
         var max = _.max(_.values(hostPortFreqs));
-        t.ok(min == max || min + 1 == max, 
-            'pings distributed evenly', 
+        t.ok(min == max || min + 1 == max,
+            'pings distributed evenly',
             errDetails({hostPortFreqs: hostPortFreqs}));
-        
+
         // check if pingrounds are randomized
         var rounds = _.chunk(pings, tc.fakeNodes.length);
         var sliceFreqs = _.countBy(rounds);
-        t.ok(_.every(sliceFreqs, function(v, k) { return v === 1; }), 
+        t.ok(_.every(sliceFreqs, function(v, k) { return v === 1; }),
             'ping rounds should be randomized',
             errDetails({sliceFreqs: sliceFreqs}));
 
@@ -666,11 +666,11 @@ function createValidateEvent(t, tc) {
         if (!validator) return; // nothing to test here
 
         validator(event, event.body);
-    }; 
+    };
 }
 
 // validates a scheme on incoming events send by the real-node. A scheme is a collection of
-// functions from scheme.js. On every incoming event we try to progress through the scheme. 
+// functions from scheme.js. On every incoming event we try to progress through the scheme.
 // further. When all the functions in the scheme have ran, the test is a success.
 function validate(t, tc, scheme, deadline) {
     var fns = scheme;
@@ -690,7 +690,7 @@ function validate(t, tc, scheme, deadline) {
     fns = _.flatten(fns, true);
 
     // try to run the fn that the cursor points to. The function indicates that it has
-    // succeeded by yielding an updated eventList. If succeeded the cursor progresses 
+    // succeeded by yielding an updated eventList. If succeeded the cursor progresses
     // to the next function.
     var inProgress = false;
     var progressFromCursor = function() {
@@ -711,7 +711,7 @@ function validate(t, tc, scheme, deadline) {
         if(!fns[cursor].isPrinted) {
             fns[cursor].isPrinted = true;
             var name = fns[cursor].name || fns[cursor].callerName;
-            console.log('* starting ' + name);    
+            console.log('* starting ' + name);
         }
 
         fns[cursor](eventList, function(result) {
@@ -720,7 +720,7 @@ function validate(t, tc, scheme, deadline) {
                 inProgress = false;
                 return;
             }
-            
+
             eventList = result;
             cursor++;
 
@@ -745,7 +745,7 @@ var uuid = require('node-uuid');
 //    sourceIncNoDelta: 1,
 //    subjectIncNoDelta: 1,
 // }
-function piggyback(tc, opts) { 
+function piggyback(tc, opts) {
     if (opts === undefined) {
         return undefined;
     }
@@ -753,11 +753,11 @@ function piggyback(tc, opts) {
     update.id = opts.id || uuid.v4();
     update.status = opts.status;
 
-    if(opts.sourceIx === 'sut') { 
+    if(opts.sourceIx === 'sut') {
         update.source = tc.sutHostPort;
         update.sourceIncarnationNumber = tc.sutIncarnationNumber;
     } else {
-        update.source = tc.fakeNodes[opts.sourceIx].getHostPort();    
+        update.source = tc.fakeNodes[opts.sourceIx].getHostPort();
         update.sourceIncarnationNumber = tc.fakeNodes[opts.sourceIx].incarnationNumber;
     }
 
@@ -787,7 +787,7 @@ function piggyback(tc, opts) {
 module.exports = {
     validate: validate,
     wait: wait,
-    
+
     waitForJoins: waitForJoins,
     waitForPingReqs: waitForPingReqs,
     waitForPing: waitForPing,
@@ -797,20 +797,20 @@ module.exports = {
 
     callEndpoint: callEndpoint,
     consumePings: consumePings,
-    
+
     sendJoin: sendJoin,
     sendPing: sendPing,
     sendPingReq: sendPingReq,
-    
+
     expectOnlyPings: expectOnlyPings,
     expectOnlyPingsAndPingReqs: expectOnlyPingsAndPingReqs,
-    
+
     assertRoundRobinPings: assertRoundRobinPings,
     assertStats: assertStats,
     assertMembership: assertMembership,
     assertCorrectIncarnationNumbers: assertCorrectIncarnationNumbers,
     assertBumpedIncarnationNumber: assertBumpedIncarnationNumber,
-    
+
     disableNode: disableNode,
     disableAllNodes: disableAllNodes,
     disableAllNodesPing: disableAllNodesPing,

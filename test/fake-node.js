@@ -32,7 +32,7 @@ function FakeNode(options) {
     this.host = options.host;
     this.port = undefined; // set at listen time
     this.incarnationNumber = 1337;
-    
+
     this.tchannel = undefined;
     this.channel = undefined;
 
@@ -58,7 +58,7 @@ FakeNode.prototype.enableEndpoints = function enableEndpoints() {
     this.endpoints[events.Types.ProxyReq] = {
         path: '/proxy/req',
         handler: this.proxyReqHandler.bind(this)
-    };    
+    };
 };
 
 FakeNode.prototype.start = function start(callback) {
@@ -118,7 +118,7 @@ FakeNode.prototype.changeEndpoint = function modifyEndpoint(endpoint, handler) {
 };
 
 FakeNode.prototype.joinHandler = function joinHandler(req, res, arg2, arg3) {
-    var membership = this.coordinator.getMembership(); 
+    var membership = this.coordinator.getMembership();
     return handleJoin(req, res, this.toMemberInfo(), membership);
 };
 
@@ -208,7 +208,7 @@ FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
         sourceIncarnationNumber: self.incarnationNumber,
     });
 
-    
+
     self.channel.waitForIdentified({
         host: self.coordinator.sutHostPort
     }, function onIdentified(err) {
@@ -239,7 +239,7 @@ FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
                 self.coordinator.emit('event', event);
                 callback(err, res, arg2, arg3);
             }
-        );        
+        );
     });
 };
 
@@ -260,7 +260,7 @@ FakeNode.prototype.requestPingReq = function requestPingReq(target, callback, pi
     }
 
     body = JSON.stringify(body);
-    
+
     self.channel.waitForIdentified({
         host: self.coordinator.sutHostPort
     }, function onIdentified(err) {
@@ -286,12 +286,12 @@ FakeNode.prototype.requestPingReq = function requestPingReq(target, callback, pi
                     // callback();
                     return;
                 }
-                
+
                 var event = new events.ResponseEvent(res, arg2, arg3, self.getHostPort());
                 self.coordinator.emit('event', event);
                 callback();
             }
-        );        
+        );
     });
 };
 

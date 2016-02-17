@@ -28,7 +28,7 @@ function handlePingReq(req, res, pingStatus) {
 		pingStatus: pingStatus,
 		target: request.target,
 	};
-	
+
 	res.sendOk(null, JSON.stringify(response));
 }
 

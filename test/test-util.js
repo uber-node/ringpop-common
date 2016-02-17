@@ -53,7 +53,7 @@ function test2(str, ns, deadline, callback) {
                 },
                 numNodes: n,
             });
-        
+
             tc.start(function onTCStarted() {
                 dsl.validate(t, tc, callback(t, tc, n), deadline);
             });

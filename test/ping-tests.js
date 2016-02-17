@@ -26,14 +26,14 @@ var prepareWithStatus = require('./test-util').prepareWithStatus;
 var getClusterSizes = require('./it-tests').getClusterSizes;
 var _ = require('lodash');
 
-test2('fair round robin pings', getClusterSizes(7) , 20000, 
+test2('fair round robin pings', getClusterSizes(7) , 20000,
     prepareCluster(function(t, tc, n) { return [
         dsl.assertRoundRobinPings(t, tc, 30, 6000),
     ];})
 );
 
-test2('ping ringpop from fake-nodes', getClusterSizes(), 20000, 
-    prepareCluster(function(t, tc, n) { 
+test2('ping ringpop from fake-nodes', getClusterSizes(), 20000,
+    prepareCluster(function(t, tc, n) {
     	pingList = _.filter([0,1,1,1,5,6,7], function(i) { return i < n; });
 	    return [
 	        dsl.sendPings(t, tc, pingList),
@@ -47,13 +47,13 @@ test2('ping ringpop from fake-nodes', getClusterSizes(), 20000,
 // incarnation number than the fake-node (27 combinations)
 function changeStatus(ns, initial, newState, finalState, incNoDelta, deltaAlive, nSuspect, nFaulty) {
     var ix = 1;
-    test2('change status from ' + initial + ', to ' + newState + 
-        ' with incNoDelta ' + incNoDelta + ' via piggybacking', 
+    test2('change status from ' + initial + ', to ' + newState +
+        ' with incNoDelta ' + incNoDelta + ' via piggybacking',
         ns, 20000, prepareWithStatus(ix, initial, function(t, tc, n) {
             expectedMembers = {};
             expectedMembers[ix] = {status: finalState};
             return [
-                dsl.sendPing(t, tc, 0, 
+                dsl.sendPing(t, tc, 0,
                     {sourceIx: 0, subjectIx: ix, status: newState, subjectIncNoDelta: incNoDelta}),
                 dsl.waitForPingResponse(t, tc, 0),
                 dsl.assertStats(t, tc, n + deltaAlive, nSuspect, nFaulty, expectedMembers),
