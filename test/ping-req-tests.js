@@ -28,7 +28,19 @@ var getClusterSizes = require('./it-tests').getClusterSizes;
 
 test2('ping-req real-node with a disabled target', getClusterSizes(2), 20000,
     prepareCluster(function(t, tc, n) { return [
-        dsl.disableNode(t, tc, 1),
+        // Our goal in this test is to make a Fake node (F1) do a ping-req
+        // through the Real node (R) to another Fake node (F2), and see if R
+        // correctly performs the ping-req: returns not-ok since F2 is disabled.
+
+        // However, it's possible that R will determine that F2 is dead trough
+        // it's own separate indirect ping mechanism. This will cause R to
+        // declare F2 as suspect, which will interfere with the test.
+
+        // To avoid R declaring F2 a suspect, we disable ping and ping-req in
+        // all Fake nodes, so that R can never perform a successful indirect
+        // health check itself.
+
+        dsl.disableAllNodesPing(t, tc),
         dsl.sendPingReq(t, tc, 0, 1),
         dsl.waitForPingReqResponse(t, tc, 0, 1, false),
         // do not make suspect after ping status = false

@@ -590,7 +590,7 @@ function disableAllNodes(t, tc) {
 function disableAllNodesPing(t, tc) {
     return function disableAllNodesPing(list, cb) {
         tc.fakeNodes.forEach(function (fn) {
-            fn.disablePing();
+            fn.disable();
         });
         cb(list);
     };
