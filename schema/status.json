@@ -5,6 +5,7 @@
         "alive",
         "suspect",
         "faulty",
-        "leave"
+        "leave",
+        "tombstone"
     ]
 }

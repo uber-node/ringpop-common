@@ -19,29 +19,25 @@
 // THE SOFTWARE.
 
 // hashing algorithm might change upon ringpop implementation
+var _ = require('lodash');
 var farmhash = require('farmhash');
 
 // entries must have address (hostport), status (e.g. "alive"), and incarnation numbers
 module.exports.checksum = function checksum(members) {
-    var copiedMembers = members.slice();
-    var sortedMembers = copiedMembers.sort(function sort(a, b) {
-        if (a.address < b.address) {
-            return -1;
-        } else if (a.address > b.address) {
-            return 1;
-        } else {
-            return 0;
-        }
-    });
+    checksumString = _
+        .chain(members)
+        .filter(function (member) {
+            // remove members that are in the tombstone state
+            return ['tombstone'].indexOf(member.status) < 0;
+        })
+        .sortBy('address')
+        .map(function (member){
+            return member.address +
+                member.status +
+                member.incarnationNumber;
+        })
+        .join(';')
+        .value();
 
-    var checksumString = '';
-    for (var i = 0; i < sortedMembers.length; ++i) {
-        var member = sortedMembers[i];
-        checksumString += member.address +
-            member.status +
-            member.incarnationNumber + ';';
-    }
-
-    checksumString = checksumString.slice(0, -1);
     return farmhash.hash32(checksumString);
 };

@@ -20,6 +20,7 @@
 
 var events = require('./events');
 var test2 = require('./test-util').test2;
+var testStateTransitions = require('./test-util').testStateTransitions;
 var dsl = require('./ringpop-assert');
 var prepareCluster = require('./test-util').prepareCluster;
 var prepareWithStatus = require('./test-util').prepareWithStatus;
@@ -45,55 +46,38 @@ test2('ping ringpop from fake-nodes', getClusterSizes(), 20000,
 // piggyback {alive, suspect, faulty} status of fake-node
 // who is {alive, suspect, faulty} with {lower, equal, higher}
 // incarnation number than the fake-node (27 combinations)
-function changeStatus(ns, initial, newState, finalState, incNoDelta, deltaAlive, nSuspect, nFaulty) {
-    var ix = 1;
-    test2('change status from ' + initial + ', to ' + newState +
-        ' with incNoDelta ' + incNoDelta + ' via piggybacking',
-        ns, 20000, prepareWithStatus(ix, initial, function(t, tc, n) {
-            expectedMembers = {};
-            expectedMembers[ix] = {status: finalState};
-            return [
-                dsl.sendPing(t, tc, 0,
-                    {sourceIx: 0, subjectIx: ix, status: newState, subjectIncNoDelta: incNoDelta}),
-                dsl.waitForPingResponse(t, tc, 0),
-                dsl.assertStats(t, tc, n + deltaAlive, nSuspect, nFaulty, expectedMembers),
-            ];
-        })
-    );
-}
+testStateTransitions(getClusterSizes(2), 'alive',  'alive', 'alive', -1, {alive: 1, suspect: 0, faulty: 0});
+testStateTransitions(getClusterSizes(2), 'alive',  'alive', 'alive',  0, {alive: 1, suspect: 0, faulty: 0});
+testStateTransitions(getClusterSizes(2), 'alive',  'alive', 'alive',  1, {alive: 1, suspect: 0, faulty: 0});
 
-changeStatus(getClusterSizes(2), 'alive',  'alive', 'alive', -1, 1, 0, 0);
-changeStatus(getClusterSizes(2), 'alive',  'alive', 'alive',  0, 1, 0, 0);
-changeStatus(getClusterSizes(2), 'alive',  'alive', 'alive',  1, 1, 0, 0);
+testStateTransitions(getClusterSizes(2), 'alive',  'suspect', 'alive',  -1, {alive: 1, suspect: 0, faulty: 0});
+testStateTransitions(getClusterSizes(2), 'alive',  'suspect', 'suspect', 0, {alive: 0, suspect: 1, faulty: 0});
+testStateTransitions(getClusterSizes(2), 'alive',  'suspect', 'suspect', 1, {alive: 0, suspect: 1, faulty: 0});
 
-changeStatus(getClusterSizes(2), 'alive',  'suspect', 'alive',  -1, 1, 0, 0);
-changeStatus(getClusterSizes(2), 'alive',  'suspect', 'suspect', 0, 0, 1, 0);
-changeStatus(getClusterSizes(2), 'alive',  'suspect', 'suspect', 1, 0, 1, 0);
+testStateTransitions(getClusterSizes(2), 'alive',  'faulty', 'alive', -1, {alive: 1, suspect: 0, faulty: 0});
+testStateTransitions(getClusterSizes(2), 'alive',  'faulty', 'faulty', 0, {alive: 0, suspect: 0, faulty: 1});
+testStateTransitions(getClusterSizes(2), 'alive',  'faulty', 'faulty', 1, {alive: 0, suspect: 0, faulty: 1});
 
-changeStatus(getClusterSizes(2), 'alive',  'faulty', 'alive', -1, 1, 0, 0);
-changeStatus(getClusterSizes(2), 'alive',  'faulty', 'faulty', 0, 0, 0, 1);
-changeStatus(getClusterSizes(2), 'alive',  'faulty', 'faulty', 1, 0, 0, 1);
+testStateTransitions(getClusterSizes(2), 'suspect', 'alive', 'suspect', -1, {alive: 0, suspect: 1, faulty: 0});
+testStateTransitions(getClusterSizes(2), 'suspect', 'alive', 'suspect',  0, {alive: 0, suspect: 1, faulty: 0});
+testStateTransitions(getClusterSizes(2), 'suspect', 'alive', 'alive',   1, {alive: 1, suspect: 0, faulty: 0});
 
-changeStatus(getClusterSizes(2), 'suspect', 'alive', 'suspect', -1, 0, 1, 0);
-changeStatus(getClusterSizes(2), 'suspect', 'alive', 'suspect',  0, 0, 1, 0);
-changeStatus(getClusterSizes(2), 'suspect', 'alive', 'alive',   1, 1, 0, 0);
+testStateTransitions(getClusterSizes(2), 'suspect', 'suspect', 'suspect', -1, {alive: 0, suspect: 1, faulty: 0});
+testStateTransitions(getClusterSizes(2), 'suspect', 'suspect', 'suspect', 0,  {alive: 0, suspect: 1, faulty: 0});
+testStateTransitions(getClusterSizes(2), 'suspect', 'suspect', 'suspect', 1,  {alive: 0, suspect: 1, faulty: 0});
 
-changeStatus(getClusterSizes(2), 'suspect', 'suspect', 'suspect', -1, 0, 1, 0);
-changeStatus(getClusterSizes(2), 'suspect', 'suspect', 'suspect', 0,  0, 1, 0);
-changeStatus(getClusterSizes(2), 'suspect', 'suspect', 'suspect', 1,  0, 1, 0);
+testStateTransitions(getClusterSizes(2), 'suspect', 'faulty', 'suspect', -1, {alive: 0, suspect: 1, faulty: 0});
+testStateTransitions(getClusterSizes(2), 'suspect', 'faulty', 'faulty',  0,  {alive: 0, suspect: 0, faulty: 1});
+testStateTransitions(getClusterSizes(2), 'suspect', 'faulty', 'faulty',  1,  {alive: 0, suspect: 0, faulty: 1});
 
-changeStatus(getClusterSizes(2), 'suspect', 'faulty', 'suspect', -1, 0, 1, 0);
-changeStatus(getClusterSizes(2), 'suspect', 'faulty', 'faulty',  0,  0, 0, 1);
-changeStatus(getClusterSizes(2), 'suspect', 'faulty', 'faulty',  1,  0, 0, 1);
+testStateTransitions(getClusterSizes(2), 'faulty',  'alive', 'faulty', -1, {alive: 0, suspect: 0, faulty: 1});
+testStateTransitions(getClusterSizes(2), 'faulty',  'alive', 'faulty', 0,  {alive: 0, suspect: 0, faulty: 1});
+testStateTransitions(getClusterSizes(2), 'faulty',  'alive', 'alive',  1,  {alive: 1, suspect: 0, faulty: 0});
 
-changeStatus(getClusterSizes(2), 'faulty',  'alive', 'faulty', -1, 0, 0, 1);
-changeStatus(getClusterSizes(2), 'faulty',  'alive', 'faulty', 0,  0, 0, 1);
-changeStatus(getClusterSizes(2), 'faulty',  'alive', 'alive',  1,  1, 0, 0);
+testStateTransitions(getClusterSizes(2), 'faulty',  'suspect', 'faulty', -1, {alive: 0, suspect: 0, faulty: 1});
+testStateTransitions(getClusterSizes(2), 'faulty',  'suspect', 'faulty',  0, {alive: 0, suspect: 0, faulty: 1});
+testStateTransitions(getClusterSizes(2), 'faulty',  'suspect', 'suspect', 1, {alive: 0, suspect: 1, faulty: 0});
 
-changeStatus(getClusterSizes(2), 'faulty',  'suspect', 'faulty', -1, 0, 0, 1);
-changeStatus(getClusterSizes(2), 'faulty',  'suspect', 'faulty',  0, 0, 0, 1);
-changeStatus(getClusterSizes(2), 'faulty',  'suspect', 'suspect', 1, 0, 1, 0);
-
-changeStatus(getClusterSizes(2), 'faulty',  'faulty', 'faulty', -1, 0, 0, 1);
-changeStatus(getClusterSizes(2), 'faulty',  'faulty', 'faulty',  0, 0, 0, 1);
-changeStatus(getClusterSizes(2), 'faulty',  'faulty', 'faulty',  1, 0, 0, 1);
+testStateTransitions(getClusterSizes(2), 'faulty',  'faulty', 'faulty', -1, {alive: 0, suspect: 0, faulty: 1});
+testStateTransitions(getClusterSizes(2), 'faulty',  'faulty', 'faulty',  0, {alive: 0, suspect: 0, faulty: 1});
+testStateTransitions(getClusterSizes(2), 'faulty',  'faulty', 'faulty',  1, {alive: 0, suspect: 0, faulty: 1});

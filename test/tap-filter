@@ -40,6 +40,17 @@ _print_last_test_error() {
 
 while IFS= read -r line; do
 	case $line in
+		"# tests"*|"# pass"*|"# fail"*)
+			# Immediately print summary lines
+			echo "$line"
+			;;
+
+		\#:*)
+			# Use the special syntax "#: Foo..." and these lines will also be
+			# printed immediately.
+			echo "$line"
+			;;
+
 		\#*)
 			# Beginning of new test...
 
@@ -51,17 +62,6 @@ while IFS= read -r line; do
 			test_name="$line"
 			test_error=false
 			buffer=
-			;;
-
-		"# tests"|"# pass"|"# fail")
-			# Immediately print summary lines
-			echo "$line"
-			;;
-
-		\#:*)
-			# Use the special syntax "#: Foo..." and these lines will also be
-			# printed immediately.
-			echo "$line"
 			;;
 
 		"not ok"*)

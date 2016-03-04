@@ -46,7 +46,12 @@ function test(msg, opts, cb) {
 // callback returns a list of closures, which will be validated at a later
 // stage. For documentation on validation, see documentation of
 // ringpop-assert.validate().
-function test2(str, ns, deadline, callback) {
+function test2(str, ns, deadline, init, callback) {
+    if (typeof callback === 'undefined') {
+        callback = init;
+        init = function(t, tc, cb) { cb(); return; }
+    }
+
     ns.forEach(function(n) {
         test('cluster-size ' + n + ': ' + str, function(t) {
             var tc = new TestCoordinator({
@@ -57,11 +62,47 @@ function test2(str, ns, deadline, callback) {
                 numNodes: n,
             });
 
-            tc.start(function onTCStarted() {
-                dsl.validate(t, tc, callback(t, tc, n), deadline);
+            init(t, tc, function onInit() {
+                tc.start(function onTCStarted() {
+                    dsl.validate(t, tc, callback(t, tc, n), deadline);
+                });
             });
+
         });
     });
+}
+
+// testStateTransitions tests state transitions from an initial state to a newState and
+// asserts the final state. During the transition an relative incarnation number
+// can be sent in the piggybacked ping to test different rules
+//
+// statusCounts is an hash in the following form:
+// {
+//   <status>: count
+// }
+//
+// The alive status is treated as a relative number that is added to the size of the
+// cluster being tested. eg:
+// {
+//   alive: -1
+// }
+// for a clustersize of 5 will assert that there will be 4 nodes alive after the test.
+function testStateTransitions(ns, initial, newState, finalState, incNoDelta, statusCounts) {
+    var ix = 1;
+    test2('change status from ' + initial + ', to ' + newState + ' with incNoDelta ' + incNoDelta + ' via piggybacking',
+        ns, 20000, prepareWithStatus(ix, initial, function(t, tc, n) {
+            expectedMembers = {};
+            expectedMembers[ix] = {status: finalState};
+
+            // alive is a delta
+            statusCounts.alive = (statusCounts.alive || 0) + n
+            return [
+                dsl.changeStatus(t, tc, 0, 1, newState, incNoDelta),
+                dsl.waitForPingResponse(t, tc, 0),
+                dsl.assertStats(t, tc, statusCounts, expectedMembers),
+            ];
+        })
+    );
 }
 
 function prepareCluster(insert_fns) {
@@ -81,17 +122,20 @@ function prepareWithStatus(ix, status, insert_fns) {
         sourceIx = 1;
     }
 
-    return prepareCluster(function(t, tc, n) { return [
-        dsl.sendPing(t, tc, sourceIx, {sourceIx: sourceIx, subjectIx: ix, status: status }),
-        dsl.waitForPingResponse(t, tc, sourceIx),
-        insert_fns(t, tc, n),
-    ];});
+    return prepareCluster(function(t, tc, n) {
+        return [
+            dsl.changeStatus(t, tc, sourceIx, ix, status),
+            dsl.waitForPingResponse(t, tc, sourceIx),
+            insert_fns(t, tc, n),
+        ];
+    });
 }
 
 
 module.exports = {
     test: test,
     test2: test2,
+    testStateTransitions: testStateTransitions,
     prepareCluster: prepareCluster,
     prepareWithStatus: prepareWithStatus,
 };

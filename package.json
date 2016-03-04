@@ -11,11 +11,12 @@
     "commander": "^2.6.0",
     "farmhash": "^1.1.0",
     "grafana-dash-gen": "uber/grafana-dash-gen#41a17abfa174fdda048f9a1084bc302dec28e6ff",
+    "lodash": "^4.6.1",
     "strformat": "^0.0.7",
     "uber-licence": "^1.5.4",
     "zero-config": "^5.0.0"
   },
   "pre-commit": [
-      "check-licence"
+    "check-licence"
   ]
 }

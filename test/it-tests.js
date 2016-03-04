@@ -30,11 +30,94 @@ var clusterSizes = [1, 2, 3, 4, 5, 6, 7, 10, 21, 25, 30];
 // Global counter to record how many tests have failed.
 var testFailures = 0;
 
+var features = {
+    'join': {
+        mandatory: true,
+        tests: [
+            './join-tests'
+        ]
+    },
+    'ping': {
+        mandatory: true,
+        tests: [
+            './ping-tests'
+        ]
+    },
+    'ping-req':{
+        mandatory: true,
+        tests: [
+            './ping-req-tests'
+        ]
+    },
+    'reincarnate': {
+        mandatory: true,
+        tests: [
+            './incarnation-no-tests'
+        ]
+    },
+    'gossip': {
+        mandatory: true,
+        tests: [
+            './piggyback-tests'
+        ]
+    },
+    'admin': {
+        mandatory: true,
+        tests: [
+            './admin-tests'
+        ]
+    },
+
+    // features implemented in only one language
+    'reaping-faulty-nodes': {
+        tests: [
+            './reaping-faulty-nodes'
+        ]
+    }
+};
+
+function selectFeatures(options) {
+    var only = options.only || [];
+    var selectedFeatures = options.features || [];
+
+    if (only.length > 0) {
+        return function (obj, feature) {
+            // add selected features
+            if (only.indexOf(feature) >= 0) {
+                return true;
+            }
+        };
+    } else {
+        return function (obj, feature) {
+            // add selected features
+            if (selectedFeatures.indexOf(feature) >= 0) {
+                return true;
+            }
+
+            // always run all mandatory features
+            if (obj.mandatory === true) {
+                return true;
+            }
+
+            // drop other tests
+            return false;
+        };
+    }
+}
+
+// collect is a commander helper function
+function collect(val, memo) {
+  memo.push(val);
+  return memo;
+}
+
 function main() {
     program
         .version(require('../package.json').version)
         .option('-s, --sizes <clusterSizes>', 'Cluster sizes to test against. Default: \'' +
              JSON.stringify(clusterSizes) + '\'')
+        .option('--enable-feature <feature>', 'Run tests for experimental features', collect, [])
+        .option('--only <feature>', 'Run tests for experimental features', collect, [])
         .option('-i, --interpreter <interpreter>', 'Interpreter that runs program.')
         .arguments('<program>')
         .description('it-tests.js performs an integration test on a ringpop program')
@@ -61,19 +144,26 @@ function main() {
         process.exit(1);
     }
 
+    var shouldRunFeature = selectFeatures({
+        features: program['enableFeature'],
+        only: program['only']
+    });
 
-    require('./join-tests');
-    require('./ping-tests');
-    require('./ping-req-tests');
-    require('./incarnation-no-tests');
+    _.each(features, function (obj, feature) {
+        if (!shouldRunFeature(obj, feature)) {
+            console.log("#: WARNING skipping test suite:", feature);
+            return;
+        }
 
-    require('./piggyback-tests');
-    require('./admin-tests');
-
+        _.each(obj.tests, function (test) {
+            require(test)
+        });
+    });
     // require('./network-blip-tests');
     // require('./revive-tests');
 
     // If one or more tests failed, exit with a non-zero exit code.
+
     if (testFailures > 0) {
         process.exit(1);
     }
