@@ -65,3 +65,35 @@ Install ringpop-go and build the `testpop` executable:
 Run the tests:
 
 	node ringpop-common/test/it-tests.js $GOPATH/src/github.com/uber/ringpop-go/testpop
+
+# Understanding the integration tests
+
+This is a written summary of a one-hour workshop of digging into the integration tests and asking questions from the people who implemented it. As of now, it might be out of date (we will try to keep it up to date though), but the text below can give a good starting point while trying to wrap your head around.
+
+## Glossary
+
+*Slanted names* mean general concepts, names in `monospace` common variable names.
+
+* *SUT*: Subject Under Test. Also referred to as "the real node".
+* *testpop*: very basic application using ringpop. Commonly used by
+  tick-cluster. It also acts as the SUT for the integration test.
+* `t`: test object. Instance of `tap`.
+* `tc`: test coordinator. The thing that runs and controls testpop, SUT and
+  fake nodes. Handles coordination between the fake and real nodes.
+* `n` : size of the cluster.
+* `ns`: list of cluster sizes. Treat it like *plural n* -- *ns*.
+* `nodeIx`: node index. Any variable that ends with `Ix` is an index variable.
+* `cb`: callback.
+
+## High-level overview
+
+Tests are usually composed of a *Real Node* (*SUT*) and a number of fake nodes. The real node is the actual ringpop instance (`testpop`), and the fake nodes are the test harness.
+
+The test harness (fake nodes) send messages to the real node, and listen on what SUTS sends back. The test harness then asserts whether whatever the SUT is sending back matches expectations. With this black-box structure, tests are verifying the node behaves as expected given certain messages. Therefore, this test harness is used to measure feature parity between different ringpop implementations.
+
+Here's what it looks like in the code:
+
+1. SUT is initialized (responsible by the function `test2` in `test-utils.js`).
+2. User callback is executed, which returns a list of closures. See documentation of `test-utils.test2()`.
+3. Every closure is executed with a list of messages from the SUT. See documentation of `ringpop-assert.validate()`.
+4. The closure either succeeds by calling a callback, or fails by calling a well-documented function in `t`.

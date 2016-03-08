@@ -153,3 +153,12 @@ Content coming soon...
 
 #### Leader Election
 Content coming soon...
+
+### Partition Recovery
+
+As of ringpop-go DEV and ringpop-node DEV, ringpop is able to detect and heal partitions. In a nutshell, it works as follows:
+
+1. Query the Discover Provider for a list of hosts that should be in the cluster.
+2. Unseen and `faulty` hosts are pinged, and, if successful, joined to the cluster.
+
+For detailed design on how that works, see Partition Healing page.

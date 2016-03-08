@@ -43,6 +43,9 @@ function test(msg, opts, cb) {
     });
 }
 
+// callback returns a list of closures, which will be validated at a later
+// stage. For documentation on validation, see documentation of
+// ringpop-assert.validate().
 function test2(str, ns, deadline, callback) {
     ns.forEach(function(n) {
         test('cluster-size ' + n + ': ' + str, function(t) {

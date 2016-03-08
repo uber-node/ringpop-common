@@ -669,9 +669,27 @@ function createValidateEvent(t, tc) {
     };
 }
 
-// validates a scheme on incoming events send by the real-node. A scheme is a collection of
-// functions from scheme.js. On every incoming event we try to progress through the scheme.
-// further. When all the functions in the scheme have ran, the test is a success.
+// validates a scheme on incoming events send by the real-node. A scheme is a
+// collection of functions from ringpop-assert.js. On every incoming event we
+// try to progress through the scheme further. When all the functions in the
+// scheme have ran, the test is a success.
+//
+// A scheme is the list of functions passed by the caller. Every function in
+// the list will be called like this:
+// - fun(eventlist, callback)
+//
+// fun needs to verify if eventlist is what it is expecting to be. If it is,
+// fun calls `cb(list)`, where list is a subset of the original list. The
+// discarded items are no longer necessary in the test, so the other validation
+// functions are called with the (possibly) reduced list. For example, a
+// closure which checks for 3 ping requests finds three ping requests, removes
+// them from the list, and calls the callback. If the callback is called with a
+// list, the test will go on to the next closure.
+//
+// If the list is not complete, call `cb(null)`; then the fun will be called
+// again when more elements are added to the list.
+//
+// Failures should be asserted in the ordinary way by using the tap object `t`.
 function validate(t, tc, scheme, deadline) {
     var fns = scheme;
     var cursor = 0;
