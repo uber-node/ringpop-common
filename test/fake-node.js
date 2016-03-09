@@ -32,6 +32,7 @@ function FakeNode(options) {
     this.host = options.host;
     this.port = undefined; // set at listen time
     this.incarnationNumber = 1337;
+    this.status = 'alive';
 
     this.tchannel = undefined;
     this.channel = undefined;
@@ -108,7 +109,7 @@ FakeNode.prototype.toMemberInfo = function toMemberInfo() {
     return {
         host: this.host,
         port: this.port,
-        status: 'alive',
+        status: this.status,
         incarnationNumber: this.incarnationNumber,
     };
 };

@@ -207,6 +207,22 @@ function sendPings(t, tc, nodeIxs) {
     });
 }
 
+function changeStatus(t, tc, sourceIx, subjectIx, status, subjectIncNoDelta) {
+    var ping = sendPing(t, tc, sourceIx, {
+        sourceIx: sourceIx,
+        subjectIx: subjectIx,
+        status: status,
+        subjectIncNoDelta: subjectIncNoDelta || 0
+    });
+
+    var f = _.once(function (list, cb) {
+        tc.fakeNodes[subjectIx].status = status;
+        return ping(list, cb);
+    });
+    f.callerName = 'changeStatus';
+    return f;
+}
+
 function sendPing(t, tc, nodeIx, piggybackOpts) {
     var f = _.once(function sendPing(list, cb) {
         var piggybackData = piggyback(tc, piggybackOpts);
@@ -427,10 +443,24 @@ function waitForStatsAssertMembership(t, tc, members) {
     };
 }
 
-function assertStats(t, tc, a, s, f, members) {
+// t, tc, statusCounts, members
+// t, tc, a, s, f, members
+function assertStats(t, tc, statusCountsOralive, suspect, faulty, members) {
+    var statusCounts;
+    if (typeof statusCountsOralive === 'number') {
+        statusCounts = {
+            alive: statusCountsOralive,
+            suspect: suspect,
+            faulty: faulty,
+        };
+    } else {
+        statusCounts = statusCountsOralive;
+        members = suspect;
+    }
+
     var result = [
         requestAdminStats(tc),
-        waitForStatsAssertStatus(t, tc, a, s, f),
+        waitForStatsAssertStatus(t, tc, statusCounts),
     ];
 
     if (members !== undefined) {
@@ -451,7 +481,29 @@ function requestAdminStats(tc) {
     return f;
 }
 
-function waitForStatsAssertStatus(t, tc, alive, suspect, faulty) {
+// iterate through all the statusses of actual and expected. Assert that the
+// counts are the same. If a count is missing a count of 0 will be assumed.
+function assertStatusCounts(t, actual, expected) {
+    var keys = _.union(_.keys(actual), _.keys(expected));
+    var failed = false;
+    _.each(keys, function (status) {
+        t.equal(actual[status] || 0, expected[status] || 0, 'check number of ' + status + ' nodes');
+        failed |= (actual[status] || 0) !== (expected[status] || 0);
+    });
+
+    return !failed;
+}
+
+function waitForStatsAssertStatus(t, tc, statusCountsOralive, suspect, faulty) {
+    var statusCounts = statusCountsOralive;
+    if (typeof statusCountsOralive === 'numer') {
+        statusCounts = {
+            alive: statusCountsOralive,
+            suspect: suspect,
+            faulty: faulty
+        };
+    }
+
     return function waitForStatsAssertStatus(list, cb) {
         var ix = _.findIndex(list, {type: events.Types.Stats});
         if (ix === -1) {
@@ -461,19 +513,19 @@ function waitForStatsAssertStatus(t, tc, alive, suspect, faulty) {
 
         var stats = safeJSONParse(list[ix].arg3);
         var members = stats.membership.members;
-        var a = _.filter(members, {status: 'alive'}).length;
-        var s = _.filter(members, {status: 'suspect'}).length;
-        var f = _.filter(members, {status: 'faulty'}).length;
 
-        t.equal(a, alive, 'check number of alive nodes');
-        t.equal(s, suspect, 'check number of suspect nodes');
-        t.equal(f, faulty, 'check number of faulty nodes');
-        if(a !== alive || s !== suspect || f !== faulty) {
+        var countedStatusses = _.countBy(members, 'status');
+
+        if(!assertStatusCounts(t, countedStatusses, statusCounts)) {
             t.fail('full stats check', errDetails(members));
         }
 
         // check inc no of fakeNodes agains admin/stats
         tc.fakeNodes.forEach(function(fakeNode) {
+            if (['alive','suspect','faulty'].indexOf(fakeNode.status) < 0) {
+                return; // continue;
+            }
+
             // find member i in members
             var memberIx = _.findIndex(members, {address: fakeNode.getHostPort()});
             // check memberIx != -1
@@ -786,6 +838,10 @@ function piggyback(tc, opts) {
     if(opts.subjectIx === 'sut') {
         update.address = tc.sutHostPort;
         update.sourceIncarnationNumber = tc.sutIncarnationNumber;
+    } else if(opts.subjectIx === 'new') {
+        // address from test network
+        update.address = "192.0.2.0:1234";
+        update.incarnationNumber = 42;
     } else {
         update.address = tc.fakeNodes[opts.subjectIx].getHostPort();
         update.incarnationNumber = tc.fakeNodes[opts.subjectIx].incarnationNumber;
@@ -834,6 +890,7 @@ module.exports = {
     disableAllNodesPing: disableAllNodesPing,
     enableNode: enableNode,
 
+    changeStatus: changeStatus,
     sendPings: sendPings,
     waitForPingResponse: waitForPingResponse,
     waitForPingResponses: waitForPingResponses,

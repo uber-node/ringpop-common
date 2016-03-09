@@ -56,6 +56,8 @@ function validateSetupOptions(options) {
 function TestCoordinator(options) {
     validateSetupOptions(options);
 
+    this.extraMembers = [];
+
     this.replicaPoints = 100; // default from node implementation
 
     this.fakeNodes = [];
@@ -245,6 +247,19 @@ TestCoordinator.prototype.callEndpoint = function callEndpoint(endpoint, body, c
 TestCoordinator.prototype.getMembership = function getMembership() {
     return this.getFakeNodes().map(function(node) {
         return node.toMemberInfo();
+    }).concat(this.extraMembers);
+};
+
+TestCoordinator.prototype.addMembershipInformation = function(address, status, incarnationNumber) {
+    var parts = address.split(':', 2);
+    var host = parts[0];
+    var port = parts[1];
+
+    this.extraMembers.push({
+        host: host,
+        port: port,
+        status: status,
+        incarnationNumber: incarnationNumber,
     });
 };
 
