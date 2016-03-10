@@ -122,8 +122,10 @@ FakeNode.prototype.changeEndpoint = function modifyEndpoint(endpoint, handler) {
     this.endpoints[endpoint].handler = handler;
 };
 
+// It is possible to overwrite membership per-fakenode.
+// Useful, e.g., for partitioning tests.
 FakeNode.prototype.joinHandler = function joinHandler(req, res, arg2, arg3) {
-    var membership = this.coordinator.getMembership();
+    var membership = this.membership || this.coordinator.getMembership();
     return handleJoin(req, res, this.toMemberInfo(), membership);
 };
 

@@ -74,12 +74,16 @@ var features = {
             './reaping-faulty-nodes'
         ]
     },
-
     'bidirectional-full-syncs': {
         tests: [
             './bidir-full-sync-tests'
         ]
     },
+    'partition-healing': {
+        tests: [
+            './partition-healing-tests'
+        ]
+    }
 };
 
 function selectFeatures(options) {
