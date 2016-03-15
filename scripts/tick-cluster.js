@@ -290,6 +290,17 @@ function onData(char) {
             case 'K':
                 reviveProcs();
                 break;
+            case 'u':
+                func = upgradeProc;
+                state = 'readnum';
+                for (var i=0; i<program.upgrade.length; i++) {
+                    console.log('%d:\t%s', i+1, program.upgrade[i]);
+                }
+                process.stdout.write('binary to upgrade to (1-9):')
+                break;
+            case 'U':
+                downGradeAllProcs();
+                break;
             case '\r':
                 console.log('');
                 break;
@@ -348,18 +359,19 @@ function findLocalIP() {
 }
 
 
-function ClusterProc(port) {
+function ClusterProc(port, binary) {
     var newProc;
     var self = this;
 
     this.port = port;
     this.hostPort = localIP + ':' + port;
+    this.binary = binary;
 
     if (programInterpreter) {
         newProc = childProc.spawn(programInterpreter,
-            [programPath, '--listen=' + this.hostPort, '--hosts=./hosts.json']);
+            [this.binary, '--listen=' + this.hostPort, '--hosts=./hosts.json']);
     } else {
-        newProc = childProc.spawn(programPath,
+        newProc = childProc.spawn(this.binary,
             ['--listen=' + this.hostPort, '--hosts=./hosts.json']);
     }
 
@@ -367,13 +379,13 @@ function ClusterProc(port) {
 
     newProc.on('error', function(err) {
         console.log('Error: ' + err.message + ', failed to spawn ' +
-            programPath + ' on ' + self.hostPort);
+            this.binary + ' on ' + self.hostPort);
     });
 
     newProc.on('exit', function(code) {
         if (code !== null) {
             self.killed = Date.now();
-            console.log('Program ' + programPath + ' ended with exit code ' + code);
+            console.log('Program ' + this.binary + ' ended with exit code ' + code);
         }
     });
 
@@ -421,7 +433,8 @@ function reviveProcs() {
         var proc = procs[i];
         if (proc.killed) {
             logMsg(proc.port, color.red('restarting after ') + color.green((Date.now() - proc.killed) + 'ms'));
-            procs[i] = new ClusterProc(proc.port);
+            procs[i] = new ClusterProc(proc.port, proc.binary);
+            procs[i].index = i;
         } else if (proc.suspended) {
             logMsg(proc.port, color.green('pid ' + proc.pid) + color.red(' resuming after ') + color.green((Date.now() - proc.suspended) + 'ms'));
             process.kill(proc.pid, 'SIGCONT');
@@ -462,6 +475,68 @@ function killProc(count) {
     }
 }
 
+function upgradeProc(count) {
+    var version = +count;
+    version -= 1; // 0 based index but 1 based input
+
+    if (version >= program.upgrade.length) {
+        console.error("Selected invalid version")
+        return;
+    }
+
+    var binary = program.upgrade[version];
+
+    var candidates = procs.filter(function (proc) {
+        // skip killed and suspended processes
+        if (proc.killed !== null || proc.suspended !== null) {
+            return false;
+        }
+
+        // skip processes that are already the same version
+        if (proc.binary == binary) {
+            return false;
+        }
+
+        return true;
+    });
+
+    if (candidates.length === 0) {
+        console.error("No candidates for upgrading");
+        return;
+    }
+
+
+    // select a candidate for upgrading
+    var rand = Math.floor(Math.random() * candidates.length);
+    var proc = candidates[rand];
+
+    // kill old process
+    process.kill(proc.proc.pid, 'SIGKILL');
+    // start newly upgraded process
+    procs[proc.index] = new ClusterProc(proc.port, binary);
+    procs[proc.index].index = proc.index;
+}
+
+function downGradeAllProcs() {
+    var binary = program.upgrade[0]; // default version is at index 0 always
+    procs.forEach(function (proc) {
+        // skip killed processes
+        if (proc.killed !== null || proc.suspended !== null) {
+            return;
+        }
+
+        // skip if the binary is alreay at the desired version
+        if (proc.binary === binary) {
+            return;
+        }
+
+        process.kill(proc.proc.pid, 'SIGKILL');
+        // start newly upgraded process
+        procs[proc.index] = new ClusterProc(proc.port, binary);
+        procs[proc.index].index = proc.index;
+    });
+}
+
 function killAllProcs() {
     console.log('Killing all ' + procsToStart + ' procs to exit...');
     for (var i = 0; i < procsToStart; i++) {
@@ -474,7 +549,8 @@ function killAllProcs() {
 function startCluster() {
     procs = []; // note module scope
     for (var i = 0; i < procsToStart ; i++) {
-        procs[i] = new ClusterProc(startingPort + i);
+        procs[i] = new ClusterProc(startingPort + i, programPath);
+        procs[i].index = i;
     }
     logMsg('init', color.cyan('started ' + procsToStart + ' procs: ') + color.green(procs.map(function (p) { return p.proc.pid; }).join(', ')));
 }
@@ -521,6 +597,8 @@ function displayMenu(logFn) {
     logFn('\tq\t\tQuit');
     logFn('\ts\t\tPrint out stats');
     logFn('\tt\t\tTick protocol period');
+    logFn('\tu\t\tUpgrade one running instance to a different version');
+    logFn('\tU\t\tDowngrade all to original version');
     logFn('\t<space>\t\tPrint out horizontal rule');
     logFn('\t?\t\tHelp menu');
 }
@@ -560,12 +638,18 @@ function send(host, arg1, arg2, arg3, callback) {
     });
 }
 
+function collect(val, memo) {
+  memo.push(val);
+  return memo;
+}
+
 program
     .version(require('../package.json').version)
     .option('-n <size>', 'Size of cluster. Default is ' + procsToStart + '.')
     .option('-i, --interpreter <interpreter>', 'Interpreter that runs program. Usually `node`.')
     .option('--interface <address>', 'Interface to bind ringpop instances to.')
     .option('--port <num>', 'Starting port for instances.')
+    .option('--upgrade <program>', 'Add extra programs to test upgrading', collect, [])
     .arguments('<program>')
     .description('tick-cluster is a tool that launches a ringpop cluster of arbitrary size')
     .action(function onAction(path, options) {
@@ -580,6 +664,8 @@ program
         programInterpreter = options.interpreter;
         bindInterface = options.interface;
         startingPort = parseInt(options.port);
+
+        program.upgrade.unshift(programPath);
     });
 
 program.on('--help', function onHelp() {
