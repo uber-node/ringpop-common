@@ -494,16 +494,7 @@ function assertStatusCounts(t, actual, expected) {
     return !failed;
 }
 
-function waitForStatsAssertStatus(t, tc, statusCountsOralive, suspect, faulty) {
-    var statusCounts = statusCountsOralive;
-    if (typeof statusCountsOralive === 'numer') {
-        statusCounts = {
-            alive: statusCountsOralive,
-            suspect: suspect,
-            faulty: faulty
-        };
-    }
-
+function waitForStatsAssertStatus(t, tc, statusCounts) {
     return function waitForStatsAssertStatus(list, cb) {
         var ix = _.findIndex(list, {type: events.Types.Stats});
         if (ix === -1) {
