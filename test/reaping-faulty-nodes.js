@@ -121,3 +121,19 @@ test2('tombstone should not be applied when gossiped about but unknown to the SU
         ];
     })
 );
+
+test2('test /admin/reap endpoint', getClusterSizes(2), 20000,
+    prepareWithStatus(1, 'faulty', function(t, tc, n) { return [
+        dsl.assertStats(t, tc, {alive: n, faulty: 1}, {1: {status: 'faulty'}}),
+
+        dsl.callEndpoint(t, tc, '/admin/reap'),
+        dsl.validateEventBody(t, tc, {
+            type: events.Types.AdminReap,
+            direction: 'response'
+        }, 'Wait for AdminReap response', function (response) {
+            return response.body.status === 'ok';
+        }),
+
+        dsl.assertStats(t, tc, {alive: n, tombstone: 1}, {1: {status: 'tombstone'}}),
+    ];})
+);
