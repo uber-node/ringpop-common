@@ -293,18 +293,17 @@ function onData(char) {
             case 'u':
                 func = upgradeProc;
                 state = 'readnum';
-                for (var i=0; i<programPaths.length; i++) {
-                    console.log('%d:\t%s', i+1, programPaths[i]);
-                }
+                printBinaries();
                 process.stdout.write('binary to upgrade to (1-9):')
                 break;
             case 'U':
                 func = upgradeAllProcs;
                 state = 'readnum';
-                for (var i=0; i<programPaths.length; i++) {
-                    console.log('%d:\t%s', i+1, programPaths[i]);
-                }
+                printBinaries();
                 process.stdout.write('binary to upgrade to (1-9):')
+                break;
+            case 'v':
+                printBinaries();
                 break;
             case '\r':
                 console.log('');
@@ -343,6 +342,29 @@ function onData(char) {
         console.error('unknown state: ' + state);
         state = 'top';
     }
+}
+
+function printBinaries() {
+    var count;
+    var running;
+
+    console.log('Loaded versions:')
+
+    for (var i=0; i<programPaths.length; i++) {
+        count = 0;
+        running = 0;
+
+        procs.forEach(function (proc) {
+            if (proc.binary === programPaths[i]) {
+                count++;
+                if (proc.killed === null && proc.suspended === null) {
+                    running++;
+                }
+            }
+        })
+
+        console.log('%d - (%d/%d):\t%s', i+1, running, count, programPaths[i]);
+   }
 }
 
 function findLocalIP() {
@@ -606,6 +628,7 @@ function displayMenu(logFn) {
     logFn('\tt\t\tTick protocol period');
     logFn('\tu\t\tUpgrade one running instance to a different version');
     logFn('\tU\t\tUpgrade all running instances to a specific version');
+    logFn('\tv\t\tPrint list of binaries with deployment information');
     logFn('\t<space>\t\tPrint out horizontal rule');
     logFn('\t?\t\tHelp menu');
 }
