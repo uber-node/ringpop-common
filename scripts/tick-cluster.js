@@ -28,7 +28,7 @@ var program = require('commander');
 var TChannel = require('tchannel');
 var fs = require('fs');
 
-var programInterpreter, programPath, startingPort, bindInterface, procsToStart = 5;
+var programPaths, startingPort, bindInterface, procsToStart;
 var hosts, procs, ringPool, localIP, toSuspend, toKill, tchannel; // defined later
 
 /* jshint maxparams: 6 */
@@ -293,13 +293,18 @@ function onData(char) {
             case 'u':
                 func = upgradeProc;
                 state = 'readnum';
-                for (var i=0; i<program.upgrade.length; i++) {
-                    console.log('%d:\t%s', i+1, program.upgrade[i]);
+                for (var i=0; i<programPaths.length; i++) {
+                    console.log('%d:\t%s', i+1, programPaths[i]);
                 }
                 process.stdout.write('binary to upgrade to (1-9):')
                 break;
             case 'U':
-                downGradeAllProcs();
+                func = upgradeAllProcs;
+                state = 'readnum';
+                for (var i=0; i<programPaths.length; i++) {
+                    console.log('%d:\t%s', i+1, programPaths[i]);
+                }
+                process.stdout.write('binary to upgrade to (1-9):')
                 break;
             case '\r':
                 console.log('');
@@ -360,29 +365,24 @@ function findLocalIP() {
 
 
 function ClusterProc(port, binary) {
-    var newProc;
     var self = this;
 
     this.port = port;
     this.hostPort = localIP + ':' + port;
     this.binary = binary;
-
-    if (programInterpreter) {
-        newProc = childProc.spawn(programInterpreter,
-            [this.binary, '--listen=' + this.hostPort, '--hosts=./hosts.json']);
-    } else {
-        newProc = childProc.spawn(this.binary,
-            ['--listen=' + this.hostPort, '--hosts=./hosts.json']);
-    }
+    this.proc = childProc.spawn(this.binary, [
+        '--listen=' + this.hostPort,
+        '--hosts=./hosts.json'
+    ]);
 
     var self = this;
 
-    newProc.on('error', function(err) {
+    this.proc.on('error', function(err) {
         console.log('Error: ' + err.message + ', failed to spawn ' +
             this.binary + ' on ' + self.hostPort);
     });
 
-    newProc.on('exit', function(code) {
+    this.proc.on('exit', function(code) {
         if (code !== null) {
             self.killed = Date.now();
             console.log('Program ' + this.binary + ' ended with exit code ' + code);
@@ -418,11 +418,10 @@ function ClusterProc(port, binary) {
         });
     }
 
-    newProc.stdout.on('data', logOutput);
-    newProc.stderr.on('data', logOutput);
+    this.proc.stdout.on('data', logOutput);
+    this.proc.stderr.on('data', logOutput);
 
-    this.proc = newProc;
-    this.pid = newProc.pid;
+    this.pid = this.proc.pid;
     this.killed = null;
     this.suspended = null;
     this.debugflags = '';
@@ -479,12 +478,12 @@ function upgradeProc(count) {
     var version = +count;
     version -= 1; // 0 based index but 1 based input
 
-    if (version >= program.upgrade.length) {
+    if (version >= programPaths.length) {
         console.error("Selected invalid version")
         return;
     }
 
-    var binary = program.upgrade[version];
+    var binary = programPaths[version];
 
     var candidates = procs.filter(function (proc) {
         // skip killed and suspended processes
@@ -517,8 +516,16 @@ function upgradeProc(count) {
     procs[proc.index].index = proc.index;
 }
 
-function downGradeAllProcs() {
-    var binary = program.upgrade[0]; // default version is at index 0 always
+function upgradeAllProcs(count) {
+    var version = +count;
+    version -= 1; // 0 based index but 1 based input
+
+    if (version >= programPaths.length) {
+        console.error("Selected invalid version")
+        return;
+    }
+
+    var binary = programPaths[version];
     procs.forEach(function (proc) {
         // skip killed processes
         if (proc.killed !== null || proc.suspended !== null) {
@@ -549,7 +556,7 @@ function killAllProcs() {
 function startCluster() {
     procs = []; // note module scope
     for (var i = 0; i < procsToStart ; i++) {
-        procs[i] = new ClusterProc(startingPort + i, programPath);
+        procs[i] = new ClusterProc(startingPort + i, programPaths[0]);
         procs[i].index = i;
     }
     logMsg('init', color.cyan('started ' + procsToStart + ' procs: ') + color.green(procs.map(function (p) { return p.proc.pid; }).join(', ')));
@@ -598,7 +605,7 @@ function displayMenu(logFn) {
     logFn('\ts\t\tPrint out stats');
     logFn('\tt\t\tTick protocol period');
     logFn('\tu\t\tUpgrade one running instance to a different version');
-    logFn('\tU\t\tDowngrade all to original version');
+    logFn('\tU\t\tUpgrade all running instances to a specific version');
     logFn('\t<space>\t\tPrint out horizontal rule');
     logFn('\t?\t\tHelp menu');
 }
@@ -643,29 +650,27 @@ function collect(val, memo) {
   return memo;
 }
 
+function parseIntDefault(num) {
+    var n = parseInt(num, 10);
+    if (isNaN(n)) {
+        console.log('Error: expected a number but got:', num);
+        process.exit(1);
+    }
+    return n;
+}
+
 program
     .version(require('../package.json').version)
-    .option('-n <size>', 'Size of cluster. Default is ' + procsToStart + '.')
-    .option('-i, --interpreter <interpreter>', 'Interpreter that runs program. Usually `node`.')
+    .option('-n <size>', 'Size of cluster. Default is 5.', parseIntDefault, 5)
     .option('--interface <address>', 'Interface to bind ringpop instances to.')
-    .option('--port <num>', 'Starting port for instances.')
-    .option('--upgrade <program>', 'Add extra programs to test upgrading', collect, [])
-    .arguments('<program>')
+    .option('--port <num>', 'Starting port for instances.', parseIntDefault, 3000)
+    .arguments('<programs...>')
     .description('tick-cluster is a tool that launches a ringpop cluster of arbitrary size')
-    .action(function onAction(path, options) {
-        programPath = path;
-        if (programPath[0] !== '/') {
-            programPath = './' + programPath;
-        }
-
-        if (options.N) {
-            procsToStart = parseInt(options.N);
-        }
-        programInterpreter = options.interpreter;
+    .action(function onAction(programs, options) {
+        programPaths = programs;
         bindInterface = options.interface;
-        startingPort = parseInt(options.port);
-
-        program.upgrade.unshift(programPath);
+        startingPort = options.port;
+        procsToStart = options.N;
     });
 
 program.on('--help', function onHelp() {
@@ -676,23 +681,16 @@ program.on('--help', function onHelp() {
 
 program.parse(process.argv);
 
-if (!programPath) {
-    console.log('Error: program is required');
+if (programPaths.length === 0) {
+    console.log('Error: at least 1 program is required');
     process.exit(1);
 }
 
-if (!fs.existsSync(programPath)) {
-    console.log('Error: program ' + programPath + ' does not exist. Check path');
-    process.exit(1);
-}
-
-if (isNaN(procsToStart)) {
-    console.log('Error: number of processes to start is not an integer');
-    process.exit(1);
-}
-
-if (isNaN(startingPort)) {
-    startingPort = 3000;
-}
+programPaths.forEach(function (programPath) {
+    if (!fs.existsSync(programPath)) {
+        console.log('Error: program ' + programPath + ' does not exist. Check path');
+        process.exit(1);
+    }
+});
 
 main();
