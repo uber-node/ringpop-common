@@ -24,8 +24,8 @@ We test this feature in 3 ways:
 
 1. Unit tests asserting the correct behavior.
 2. Integration tests, which will be the same for Go and Node implementations,
-   checking the external behavior. 
-3. Manual acceptance test to see partitions actually merged.
+   checking the behavior of a node in isolation.
+3. Manual acceptance test to see partitions actually getting healed.
 
 Further down, we will talk about how to manually experience a partition and
 heal it.
@@ -66,22 +66,26 @@ The naïve approach to make a partition between `a` and `b` is to block incoming
 connections from and to port `3000`: then no packet will leave `a`, and we will
 have a partition. However, this misses the fact that ephemeral connections are
 used for relaying traffic between nodes, and, in this case, connection from
-`127.0.0.1:43323` (`a`) to `127.0.0.1:3001` is established and not blocked.
-While we could block port `3001` too, but, with more nodes, that would create a
-cluster with N partitions (N being the number of nodes) -- not what we want. In
-our example, we want two partitions.
+`127.0.0.1:43323` (`a`) to `127.0.0.1:3001` is established and... misses the
+firewall!  While we could block port `3001` too, but, with more nodes, that
+would create a cluster with N partitions (N being the number of nodes) -- not
+what we want. In our example, we want two partitions.
 
-To restrict traffic between two sets of nodes for real, the following
+To restrict traffic between two sets of nodes, the following alternative
 approaches were investigated:
 
 1. Put each process to a cgroup, and block traffic based on the cgroup id
    ([more information][1]). This would work without changes to `tick-cluster`,
-   however, as of beginning of 2016, it was non-trivial to find a distribution
-   which supports iptables rules per cgroup out of the box.
+   however, as of beginning of 2016, it was non-trivial to find a Linux
+   distribution which supports both iptables rules for cgroups and kernel
+   support out of the box.
 2. Change `tick-cluster` to bind to separate IPs, rather than ports. E.g.
    `127.0.0.1:3000` for `a`, `127.0.0.2:3000` for `b`, etc. Then it is easy to
-   write firewall rules that work per IP.
-3. Spawn two clusters on two physical machines manually.
+   write firewall rules that work per IP. We tried this too, but turns out
+   tchannel is not very selective about the source IPs of the ephemeral
+   connections. In the end, this didn't work neither for Node, nor for Go.
+3. Spawn two clusters on two or more physical machines, and connect them
+   together.
 
 In the end, we settled with (3).
 
