@@ -1,24 +1,24 @@
 # Partitions
 
 In the original implementation of ringpop, if a cluster is split to multiple
-partitions, nodes in each partition declare each other as faulty, and don't
-communicate. Ringpop implemented support for merging the partitions, which we
-call `healing`.
+partitions, nodes in each partition declare each other as faulty, and afterward
+will no longer communicate. Ringpop implemented support for merging the
+partitions, which we call `healing`.
 
-## Introdction -- basic algorithm
+## Introduction -- basic algorithm
 
 In order for two partitions to heal, the algorithm does the following,
-periodically (number of times per time unit is upper bounded):
+periodically:
 
 1. Randomly select a `faulty` node.
 2. Send it a `/join` request, get its membership list.
-3. If the local and retrieved lists are incompatible (merging them will 
-   introduce new faulties), force all cluster to reincarnate by marking
-   them suspect.
+3. If the local and retrieved lists are incompatible (merging them will
+   introduce new faulties), mark all incompatible nodes suspect. When receiving
+   this change the respective node will reassert that it is actually alive and
+   update its incarnation number making it compatible for merge.
 4. If the local and retrieved lists are compatible (merging them will not
-   introduce new faulties), merge the list and disseminate the changes.
-
-**TODO: add full algorithm description.**
+   introduce new faulties), merge the membership list with the local node's
+   membership and disseminate the changes.
 
 We test this feature in 3 ways:
 
@@ -27,13 +27,13 @@ We test this feature in 3 ways:
    checking the behavior of a node in isolation.
 3. Manual acceptance test to see partitions actually getting healed.
 
-Further down, we will talk about how to manually experience a partition and
-heal it.
+Further down, we will talk about how to manually create a partition and confirm
+it heals itself.
 
 ## Port allocation
 
-With the current implementation of tick-cluster, it is hard to impossible to
-form a partition with firewall rules alone. To understand why, we need to
+With the current implementation of tick-cluster, it is hard, or even impossible
+to form a partition with firewall rules alone. To understand why, we need to
 understand how connections are established.
 
 A ringpop instance opens a local tchannel socket (=listening tcp socket) to
@@ -67,7 +67,7 @@ connections from and to port `3000`: then no packet will leave `a`, and we will
 have a partition. However, this misses the fact that ephemeral connections are
 used for relaying traffic between nodes, and, in this case, connection from
 `127.0.0.1:43323` (`a`) to `127.0.0.1:3001` is established and... misses the
-firewall!  While we could block port `3001` too, but, with more nodes, that
+firewall! We could block port `3001` too, but, with more nodes, that
 would create a cluster with N partitions (N being the number of nodes) -- not
 what we want. In our example, we want two partitions.
 
