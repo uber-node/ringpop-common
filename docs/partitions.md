@@ -8,7 +8,8 @@ partitions, which we call `healing`.
 ## Introduction -- basic algorithm
 
 In order for two partitions to heal, the algorithm does the following,
-periodically:
+periodically (some details are omitted for brevity; exact algorithm can be
+found in the code comments in the implementation):
 
 1. Randomly select a `faulty` node.
 2. Send it a `/join` request, get its membership list.
