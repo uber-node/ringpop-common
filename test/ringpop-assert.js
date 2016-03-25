@@ -752,9 +752,19 @@ function validate(t, tc, scheme, deadline) {
     timer = setTimeout(function() {
         t.fail('timeout');
         tc.removeAllListeners('event');
+        tc.removeAllListeners('sut-died');
         tc.shutdown();
         t.end();
     }, deadline);
+
+    tc.on('sut-died', function(code) {
+        clearTimeout(timer);
+        t.fail('SUT crashed (code: ' + code + ')');
+        tc.removeAllListeners('event');
+        tc.removeAllListeners('sut-died');
+        tc.shutdown();
+        t.end();
+    });
 
     // flatten so arrays gets expanded and fns becomes one-dimensional
     fns = _.flatten(fns, true);
@@ -772,6 +782,7 @@ function validate(t, tc, scheme, deadline) {
             t.ok(true, 'validate done: all functions passed');
             tc.shutdown();
             tc.removeAllListeners('event');
+            tc.removeAllListeners('sut-died');
             t.end();
 
             inProgress = false;
