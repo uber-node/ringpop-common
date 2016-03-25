@@ -834,6 +834,11 @@ function piggyback(tc, opts) {
     update.id = opts.id || uuid.v4();
     update.status = opts.status;
 
+    if (update.status == 'tombstoneFlag') {
+        update.status = 'faulty';
+        update.tombstone = true;
+    }
+
     if(opts.sourceIx === 'sut') {
         update.source = tc.sutHostPort;
         update.sourceIncarnationNumber = tc.sutIncarnationNumber;

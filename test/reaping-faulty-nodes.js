@@ -36,10 +36,16 @@ test2('join cluster with tombstone in memberlist', getClusterSizes(2), 20000, fu
             type: events.Types.Ping,
             direction: 'request'
         }, "The tombstone should not be gossiped around by the SUT after joining an existing cluster with a tombstone", function (ping) {
-            console.dir(ping.body);
-            return _.filter(ping.body.changes, { status:'tombstone' }).length === 0;
+            // check tombstone state
+            return _.filter(ping.body.changes, { status:'tombstone' }).length === 0
+                && _.filter(ping.body.changes, { status:'faulty', tombstone: true }).length === 0;
         }),
 
+        // confirm that the tombstone has not been added to the membership list
+        dsl.assertStats(t, tc, {
+            alive: n + 1,
+            tombstone: 0,
+        }),
     ];
 }));
 
@@ -136,4 +142,92 @@ test2('test /admin/reap endpoint', getClusterSizes(2), 20000,
 
         dsl.assertStats(t, tc, {alive: n, tombstone: 1}, {1: {status: 'tombstone'}}),
     ];})
+);
+
+test2('tombstone should be applied when sent as a state', getClusterSizes(2), 20000,
+    prepareCluster(function(t, tc, n) {
+        return [
+            dsl.sendPing(t, tc, 0, {
+                sourceIx: 0,
+                subjectIx: 1,
+                status: 'tombstone'
+            }),
+            dsl.waitForPingResponse(t, tc, 0),
+
+            // confirm that the tombstone has not been added to the membership list
+            dsl.assertStats(t, tc, {
+                alive: n,
+                tombstone: 1,
+            }),
+        ];
+    })
+);
+
+test2('tombstone should be gossiped with flag when applied as state', getClusterSizes(2), 20000,
+    prepareCluster(function(t, tc, n) {
+        return [
+            dsl.sendPing(t, tc, 0, {
+                sourceIx: 0,
+                subjectIx: 1,
+                status: 'tombstone'
+            }),
+            dsl.waitForPingResponse(t, tc, 0),
+
+            // clear all pings that happened before we gossiped the tombstone
+            dsl.consumePings(t, tc),
+
+            // Wait for a ping from the SUT and validate that it does not gossip about the tombstone
+            dsl.validateEventBody(t, tc, {
+                type: events.Types.Ping,
+                direction: 'request'
+            }, "The gossip should contain a flagged tombstone", function (ping) {
+                return _.filter(ping.body.changes, { status: 'faulty', tombstone: true }).length === 1
+                    && _.filter(ping.body.changes, { status: 'tombstone' }).length === 0;
+            }),
+        ];
+    })
+);
+
+test2('tombstone should be applied when sent as a flag', getClusterSizes(2), 20000,
+    prepareCluster(function(t, tc, n) {
+        return [
+            dsl.sendPing(t, tc, 0, {
+                sourceIx: 0,
+                subjectIx: 1,
+                status: 'tombstoneFlag'
+            }),
+            dsl.waitForPingResponse(t, tc, 0),
+
+            // confirm that the tombstone has not been added to the membership list
+            dsl.assertStats(t, tc, {
+                alive: n,
+                tombstone: 1,
+            }),
+        ];
+    })
+);
+
+test2('tombstone should be gossiped with flag when applied as a flag', getClusterSizes(2), 20000,
+    prepareCluster(function(t, tc, n) {
+        return [
+            dsl.sendPing(t, tc, 0, {
+                sourceIx: 0,
+                subjectIx: 1,
+                status: 'tombstoneFlag'
+            }),
+            dsl.waitForPingResponse(t, tc, 0),
+
+            // clear all pings that happened before we gossiped the tombstone
+            dsl.consumePings(t, tc),
+
+            // Wait for a ping from the SUT and validate that it does not gossip about the tombstone
+            dsl.validateEventBody(t, tc, {
+                type: events.Types.Ping,
+                direction: 'request'
+            }, "The gossip should contain a flagged tombstone", function (ping) {
+                return _.filter(ping.body.changes, { status: 'faulty', tombstone: true }).length === 1
+                    && _.filter(ping.body.changes, { status: 'tombstone' }).length === 0;
+            }),
+        ];
+    })
 );
