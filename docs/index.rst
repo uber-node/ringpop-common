@@ -12,5 +12,6 @@ To find out more, head to the Getting Started section below.
    running_ringpop
    programming_ringpop
    architecture_design
+   partitions
    references
    community
