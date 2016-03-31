@@ -247,7 +247,22 @@ TestCoordinator.prototype.callEndpoint = function callEndpoint(endpoint, body, c
 TestCoordinator.prototype.getMembership = function getMembership() {
     return this.getFakeNodes().map(function(node) {
         return node.toMemberInfo();
-    }).concat(this.extraMembers);
+    })
+    .concat(this.extraMembers)
+    .concat(this.getSUTAsMember());
+};
+
+TestCoordinator.prototype.getSUTAsMember = function getSUTAsMember() {
+    var host = this.sutHostPort.split(':')[0];
+    var port = this.sutHostPort.split(':')[1];
+    var incNo = this.sutIncarnationNumber;
+
+    return {
+        host: host,
+        port: port,
+        status: 'alive',
+        incarnationNumber: incNo
+    };
 };
 
 TestCoordinator.prototype.addMembershipInformation = function(address, status, incarnationNumber) {

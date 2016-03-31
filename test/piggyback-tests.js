@@ -30,12 +30,7 @@ test2('ringpop sends piggyback info in ping request', getClusterSizes(3), 20000,
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
 
-        // send information to be piggy backed
-        dsl.sendPing(t, tc, 0, {
-            sourceIx: 0,
-            subjectIx: 1,
-            status: 'suspect',
-        }),
+        dsl.changeStatus(t, tc, 0, 1, 'suspect'),
         dsl.waitForPingResponse(t, tc, 0),
 
         // Wait for a ping from the SUT and validate that it has the piggybacked information in there
@@ -87,11 +82,7 @@ test2('ringpop sends piggyback info in ping-req response', getClusterSizes(3), 2
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
 
         // send information to be piggy backed
-        dsl.sendPing(t, tc, 0, {
-            sourceIx: 0,
-            subjectIx: 1,
-            status: 'suspect',
-        }),
+        dsl.changeStatus(t, tc, 0, 1, 'suspect'),
         dsl.waitForPingResponse(t, tc, 0),
 
         dsl.sendPingReq(t, tc, 1, 2),
@@ -117,11 +108,7 @@ test2('ringpop piggybacking decays', getClusterSizes(3), 20000, prepareCluster(f
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
 
         // send information to be piggy backed
-        dsl.sendPing(t, tc, 0, {
-            sourceIx: 0,
-            subjectIx: 1,
-            status: 'suspect',
-        }),
+        dsl.changeStatus(t, tc, 0, 1, 'suspect'),
         dsl.waitForPingResponse(t, tc, 0),
 
         // if the SUT decays the updates it will start pinging with 0 updates at some point
@@ -136,11 +123,7 @@ test2('ringpop piggybacking should ignore updates when it already knows about', 
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
 
         // send information that is already known to the SUT
-        dsl.sendPing(t, tc, 0, {
-            sourceIx: 0,
-            subjectIx: 1,
-            status: 'alive' // this information is already known to the SUT
-        }),
+        dsl.changeStatus(t, tc, 0, 1, 'alive'),
         dsl.waitForPingResponse(t, tc, 0),
 
         // TODO speed this up by sending a ping with a correct checksum
@@ -162,11 +145,7 @@ test2('ringpop sends piggyback info in ping response', getClusterSizes(3), 20000
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
 
         // send information to be piggy backed
-        dsl.sendPing(t, tc, 0, {
-            sourceIx: 0,
-            subjectIx: 1,
-            status: 'suspect',
-        }),
+        dsl.changeStatus(t, tc, 0, 1, 'suspect'),
         dsl.waitForPingResponse(t, tc, 0),
 
         // Send ping and validate the body
@@ -191,11 +170,7 @@ test2('ringpop sends piggyback info in ping-req request', getClusterSizes(3), 20
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
 
         // send information to be piggy backed
-        dsl.sendPing(t, tc, 0, {
-            sourceIx: 0,
-            subjectIx: 1,
-            status: 'suspect',
-        }),
+        dsl.changeStatus(t, tc, 0, 1, 'suspect'),
         dsl.waitForPingResponse(t, tc, 0),
 
         // cause the SUT to send a ping-req

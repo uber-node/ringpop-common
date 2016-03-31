@@ -30,14 +30,14 @@ module.exports.checksum = function checksum(members) {
             // remove members that are in the tombstone state
             return ['tombstone'].indexOf(member.status) < 0;
         })
-        .sortBy('address')
         .map(function (member){
-            return member.address +
+            return member.host + ':' + member.port +
                 member.status +
-                member.incarnationNumber;
+                member.incarnationNumber+';';
         })
-        .join(';')
-        .value();
+        .value()
+        .sort()
+        .join('');
 
-    return farmhash.hash32(checksumString);
+    return farmhash.fingerprint32(checksumString);
 };

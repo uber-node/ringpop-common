@@ -20,13 +20,14 @@
 
 var safeJSONParse = require('./util').safeParse;
 
-function handlePingReq(req, res, pingStatus) {
+function handlePingReq(req, res, pingStatus, checksum) {
 	var request = safeJSONParse(req.arg3);
     res.headers.as = 'raw';
     var response = {
     	changes: [],
 		pingStatus: pingStatus,
 		target: request.target,
+		checksum: checksum,
 	};
 
 	res.sendOk(null, JSON.stringify(response));

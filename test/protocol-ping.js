@@ -19,10 +19,10 @@
 // THE SOFTWARE.
 
 
-function handlePing(res) {
+function handlePing(res, checksum) {
     // TODO (wieger): validate request
     res.headers.as = 'raw';
-    res.sendOk(null, JSON.stringify({changes: []}));
+    res.sendOk(null, JSON.stringify({changes: [], checksum: checksum}));
 }
 
 function pingNotOkHandler() {
