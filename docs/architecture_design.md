@@ -12,14 +12,14 @@ Let’s say you have a cluster with two nodes: A and B. A is pinging B and B is 
 ####SWIM Gossip Protocol for Fault Detection
 Ringpop gossips over TCP for its forwarding mechanism. Nodes within the ring/membership list are gossiping and forwarding requests over the same channels. For fault detection, Ringpop computes membership and ring checksums.
 
-A membership list contains the addresses and statuses (alive, suspect, faulty, etc.) of the instances. It also contains additional metadata like the incarnation number, which is the logical clock. All this information is combined and we compute a checksum from it. 
+A membership list contains the addresses and statuses (alive, suspect, faulty, etc.) of the instances. It also contains additional metadata like the incarnation number, which is the logical clock. All this information is combined and we compute a checksum from it.
 
 The checksums detect a divergence in the cluster in the event a request is forwarded, or a ping occurs, and the source and destinations checksums differ.
 
 Ringpop retains members that are “down” in its membership list. SWIM manages membership status by removing down members from the list, whereas Ringpop keeps down members in the list allowing the ability to merge a split-brain after a network partition. For example, let’s say two clusters form your application. If there isn’t a way to identify which nodes were previously faulty or down because the network partition happened during that time, there would be no way to merge them back together.
 
 ### Consistent Hashing
-Ringpop leverages consistent hashing to minimize the number of keys to rebalance when your application cluster is resized. Consistent hashing in Ringpop allows the nodes to rebalance themselves with traffic evenly distributed. Ringpop uses [FarmHash](https://code.google.com/p/farmhash/) as its hashing function because it's fast and provides good distribution. Consistent hashing applies a hash function to not only the identity of your data, but also the nodes within your cluster that are operating on that data. Ringpop uses a red-black tree to implement its underlying data structure for its ring which provides log n, lookups, inserts, and removals. 
+Ringpop leverages consistent hashing to minimize the number of keys to rebalance when your application cluster is resized. Consistent hashing in Ringpop allows the nodes to rebalance themselves with traffic evenly distributed. Ringpop uses [FarmHash](https://code.google.com/p/farmhash/) as its hashing function because it's fast and provides good distribution. Consistent hashing applies a hash function to not only the identity of your data, but also the nodes within your cluster that are operating on that data. Ringpop uses a red-black tree to implement its underlying data structure for its ring which provides log n, lookups, inserts, and removals.
 
 Ringpop maintains a consistent hash ring of its members. Once members are discovered to join or leave the cluster, that information is added into the consistent hash ring. Then the addresses of the instances in the ring are hashed.
 
@@ -82,7 +82,17 @@ If the damp score goes down and then decays, the problem is fixed and it will no
 Say the damp score for B exceeds the red line. A fans out a damp-req request to _k_ random members and asks for their damp score of B. If they also communicate that B is flapping, then B is considered damped due to excessive flapping. A marks B as damped, and disseminates that information using the gossip protocol.
 
 ### Full Syncing
-Content coming soon...
+When a node *a* contacts another node *b*, node *a* sends the checksum of its membership. Node *b* compares the checksums and if they mismatch and there are no more changes to be disseminated, node *b* adds its full membership information in the response. This is called a full sync.
+
+One problem with this technique is that node *a* has not sent its membership information to *b* yet and in some cases this prevents the ring to converge. To make the ring in those cases converge, we need bidirectional full syncs -- a way for *b* to get *a*'s full membership as well.
+
+Bidirectional full syncs work as follows. When *b* issues a full sync, *b* also want to know about *a*'s membership. To achieve this *b* sends a join request to *a* and applies the join response to its membership.
+
+In the following example a cluster configuration is disribed that would not converge with the help of only full syncs:
+- Partition A in which every node has A⋃B as alive in its membership;
+- Partition B in which every node has B as alive in its membership.
+
+When node *a* of partition A contacts node *b* of partition B; *b* finds that the checksums do not match. Therefore a full sync is issued and *b* collects its entire membership for *a*. However, *a* already knows about all the members of *b* and no changes are applied and the ring doesn't converge. In this state, both clusters will have different notions of the membership, and will never converge.
 
 ### Event Tracing
 
@@ -142,7 +152,7 @@ Content coming soon...
 
 ### Actor Model
 
-Every actor in the system has a home (a node in the cluster). That node receives concurrent requests for every actor. For every actor, there is a mailbox. Requests get pulled off the mailbox one by one. Processing a request may result in new requests being sent or new actors being created. Each request that's processed one by one may result in some other request to another service, or a request for more actors to be spun up. 
+Every actor in the system has a home (a node in the cluster). That node receives concurrent requests for every actor. For every actor, there is a mailbox. Requests get pulled off the mailbox one by one. Processing a request may result in new requests being sent or new actors being created. Each request that's processed one by one may result in some other request to another service, or a request for more actors to be spun up.
 
 ### Replication
 
