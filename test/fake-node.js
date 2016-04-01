@@ -84,6 +84,9 @@ FakeNode.prototype.getHostPort = function getHostPort() {
     return makeHostPort(this.host, this.port);
 };
 
+// _registerEndpoints registers endpoints on the tchannel. After the response
+// is sent, the request is emitted as an event, this causes the request to be
+// pushed onto the eventList by the validate function of ringpop-assert.
 FakeNode.prototype._registerEndpoints = function _registerEndpoints() {
     var self = this;
 
@@ -91,9 +94,10 @@ FakeNode.prototype._registerEndpoints = function _registerEndpoints() {
         var path = self.endpoints[endpointType].path;
 
         self.channel.register(path, function handleRequest(req, res, arg2, arg3) {
+            self.endpoints[endpointType].handler(req, res, arg2, arg3);
+
             var event = new events.RequestEvent(req, arg2, arg3);
             self.coordinator.emit('event', event);
-            self.endpoints[endpointType].handler(req, res, arg2, arg3);
         });
     });
 };

@@ -73,7 +73,13 @@ var features = {
         tests: [
             './reaping-faulty-nodes'
         ]
-    }
+    },
+
+    'bidirectional-full-syncs': {
+        tests: [
+            './bidir-full-sync-tests'
+        ]
+    },
 };
 
 function selectFeatures(options) {
