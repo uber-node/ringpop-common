@@ -131,10 +131,12 @@ FakeNode.prototype.enable = function enable() {
     this.enabled = true;
 };
 
+var safeJSONParse = require('./util').safeParse;
 FakeNode.prototype.pingHandler = function pingHandler(req, res, arg2, arg3) {
     if (!this.enabled) return; // Do nothing when disabled
 
-    return handlePing(res);
+    var csum = checksum(this.coordinator.getMembership())
+    return handlePing(res, csum);
 };
 
 FakeNode.prototype.pingReqHandler = function pingReqHandler(req, res, arg2, arg3) {
@@ -149,7 +151,8 @@ FakeNode.prototype.pingReqHandler = function pingReqHandler(req, res, arg2, arg3
         }
     });
 
-    return handlePingReq(req, res, status);
+    var csum = checksum(this.coordinator.getMembership())
+    return handlePingReq(req, res, status, csum);
 };
 
 FakeNode.prototype.requestJoin = function requestJoin(callback) {
@@ -248,7 +251,6 @@ FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
 
 FakeNode.prototype.requestPingReq = function requestPingReq(target, callback, piggybackData) {
     var self = this;
-
 
     var body = {
         source: self.getHostPort(),
