@@ -54,7 +54,7 @@ test2('reincarnating partitions A and B', [3], 20000,
                 // Trigger partition heal
                 dsl.callEndpoint(t, tc, "/admin/healpartition/disco", {},
                         function(eventBody) { validateHealRequest(t, tc, eventBody) }),
-                removeHealPartitionDiscoResponse(t, tc),
+                waitForHealPartitionDiscoResponse(t, tc),
 
                 // Verify join request came in to b1 or b2
                 dsl.waitForJoins(t, tc, 1),
@@ -80,7 +80,6 @@ function makeAFaultyInB(t, tc) {
         var B = tc.getMembership();
         // According to B, a1 is faulty
         _.find(B, {port: tc.fakeNodes[0].port}).status = 'faulty';
-        _.find(B, {port: tc.fakeNodes[0].port}).incarnationNumber = 1337;
 
         tc.fakeNodes[1].membership = _.cloneDeep(B);
         tc.fakeNodes[2].membership = _.cloneDeep(B);
@@ -89,8 +88,8 @@ function makeAFaultyInB(t, tc) {
     }
 }
 
-function removeHealPartitionDiscoResponse(t, tc) {
-    return function removeHealPartitionDiscoResponse(list, cb) {
+function waitForHealPartitionDiscoResponse(t, tc) {
+    return function waitForHealPartitionDiscoResponse(list, cb) {
         var d = _.find(list, { type: events.Types.AdminHealPartitionDisco });
         if (d === undefined) {
             cb(null);
@@ -114,17 +113,15 @@ function verifySuspects(t, tc, nodes, nodes_in_other_partition) {
             return tc.fakeNodes[ix].getHostPort();
         });
 
-
-        var p = _.find(list, {
+        var pingRequests = _.filter(list, {
             type: events.Types.Ping,
             direction: 'request'
         });
-        if (p === undefined) {
-            return cb(null);
-        }
-        var suspects = [];
-        _.forEach(list, function(msg) {
-            _.forEach(safeJSONParse(msg.arg3).changes, function(change) {
+
+        tc.test_state['found_all_suspects'] = false;
+        _.forEach(pingRequests, function(pingRequest) {
+            var suspects = [];
+            _.forEach(safeJSONParse(pingRequest.arg3).changes, function(change) {
                 if (change.status === 'suspect') {
                     suspects.push(change.address);
                 } else if (change.status == 'alive') {
@@ -135,14 +132,19 @@ function verifySuspects(t, tc, nodes, nodes_in_other_partition) {
                     }
                 }
             });
-            // We found all suspects we were looking for in this message
+            // Found all suspects we were looking for in this message
             if (_.isEqual(addresses.sort(), suspects.sort())) {
                 t.ok(true, "Found " + nodes + " suspects (" + suspects + ") we were looking for");
-                _.remove(list, msg);
-                return cb(list);
+                tc.test_state['found_all_suspects'] = true;
             }
+            _.remove(list, pingRequest);
         });
-        return cb(null);
+
+        if (tc.test_state['found_all_suspects']) {
+            cb(list);
+        } else {
+            cb(null);
+        }
     }
 }
 
@@ -174,7 +176,7 @@ test2('merge partitions A and B when reincarnated', [3], 20000,
                 // b2: 2
 
                 // Make all memberships of fake nodes local.
-                splitMemberships(t, tc),
+                separateMemberships(t, tc),
 
                 // 1. Create two partitions A and B by marking b1 and b2 failed in sut.
                 dsl.changeStatus(t, tc, 0, 1, 'faulty', 0),
@@ -228,7 +230,7 @@ test2('merge partitions A and B when reincarnated', [3], 20000,
                 // Force SUT to merge the partition.
                 dsl.callEndpoint(t, tc, "/admin/healpartition/disco", {},
                         function(eventBody) { validateHealRequest(t, tc, eventBody) }),
-                removeHealPartitionDiscoResponse(t, tc),
+                waitForHealPartitionDiscoResponse(t, tc),
 
                 // SUT sends /join to b.
                 dsl.waitForJoins(t, tc, 1),
@@ -307,8 +309,8 @@ function decreaseIncOfSutInB(t, tc) {
 }
 
 
-function splitMemberships(t, tc) {
-    return function splitMemberships(list, cb) {
+function separateMemberships(t, tc) {
+    return function separateMemberships(list, cb) {
         tc.test_state['sut'] = tc.getSUTAsMember();
         tc.fakeNodes[0].membership = tc.getMembership();
         tc.fakeNodes[1].membership = tc.getMembership();
