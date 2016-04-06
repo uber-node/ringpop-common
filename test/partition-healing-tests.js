@@ -100,8 +100,9 @@ function waitForHealPartitionDiscoResponse(t, tc) {
     }
 }
 
-// Verify 'nodes' are treated as suspects by sut. Also, verify sut is not
-// sending 'nodes' information that 'nodes_in_other_partition' are alive.
+// verifySuspects waits for a ping from sut that contains the following changes:
+// - all of 'nodes' are declared suspect, and
+// - no nodes from 'nodes_inother_partition' are declared alive
 function verifySuspects(t, tc, nodes, nodes_in_other_partition) {
     return function verifyBsuspects(list, cb) {
         // Which addresses should be declared suspects in the same message.
