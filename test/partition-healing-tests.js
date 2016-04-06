@@ -20,13 +20,10 @@
 
 var TestCoordinator = require('./test-coordinator');
 var _ = require('lodash');
-var safeJSONParse = require('./util').safeParse;
 var dsl = require('./ringpop-assert');
 var events = require('./events');
-var fs = require('fs');
-var getProgramInterpreter = require('./it-tests').getProgramInterpreter;
-var getProgramPath = require('./it-tests').getProgramPath;
 var prepareCluster = require('./test-util').prepareCluster;
+var safeJSONParse = require('./util').safeParse;
 var test2 = require('./test-util').test2;
 
 // First stage of healing algorithm: forced reincarnation.
@@ -63,12 +60,12 @@ test2('reincarnating partitions A and B', [3], 20000,
                 dsl.waitForJoins(t, tc, 1),
 
                 // Verify b1 and b2 are declared suspects, but 'a' is not disseminated as alive.
-                verifySuspects(t, tc, ['b1', 'b2'], ['a']),
+                verifySuspects(t, tc, [1, 2], [0]),
 
                 // SUT tries to reincarnate partition A -- send a ping to a1.
                 // Also verify it didn't have information about b1: that means
                 // sut didn't try to merge partitions yet.
-                verifySuspects(t, tc, ['a1'], ['b1', 'b2'])
+                verifySuspects(t, tc, [0], [1, 2])
             ]
         }
         )
@@ -77,30 +74,16 @@ test2('reincarnating partitions A and B', [3], 20000,
 // Assign names to nodes and update membership of B from test coordinator.
 function makeAFaultyInB(t, tc) {
     return function makeAFaultyInB(list, cb) {
-        // Assign names to fake nodes
-        var n = {
-            a1: tc.fakeNodes[0],
-            b1: tc.fakeNodes[1],
-            b2: tc.fakeNodes[2]
-        };
-        _.extend(tc.test_state, n);
+        tc.fakeNodes[1].status = 'alive';
+        tc.fakeNodes[2].status = 'alive';
 
-        // Feel free to enable these while debugging.
-        //console.log("a1:  ", n.a1.getHostPort());
-        //console.log("sut: ", n.tc.sutHostPort);
-        //console.log("b1:  ", n.b1.getHostPort());
-        //console.log("b2:  ", n.b2.getHostPort());
-
-        n.b1.status = 'alive';
-        n.b2.status = 'alive';
         var B = tc.getMembership();
-
         // According to B, a1 is faulty
-        _.find(B, {port: n.a1.port}).status = 'faulty';
-        _.find(B, {port: n.a1.port}).incarnationNumber = 1337;
+        _.find(B, {port: tc.fakeNodes[0].port}).status = 'faulty';
+        _.find(B, {port: tc.fakeNodes[0].port}).incarnationNumber = 1337;
 
-        n.b1.membership = B;
-        n.b2.membership = B;
+        tc.fakeNodes[1].membership = _.cloneDeep(B);
+        tc.fakeNodes[2].membership = _.cloneDeep(B);
 
         cb(list);
     }
@@ -123,12 +106,12 @@ function removeHealPartitionDiscoResponse(t, tc) {
 function verifySuspects(t, tc, nodes, nodes_in_other_partition) {
     return function verifyBsuspects(list, cb) {
         // Which addresses should be declared suspects in the same message.
-        var addresses = _.map(nodes, function(nodename) {
-            return tc.test_state[nodename].getHostPort();
+        var addresses = _.map(nodes, function(ix) {
+            return tc.fakeNodes[ix].getHostPort();
         });
 
-        var addresses_in_other_partition = _.map(nodes, function(nodename) {
-            return tc.test_state[nodename].getHostPort();
+        var addresses_in_other_partition = _.map(nodes, function(ix) {
+            return tc.fakeNodes[ix].getHostPort();
         });
 
 
@@ -202,13 +185,16 @@ test2('merge partitions A and B when reincarnated', [3], 20000,
 
                 // We now have a partition. To force a clean merge, we need to
                 // mimic reincarnation on both sides. This is how we do this:
-                // - B just increase their incarnation number, to be returned by /join. Also decrease
-                //   sut's incarnation number to 1000.
-                // - According to sut, A's incarnation number needs to be higher than according to B.
-                //   We do this by splitting A's and B's membership information.
+                // - B just increase their incarnation number, to be returned
+                //   by /join. Also decrease sut's incarnation number to 1000.
+                // - According to sut, A's incarnation number needs to be
+                //   higher than according to B.  We do this by splitting A's
+                //   and B's membership information.
+                //
+                // Mark b1 and b2 faulty in a1. Strictly for this test, there
+                // is no need to update a1's membership, but we make it for
+                // consistency/understandability.
 
-                // Mark b1 and b2 faulty in a1. Strictly for this test, there is no need to update
-                // a1's membership, but we make it for consistency/understandability.
                 markBFaultyInA(t, tc),
 
                 // Mark sut and a1 faulty in memberships of B.
@@ -252,9 +238,9 @@ test2('merge partitions A and B when reincarnated', [3], 20000,
 
                 // Make node membership global again, since partition is over.
                 function(list, cb) {
-                    delete tc.test_state['a1']['membership'];
-                    delete tc.test_state['b1']['membership'];
-                    delete tc.test_state['b2']['membership'];
+                    delete tc.fakeNodes[0]['membership'];
+                    delete tc.fakeNodes[1]['membership'];
+                    delete tc.fakeNodes[2]['membership'];
                     cb(list);
                 },
                 dsl.assertStats(t, tc, 4, 0, 0),
@@ -272,22 +258,23 @@ function waitForPingResponseFromTarget(t, tc) {
 // Mark b1 and b2 faulty in a1.
 function markBFaultyInA(t, tc) {
     return function markBFaultyInA(list, cb) {
-        var b1_port = tc.test_state['b1'].port,
-        b2_port = tc.test_state['b2'].port;
-        _.find(tc.test_state['a1'].membership, {port: b1_port}).status = 'faulty';
-        _.find(tc.test_state['a1'].membership, {port: b2_port}).status = 'faulty';
+        var b1_port = tc.fakeNodes[1].port,
+            b2_port = tc.fakeNodes[2].port;
+        _.find(tc.fakeNodes[0].membership, {port: b1_port}).status = 'faulty';
+        _.find(tc.fakeNodes[0].membership, {port: b2_port}).status = 'faulty';
         cb(list);
     }
 }
 
 // Mark sut and a1 faulty in memberships of B.
-// b1.membership and b2.membership are referring to the same list.
 function markSutA1FaultyInB(t, tc) {
     return function markSutA1FaultyInB(list, cb) {
-        var a1_port  = tc.test_state['a1'].port,
-        sut_port = tc.test_state['sut'].port;
-        _.find(tc.test_state['b1'].membership, {port: a1_port}).status = 'faulty';
-        _.find(tc.test_state['b1'].membership, {port: sut_port}).status = 'faulty';
+        var a1_port  = tc.fakeNodes[0].port,
+            sut_port = tc.test_state['sut'].port;
+        _.find(tc.fakeNodes[1].membership, {port: a1_port}).status = 'faulty';
+        _.find(tc.fakeNodes[1].membership, {port: sut_port}).status = 'faulty';
+        _.find(tc.fakeNodes[2].membership, {port: a1_port}).status = 'faulty';
+        _.find(tc.fakeNodes[2].membership, {port: sut_port}).status = 'faulty';
         cb(list);
     }
 }
@@ -295,22 +282,26 @@ function markSutA1FaultyInB(t, tc) {
 // Increase incarnation number of B, both in node and global test state.
 function increaseInternalIncB(t, tc) {
     return function increaseInternalIncB(list, cb) {
-        tc.test_state['b1'].incarnationNumber += 3;
-        tc.test_state['b2'].incarnationNumber += 3;
+        tc.fakeNodes[1].incarnationNumber += 3;
+        tc.fakeNodes[2].incarnationNumber += 3;
 
         // keep the incarnation number in membership in sync with internal state
-        var b1_port = tc.test_state['b1'].port,
-            b2_port = tc.test_state['b2'].port;
-        _.find(tc.test_state['b1'].membership, {port: b1_port}).incarnationNumber += 3;
-        _.find(tc.test_state['b1'].membership, {port: b2_port}).incarnationNumber += 3;
+        var b1_port = tc.fakeNodes[1].port,
+            b2_port = tc.fakeNodes[2].port;
+        _.find(tc.fakeNodes[1].membership, {port: b1_port}).incarnationNumber += 3;
+        _.find(tc.fakeNodes[1].membership, {port: b2_port}).incarnationNumber += 3;
+        _.find(tc.fakeNodes[2].membership, {port: b1_port}).incarnationNumber += 3;
+        _.find(tc.fakeNodes[2].membership, {port: b2_port}).incarnationNumber += 3;
         cb(list);
     }
 }
 
 function decreaseIncOfSutInB(t, tc) {
     return function decreaseIncOfSutInB(list, cb) {
-        var B = tc.test_state['b1'].membership;
-        _.find(B, {port: tc.test_state['sut'].port}).incarnationNumber = 1000;
+        var B1 = tc.fakeNodes[1].membership,
+            B2 = tc.fakeNodes[2].membership;
+        _.find(B1, {port: tc.test_state['sut'].port}).incarnationNumber = 1000;
+        _.find(B2, {port: tc.test_state['sut'].port}).incarnationNumber = 1000;
         cb(list);
     }
 }
@@ -318,24 +309,10 @@ function decreaseIncOfSutInB(t, tc) {
 
 function splitMemberships(t, tc) {
     return function splitMemberships(list, cb) {
-        _.extend(tc.test_state, {
-            a1: tc.fakeNodes[0],
-            b1: tc.fakeNodes[1],
-            b2: tc.fakeNodes[2],
-            sut: tc.getSUTAsMember(),
-        });
-        // Feel free to enable while debugging.
-        // console.log("a1:  ", tc.test_state['a1'].getHostPort());
-        // console.log("sut: ", tc.sutHostPort);
-        // console.log("b1:  ", tc.test_state['b1'].getHostPort());
-        // console.log("b2:  ", tc.test_state['b2'].getHostPort());
-
-
-        var A = tc.getMembership();
-        var B = tc.getMembership();
-        tc.test_state['a1'].membership = A;
-        tc.test_state['b1'].membership = B;
-        tc.test_state['b2'].membership = B;
+        tc.test_state['sut'] = tc.getSUTAsMember();
+        tc.fakeNodes[0].membership = tc.getMembership();
+        tc.fakeNodes[1].membership = tc.getMembership();
+        tc.fakeNodes[2].membership = tc.getMembership();
         cb(list);
     }
 }
@@ -347,9 +324,9 @@ function checkSutMergedWithB(t, tc) {
         _.forEach(pings, function(ping) {
             // TODO: there should be a better way to find out the destination hostport.
             var destination = ping.req.channel.hostPort, // destination of the ping: need b
-                a1_hostport = tc.test_state['a1'].getHostPort(),
-                b1_hostport = tc.test_state['b1'].getHostPort(),
-                b2_hostport = tc.test_state['b2'].getHostPort(),
+                a1_hostport = tc.fakeNodes[0].getHostPort(),
+                b1_hostport = tc.fakeNodes[1].getHostPort(),
+                b2_hostport = tc.fakeNodes[2].getHostPort(),
                 sut_hostport = tc.sutHostPort;
             if (destination == b1_hostport || destination == b2_hostport) {
                 // target node index. We need to know where ping request was
