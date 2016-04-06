@@ -119,7 +119,7 @@ function verifySuspects(t, tc, nodes, nodes_in_other_partition) {
             direction: 'request'
         });
 
-        tc.test_state['found_all_suspects'] = false;
+        var found_all_suspects = false;
         _.forEach(pingRequests, function(pingRequest) {
             var suspects = [];
             _.forEach(safeJSONParse(pingRequest.arg3).changes, function(change) {
@@ -136,12 +136,12 @@ function verifySuspects(t, tc, nodes, nodes_in_other_partition) {
             // Found all suspects we were looking for in this message
             if (_.isEqual(addresses.sort(), suspects.sort())) {
                 t.ok(true, "Found " + nodes + " suspects (" + suspects + ") we were looking for");
-                tc.test_state['found_all_suspects'] = true;
+                found_all_suspects = true;
             }
             _.remove(list, pingRequest);
         });
 
-        if (tc.test_state['found_all_suspects']) {
+        if (found_all_suspects) {
             cb(list);
         } else {
             cb(null);
@@ -177,7 +177,7 @@ test2('merge partitions A and B when reincarnated', [3], 20000,
                 // b2: 2
 
                 // Make all memberships of fake nodes local.
-                separateMemberships(t, tc),
+                localizeMemberships(t, tc),
 
                 // 1. Create two partitions A and B by marking b1 and b2 failed in sut.
                 dsl.changeStatus(t, tc, 0, 1, 'faulty', 0),
@@ -310,8 +310,8 @@ function decreaseIncOfSutInB(t, tc) {
 }
 
 
-function separateMemberships(t, tc) {
-    return function separateMemberships(list, cb) {
+function localizeMemberships(t, tc) {
+    return function localizeMemberships(list, cb) {
         tc.test_state['sut'] = tc.getSUTAsMember();
         tc.fakeNodes[0].membership = tc.getMembership();
         tc.fakeNodes[1].membership = tc.getMembership();
