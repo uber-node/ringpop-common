@@ -20,8 +20,10 @@
 
 var TestCoordinator = require('./test-coordinator');
 var _ = require('lodash');
+var async = require('async');
 var dsl = require('./ringpop-assert');
 var events = require('./events');
+var getClusterSizes = require('./it-tests').getClusterSizes;
 var prepareCluster = require('./test-util').prepareCluster;
 var safeJSONParse = require('./util').safeParse;
 var test2 = require('./test-util').test2;
@@ -347,6 +349,43 @@ function checkSutMergedWithB(t, tc) {
             }
         });
         cb(null);
+    }
+}
+
+function healerUnknownNodes(n) {
+    // Spin up a real cluster of two nodes. Update SUT's host file. Expect a join.
+    test2('partition healer kicks in to previously-unknown nodes', [1], 20000,
+            prepareCluster(function(t, tc) {
+                return [
+                    addMoreFakeNodes(t, tc, n),
+                    function createHostsFile(list, cb) {
+                        tc.createHostsFile(); cb(list);
+                    },
+                    dsl.callEndpoint(t, tc, "/admin/healpartition/disco", {},
+                            function(eventBody) { validateHealRequest(t, tc, eventBody) }),
+                    waitForHealPartitionDiscoResponse(t, tc),
+                    dsl.waitForJoins(t, tc, 1)
+                ]
+            })
+         );
+}
+
+getClusterSizes(2).forEach(function(n) {
+    healerUnknownNodes(n);
+});
+
+function addMoreFakeNodes(t, tc, n) {
+    return function addMoreFakeNodes(list, cb) {
+        // Create n-1 new fake nodes.
+        for (var i = 1; i < n; i++) {
+            tc.createFakeNode();
+        }
+        // Start n-1 new fake nodes.
+        async.each(tc.fakeNodes.slice(1), function startNode(node, nodeStarted) {
+            node.start(nodeStarted);
+        }, function() {
+            cb(list);
+        });
     }
 }
 
