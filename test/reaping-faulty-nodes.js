@@ -194,7 +194,8 @@ test2('tombstone should be applied when sent as a flag', getClusterSizes(2), 200
             dsl.sendPing(t, tc, 0, {
                 sourceIx: 0,
                 subjectIx: 1,
-                status: 'tombstoneFlag'
+                status: 'faulty',
+                tombstone: true
             }),
             dsl.waitForPingResponse(t, tc, 0),
 
@@ -213,7 +214,8 @@ test2('tombstone should be gossiped with flag when applied as a flag', getCluste
             dsl.sendPing(t, tc, 0, {
                 sourceIx: 0,
                 subjectIx: 1,
-                status: 'tombstoneFlag'
+                status: 'faulty',
+                tombstone: true
             }),
             dsl.waitForPingResponse(t, tc, 0),
 

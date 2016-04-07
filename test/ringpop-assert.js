@@ -825,6 +825,7 @@ var uuid = require('node-uuid');
 //    id: 'abcd-1234',
 //    sourceIncNoDelta: 1,
 //    subjectIncNoDelta: 1,
+//    tombstone: false,
 // }
 function piggyback(tc, opts) {
     if (opts === undefined) {
@@ -833,11 +834,7 @@ function piggyback(tc, opts) {
     update = {};
     update.id = opts.id || uuid.v4();
     update.status = opts.status;
-
-    if (update.status == 'tombstoneFlag') {
-        update.status = 'faulty';
-        update.tombstone = true;
-    }
+    update.tombstone = opts.tombstone || false;
 
     if(opts.sourceIx === 'sut') {
         update.source = tc.sutHostPort;
