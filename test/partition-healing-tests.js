@@ -122,7 +122,7 @@ function verifySuspects(t, tc, nodes, nodes_in_other_partition) {
         var found_all_suspects = false;
         _.forEach(pingRequests, function(pingRequest) {
             var suspects = [];
-            _.forEach(safeJSONParse(pingRequest.arg3).changes, function(change) {
+            _.forEach(pingRequest.body.changes, function(change) {
                 if (change.status === 'suspect') {
                     suspects.push(change.address);
                 } else if (change.status == 'alive') {
@@ -335,7 +335,7 @@ function checkSutMergedWithB(t, tc) {
                 // target node index. We need to know where ping request was
                 // sent to to discard the response later.
                 tc.test_state['target_idx'] = destination == b1_hostport? 1 : 2;
-                var changes = safeJSONParse(ping.arg3).changes;
+                var changes = ping.body.changes;
                 var found_a = _.find(changes, {address: a1_hostport, status: 'alive'});
                 var found_sut = _.find(changes, {address: sut_hostport, status: 'alive'});
                 if (found_a && found_sut) {
