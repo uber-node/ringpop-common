@@ -21,6 +21,7 @@
 var farmhash = require('farmhash');
 var makeHostPort = require('./util').makeHostPort;
 var checksum = require('./membership-checksum').checksum;
+var _ = require('underscore');
 
 // send and handle join requests (check bottom of file for example request)
 
@@ -36,12 +37,12 @@ function getJoinResponsePayload(respondingNode, membershipList) {
     var responderHostPort = makeHostPort(respondingNode.host, respondingNode.port);
 
     var membership = membershipList.map(function(member) {
-        return {
+        return _.extend({
             source: responderHostPort,
             address: makeHostPort(member.host, member.port),
             status: member.status,
             incarnationNumber: member.incarnationNumber
-        };
+        }, member.extraFields);
     });
 
     return {

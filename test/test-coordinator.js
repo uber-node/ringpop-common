@@ -257,7 +257,7 @@ TestCoordinator.prototype.getMembership = function getMembership() {
     }).concat(this.extraMembers);
 };
 
-TestCoordinator.prototype.addMembershipInformation = function(address, status, incarnationNumber) {
+TestCoordinator.prototype.addMembershipInformation = function(address, status, incarnationNumber, extraFields) {
     var parts = address.split(':', 2);
     var host = parts[0];
     var port = parts[1];
@@ -267,6 +267,7 @@ TestCoordinator.prototype.addMembershipInformation = function(address, status, i
         port: port,
         status: status,
         incarnationNumber: incarnationNumber,
+        extraFields: extraFields
     });
 };
 

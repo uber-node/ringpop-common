@@ -49,6 +49,28 @@ test2('join cluster with tombstone in memberlist', getClusterSizes(2), 20000, fu
     ];
 }));
 
+test2('join cluster with tombstone flag in memberlist', getClusterSizes(2), 20000, function init(t,tc, callback) {
+    tc.addMembershipInformation('192.0.2.100:1234', 'faulty', 127, {'tombstone': true});
+    callback();
+}, prepareCluster(function(t, tc, n) { return [
+        // Wait for a ping from the SUT and validate that it does not gossip about the tombstone
+        dsl.validateEventBody(t, tc, {
+            type: events.Types.Ping,
+            direction: 'request'
+        }, "The tombstone should not be gossiped around by the SUT after joining an existing cluster with a tombstone", function (ping) {
+            // check tombstone state
+            return _.filter(ping.body.changes, { status:'tombstone' }).length === 0
+                && _.filter(ping.body.changes, { status:'faulty', tombstone: true }).length === 0;
+        }),
+
+        // confirm that the tombstone has not been added to the membership list
+        dsl.assertStats(t, tc, {
+            alive: n + 1,
+            tombstone: 0,
+        }),
+    ];
+}));
+
 test2('5-second faulty to tombstone window', getClusterSizes(2), 20000,
     prepareWithStatus(1, 'faulty', function(t, tc, n) { return [
         dsl.assertStats(t, tc, {alive: n, faulty: 1}, {1: {status: 'faulty'}}),
