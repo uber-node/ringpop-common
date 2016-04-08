@@ -72,22 +72,9 @@ firewall! We could block port `3001` too, but, with more nodes, that
 would create a cluster with N partitions (N being the number of nodes) -- not
 what we want. In our example, we want two partitions.
 
-To restrict traffic between two sets of nodes, the following alternative
-approaches were investigated:
-
-1. Put each process to a cgroup, and block traffic based on the cgroup id
-   ([more information][1]). This would work without changes to `tick-cluster`,
-   however, as of beginning of 2016, it was non-trivial to find a Linux
-   distribution which supports both iptables rules for cgroups and kernel
-   support out of the box.
-2. Change `tick-cluster` to bind to separate IPs, rather than ports. E.g.
-   `127.0.0.1:3000` for `a`, `127.0.0.2:3000` for `b`, etc. Then it is easy to
-   write firewall rules that work per IP. We tried this too, but turns out
-   tchannel is not very selective about the source IPs of the ephemeral
-   connections. In the end, this didn't work neither for Node, nor for Go.
-3. Spawn two clusters on two or more physical machines, and connect them
-   together.
-
-In the end, we settled with (3).
+With that in mind, a bit more sophistication in firewall rules is required. To
+easily create a partition in `tick-cluster` locally, we created
+`tools/make_partitions`, which, by reading the state of the connections from
+`lsof`, will emit `iptables`/`pf` commands accordingly.
 
 [1]: https://lwn.net/Articles/569678/

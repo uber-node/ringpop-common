@@ -1,0 +1,204 @@
+#!/usr/bin/env python
+"""
+Usage:
+    sudo lsof -Pnni | ./make-partition 3000,3001 3002,3003 | sudo FIREWALL
+
+FIREWALL :=
+    pfctl -emf -      # Darwin
+    iptables-restore  # Linux
+
+Clear the firewall:
+   pfctl -f /etc/pf.conf   # Darwin
+   iptables -F             # Linux
+Check current firewall rules:
+   pfctl -sr               # Darwin
+   iptables -nvL           # Linux
+"""
+
+import sys
+import argparse
+import unittest
+
+
+def _parse_ports(ports):
+    ret = []
+    for port in ports.split(','):
+        if '-' in port:
+            pfrom, pto = port.split('-')
+            for p in range(int(pfrom), int(pto)+1):
+                ret.append(str(p))
+        else:
+            ret.append(port)
+    return ret
+
+
+def _port_to_owner(lsof, A, B):
+    """Create a dictionary of {port -> 'A' | 'B'}.
+
+    1. Matches A and B to pids by '(LISTEN)' lines in lsof.
+    2. Matches opened ports (src_ip:src_port->dst_ip:dst_port; the src:port) to
+       pids.
+    3. Matches the pids from (1) and (2) to a port -> owner dictionary.
+    """
+    port_to_pid = {}
+    ports = A + B
+    for line in lsof:
+        if '(LISTEN)' in line:
+            port = line.split()[8].split(':')[-1]
+            if port in ports:
+                port_to_pid[port] = line.split()[1]
+    for line in lsof:
+        if '(ESTABLISHED)' in line:
+            col = line.split()[8]
+            dst_port = col.split(':')[-1]
+            if dst_port in port_to_pid:
+                src_port = col.split('->')[0].split(':')[-1]
+                port_to_pid[src_port] = line.split()[1]
+
+    pids_A, pids_B = [], []
+    for port, pid in port_to_pid.items():
+        if port in A:
+            pids_A.append(pid)
+        elif port in B:
+            pids_B.append(pid)
+
+    port_to_owner = {}
+    for port, pid in port_to_pid.items():
+        if pid in pids_A:
+            port_to_owner[port] = 'A'
+        elif pid in pids_B:
+            port_to_owner[port] = 'B'
+        else:
+            # If there is an owner we don't understand, just skip it.
+            # print("Unknown owner for %s" % pid)
+            pass
+
+    return port_to_owner
+
+
+def _block_tuples(lsof, port_to_owner):
+    """Returns IP and a list of (src_port, dst_port)-tuples."""
+    ret = []
+    for line in [l for l in lsof if '(ESTABLISHED)' in l]:
+        col = line.split()[8]
+        src = col.split('->')[0].split(':')[-1]
+        dst = col.split(':')[-1]
+        if port_to_owner.get(src) and port_to_owner.get(dst):
+            ip = col.split('->')[0].split(':')[0]
+            if port_to_owner[src] != port_to_owner[dst]:
+                if (dst, src) not in ret:
+                    ret.append((src, dst))
+    return ip, ret
+
+
+def _block_preamble_darwin(ip, ports):
+    """Block new connections to listening ports on Darwin."""
+    tpl = "block return-rst proto tcp from %s port %s flags S/S"
+    return [tpl % (ip, port) for port in ports]
+
+
+def _block_preamble_linux(ip, ports):
+    """Block new connections to listening ports on Linux."""
+    tpl = ("-A INPUT -p tcp --syn -m state --state NEW "
+           "-d %s --dport %s -j REJECT --reject-with tcp-reset")
+    return ["*filter"] + [tpl % (ip, port) for port in ports]
+
+
+def _block_pair_darwin(ip, blocks):
+    """Block a known connection from A to B on Darwin."""
+    tpl = "block return-rst proto tcp from %s port %s to %s port %s"
+    ret = []
+    for src, dst in blocks:
+        ret.append(tpl % (ip, src, ip, dst))
+        ret.append(tpl % (ip, dst, ip, src))
+    return ret
+
+
+def _block_pair_linux(ip, blocks):
+    """Block a known connection from A to B on Linux."""
+    tpl = ("-A INPUT -p tcp -s %s --sport %s -d %s "
+           "--dport %s -j REJECT --reject-with tcp-reset")
+    ret = []
+    for src, dst in blocks:
+        ret.append(tpl % (ip, src, ip, dst))
+        ret.append(tpl % (ip, dst, ip, src))
+    return ret
+
+
+def _block_appendix_linux():
+    """iptables-save requires "COMMIT" at the end."""
+    return ["COMMIT"]
+
+
+def main():
+    parser = argparse.ArgumentParser(
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description='Generate firewall rules to create a partition.',
+            epilog=__doc__)
+    parser.add_argument('A', help='Ports of A, e.g. 3000,3001-3002')
+    parser.add_argument('B', help='Ports of B, e.g. 3003,3004')
+    parser.add_argument(
+            '--platform',
+            help='default: '+sys.platform,
+            default=sys.platform)
+    args = parser.parse_args()
+    A, B = _parse_ports(args.A), _parse_ports(args.B)
+
+    lsof = sys.stdin.readlines()
+    port_to_owner = _port_to_owner(lsof, A, B)
+    ip, blocks = _block_tuples(lsof, port_to_owner)
+
+    if args.platform.startswith('linux'):
+        print ("\n".join(_block_preamble_linux(ip, A+B)))
+        print ("\n".join(_block_pair_linux(ip, blocks)))
+        print ("\n".join(_block_appendix_linux()))
+    elif args.platform.startswith('darwin'):
+        print ("\n".join(_block_preamble_darwin(ip, A+B)))
+        print ("\n".join(_block_pair_darwin(ip, blocks)))
+
+
+# Block scenario: 3000,3001 3002,3003
+SAMPLE_LSOF = """
+CMD PID U FD   TYPE DEV OFF NODE NAME
+pop  1  r  3u  IPv4 84  0t0  TCP 127.0.0.1:3000 (LISTEN)
+pop  1  r  5u  IPv4 84  0t0  TCP 127.0.0.1:3000->127.0.0.1:44536 (ESTABLISHED)
+pop  1  r  6u  IPv4 84  0t0  TCP 127.0.0.1:3000->127.0.0.1:44539 (ESTABLISHED)
+pop  1  r  7u  IPv4 84  0t0  TCP 127.0.0.1:3000->127.0.0.1:44542 (ESTABLISHED)
+pop  2  r  3u  IPv4 84  0t0  TCP 127.0.0.1:3001 (LISTEN)
+pop  2  r  5u  IPv4 84  0t0  TCP 127.0.0.1:44536->127.0.0.1:3000 (ESTABLISHED)
+pop  2  r  6u  IPv4 84  0t0  TCP 127.0.0.1:3001->127.0.0.1:42796 (ESTABLISHED)
+pop  2  r  7u  IPv4 84  0t0  TCP 127.0.0.1:3001->127.0.0.1:42798 (ESTABLISHED)
+pop  3  r  3u  IPv4 84  0t0  TCP 127.0.0.1:3002 (LISTEN)
+pop  3  r  5u  IPv4 84  0t0  TCP 127.0.0.1:44539->127.0.0.1:3000 (ESTABLISHED)
+pop  3  r  6u  IPv4 84  0t0  TCP 127.0.0.1:3002->127.0.0.1:57085 (ESTABLISHED)
+pop  3  r  7u  IPv4 84  0t0  TCP 127.0.0.1:42796->127.0.0.1:3001 (ESTABLISHED)
+pop  4  r  3u  IPv4 84  0t0  TCP 127.0.0.1:3003 (LISTEN)
+pop  4  r  5u  IPv4 84  0t0  TCP 127.0.0.1:44542->127.0.0.1:3000 (ESTABLISHED)
+pop  4  r  6u  IPv4 84  0t0  TCP 127.0.0.1:42798->127.0.0.1:3001 (ESTABLISHED)
+pop  4  r  7u  IPv4 84  0t0  TCP 127.0.0.1:57085->127.0.0.1:3002 (ESTABLISHED)
+node 99 r  1u  IPv4 83  0t0  TCP 127.0.0.1:50000->127.0.0.1:3000 (ESTABLISHED)
+""".split("\n")
+
+
+class TestMapping(unittest.TestCase):
+    """This test case can be executed by running '$0 test'."""
+    def test_mapping(self):
+        expect_block = [
+                ('3000', '44539'),
+                ('3000', '44542'),
+                ('3001', '42796'),
+                ('3001', '42798'),
+        ]
+        A = ['3000', '3001']
+        B = ['3002', '3003']
+        port_to_owner = _port_to_owner(SAMPLE_LSOF, A, B)
+        ip, tuples = _block_tuples(SAMPLE_LSOF, port_to_owner)
+        self.assertEqual(expect_block, tuples)
+        self.assertEqual('127.0.0.1', ip)
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[1] == 'test':
+        suite = unittest.TestLoader().loadTestsFromTestCase(TestMapping)
+        unittest.TextTestRunner(verbosity=2).run(suite)
+    else:
+        main()
