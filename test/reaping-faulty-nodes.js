@@ -27,6 +27,21 @@ var prepareWithStatus = require('./test-util').prepareWithStatus;
 var dsl = require('./ringpop-assert');
 var getClusterSizes = require('./it-tests').getClusterSizes;
 
+
+test2('respond join requests with tombstone flag', getClusterSizes(2), 20000,
+    prepareWithStatus(1, 'tombstone', function(t, tc, n) { return [
+            dsl.sendJoin(t, tc, 1),
+            dsl.validateEventBody(t, tc, {
+                type: events.Types.Join,
+                direction: 'response'
+            }, "The membership list should contain a flagged tombstone", function (join) {
+                return _.filter(join.body.membership, { status: 'faulty', tombstone: true }).length === 1
+                    && _.filter(join.body.membership, { status: 'tombstone' }).length === 0;
+            }),
+    ];})
+);
+
+
 test2('join cluster with tombstone in memberlist', getClusterSizes(2), 20000, function init(t,tc, callback) {
     tc.addMembershipInformation('192.0.2.100:1234', 'tombstone', 127);
     callback();
