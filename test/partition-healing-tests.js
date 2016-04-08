@@ -364,7 +364,12 @@ function healerUnknownNodes(n) {
                     dsl.callEndpoint(t, tc, "/admin/healpartition/disco", {},
                             function(eventBody) { validateHealRequest(t, tc, eventBody) }),
                     waitForHealPartitionDiscoResponse(t, tc),
-                    dsl.waitForJoins(t, tc, 1)
+
+                    // Join request comes from sut to the other partition.
+                    dsl.waitForJoins(t, tc, 1),
+
+                    // Verify they converged in the end.
+                    dsl.assertStats(t, tc, n+1, 0, 0)
                 ]
             })
          );
