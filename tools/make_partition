@@ -13,6 +13,16 @@ Clear the firewall:
 Check current firewall rules:
    pfctl -sr               # Darwin
    iptables -nvL           # Linux
+
+=== Limitations ===
+Undefined behavior when something else is listening on the same port, but
+different IP address, e.g.
+
+    pop  1  r  3u  IPv4 84  0t0  TCP 127.0.0.1:3000 (LISTEN)
+    met  2  m  3u  IPv4 84  0t0  TCP 10.0.0.10:3000 (LISTEN)
+
+If the above holds true, it can break firewall in spectacular ways. So not
+intended for unattended use.
 """
 
 import sys
