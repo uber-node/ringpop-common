@@ -86,7 +86,7 @@ def _port_to_owner(lsof, A, B):
     return port_to_owner
 
 
-def _block_tuples(lsof, port_to_owner):
+def _block_tuples(lsof, port_to_owner, AB):
     """Returns IP and a list of (src_port, dst_port)-tuples."""
     ret = []
     for line in [l for l in lsof if '(ESTABLISHED)' in l]:
@@ -95,9 +95,8 @@ def _block_tuples(lsof, port_to_owner):
         dst = col.split(':')[-1]
         if port_to_owner.get(src) and port_to_owner.get(dst):
             ip = col.split('->')[0].split(':')[0]
-            if port_to_owner[src] != port_to_owner[dst]:
-                if (dst, src) not in ret:
-                    ret.append((src, dst))
+            if port_to_owner[src] != port_to_owner[dst] and (dst in AB):
+                ret.append((src, dst))
     return ip, ret
 
 
@@ -149,14 +148,14 @@ def main():
     parser.add_argument('B', help='Ports of B, e.g. 3003,3004')
     parser.add_argument(
             '--platform',
-            help='default: '+sys.platform,
+            help='darwin|linux, default: '+sys.platform,
             default=sys.platform)
     args = parser.parse_args()
     A, B = _parse_ports(args.A), _parse_ports(args.B)
 
     lsof = sys.stdin.readlines()
     port_to_owner = _port_to_owner(lsof, A, B)
-    ip, blocks = _block_tuples(lsof, port_to_owner)
+    ip, blocks = _block_tuples(lsof, port_to_owner, A + B)
 
     if args.platform.startswith('linux'):
         print ("\n".join(_block_preamble_linux(ip, A+B)))
@@ -169,23 +168,24 @@ def main():
 
 # Block scenario: 3000,3001 3002,3003
 SAMPLE_LSOF = """
-CMD PID U FD   TYPE DEV OFF NODE NAME
-pop  1  r  3u  IPv4 84  0t0  TCP 127.0.0.1:3000 (LISTEN)
-pop  1  r  5u  IPv4 84  0t0  TCP 127.0.0.1:3000->127.0.0.1:44536 (ESTABLISHED)
-pop  1  r  6u  IPv4 84  0t0  TCP 127.0.0.1:3000->127.0.0.1:44539 (ESTABLISHED)
-pop  1  r  7u  IPv4 84  0t0  TCP 127.0.0.1:3000->127.0.0.1:44542 (ESTABLISHED)
-pop  2  r  3u  IPv4 84  0t0  TCP 127.0.0.1:3001 (LISTEN)
-pop  2  r  5u  IPv4 84  0t0  TCP 127.0.0.1:44536->127.0.0.1:3000 (ESTABLISHED)
-pop  2  r  6u  IPv4 84  0t0  TCP 127.0.0.1:3001->127.0.0.1:42796 (ESTABLISHED)
-pop  2  r  7u  IPv4 84  0t0  TCP 127.0.0.1:3001->127.0.0.1:42798 (ESTABLISHED)
-pop  3  r  3u  IPv4 84  0t0  TCP 127.0.0.1:3002 (LISTEN)
-pop  3  r  5u  IPv4 84  0t0  TCP 127.0.0.1:44539->127.0.0.1:3000 (ESTABLISHED)
-pop  3  r  6u  IPv4 84  0t0  TCP 127.0.0.1:3002->127.0.0.1:57085 (ESTABLISHED)
-pop  3  r  7u  IPv4 84  0t0  TCP 127.0.0.1:42796->127.0.0.1:3001 (ESTABLISHED)
-pop  4  r  3u  IPv4 84  0t0  TCP 127.0.0.1:3003 (LISTEN)
-pop  4  r  5u  IPv4 84  0t0  TCP 127.0.0.1:44542->127.0.0.1:3000 (ESTABLISHED)
-pop  4  r  6u  IPv4 84  0t0  TCP 127.0.0.1:42798->127.0.0.1:3001 (ESTABLISHED)
-pop  4  r  7u  IPv4 84  0t0  TCP 127.0.0.1:57085->127.0.0.1:3002 (ESTABLISHED)
+pop  1  r  3u  IPv4 80  0t0  TCP 127.0.0.1:3000 (LISTEN)
+pop  1  r  5u  IPv4 93  0t0  TCP 127.0.0.1:3000->127.0.0.1:54602 (ESTABLISHED)
+pop  1  r  6u  IPv4 02  0t0  TCP 127.0.0.1:3000->127.0.0.1:54603 (ESTABLISHED)
+pop  1  r  7u  IPv4 06  0t0  TCP 127.0.0.1:3000->127.0.0.1:54607 (ESTABLISHED)
+pop  2  r  3u  IPv4 29  0t0  TCP 127.0.0.1:3001 (LISTEN)
+pop  2  r  5u  IPv4 31  0t0  TCP 127.0.0.1:43057->127.0.0.1:3002 (ESTABLISHED)
+pop  2  r  6u  IPv4 34  0t0  TCP 127.0.0.1:3001->127.0.0.1:39889 (ESTABLISHED)
+pop  2  r  7u  IPv4 33  0t0  TCP 127.0.0.1:54602->127.0.0.1:3000 (ESTABLISHED)
+pop  2  r  8u  IPv4 39  0t0  TCP 127.0.0.1:3001->127.0.0.1:39890 (ESTABLISHED)
+pop  3  r  3u  IPv4 91  0t0  TCP 127.0.0.1:3002 (LISTEN)
+pop  3  r  5u  IPv4 99  0t0  TCP 127.0.0.1:3002->127.0.0.1:43057 (ESTABLISHED)
+pop  3  r  6u  IPv4 01  0t0  TCP 127.0.0.1:54603->127.0.0.1:3000 (ESTABLISHED)
+pop  3  r  7u  IPv4 04  0t0  TCP 127.0.0.1:60367->127.0.0.1:3003 (ESTABLISHED)
+pop  3  r  8u  IPv4 05  0t0  TCP 127.0.0.1:39889->127.0.0.1:3001 (ESTABLISHED)
+pop  4  r  3u  IPv4 98  0t0  TCP 127.0.0.1:3003 (LISTEN)
+pop  4  r  5u  IPv4 36  0t0  TCP 127.0.0.1:3003->127.0.0.1:60367 (ESTABLISHED)
+pop  4  r  6u  IPv4 38  0t0  TCP 127.0.0.1:39890->127.0.0.1:3001 (ESTABLISHED)
+pop  4  r  7u  IPv4 41  0t0  TCP 127.0.0.1:54607->127.0.0.1:3000 (ESTABLISHED)
 node 99 r  1u  IPv4 83  0t0  TCP 127.0.0.1:50000->127.0.0.1:3000 (ESTABLISHED)
 """.split("\n")
 
@@ -194,15 +194,16 @@ class TestMapping(unittest.TestCase):
     """This test case can be executed by running '$0 test'."""
     def test_mapping(self):
         expect_block = [
-                ('3000', '44539'),
-                ('3000', '44542'),
-                ('3001', '42796'),
-                ('3001', '42798'),
+                ('43057', '3002'),
+                ('54603', '3000'),
+                ('39889', '3001'),
+                ('39890', '3001'),
+                ('54607', '3000'),
         ]
         A = ['3000', '3001']
         B = ['3002', '3003']
         port_to_owner = _port_to_owner(SAMPLE_LSOF, A, B)
-        ip, tuples = _block_tuples(SAMPLE_LSOF, port_to_owner)
+        ip, tuples = _block_tuples(SAMPLE_LSOF, port_to_owner, A + B)
         self.assertEqual(expect_block, tuples)
         self.assertEqual('127.0.0.1', ip)
 
