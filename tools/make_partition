@@ -93,7 +93,7 @@ def _block_tuples(lsof, port_to_owner):
 
 def _block_preamble_darwin(ip, ports):
     """Block new connections to listening ports on Darwin."""
-    tpl = "block return-rst proto tcp from %s port %s flags S/S"
+    tpl = "block return in proto tcp from %s port %s flags S/S"
     return [tpl % (ip, port) for port in ports]
 
 
@@ -106,7 +106,7 @@ def _block_preamble_linux(ip, ports):
 
 def _block_pair_darwin(ip, blocks):
     """Block a known connection from A to B on Darwin."""
-    tpl = "block return-rst proto tcp from %s port %s to %s port %s"
+    tpl = "block return in proto tcp from %s port %s to %s port %s"
     ret = []
     for src, dst in blocks:
         ret.append(tpl % (ip, src, ip, dst))
