@@ -96,7 +96,7 @@ FakeNode.prototype._registerEndpoints = function _registerEndpoints() {
         self.channel.register(path, function handleRequest(req, res, arg2, arg3) {
             self.endpoints[endpointType].handler(req, res, arg2, arg3);
 
-            var event = new events.RequestEvent(req, arg2, arg3);
+            var event = new events.RequestEvent(req, arg2, arg3, self.getHostPort());
             self.coordinator.emit('event', event);
         });
     });

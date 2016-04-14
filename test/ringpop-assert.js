@@ -361,8 +361,12 @@ function expectOnlyPingsAndPingReqs(t, tc) {
 }
 
 function consumePings(t, tc) {
-    return function consumePings(list, cb) {
-        cb(_.reject(list, {type: events.Types.Ping, direction: 'request'}));
+    return consumeRequests(t, tc, events.Types.Ping);
+}
+
+function consumeRequests(t, tc, type) {
+    return function consumeRequests(list, cb) {
+        cb(_.reject(list, {type: type, direction: 'request'}));
     };
 }
 
@@ -862,6 +866,7 @@ module.exports = {
 
     callEndpoint: callEndpoint,
     consumePings: consumePings,
+    consumeRequests: consumeRequests,
 
     sendJoin: sendJoin,
     sendPing: sendPing,

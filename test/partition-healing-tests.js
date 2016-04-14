@@ -253,6 +253,72 @@ test2('merge partitions A and B when reincarnated', [3], 20000,
         })
      );
 
+test2('dont\'t merge partitions when B is not fully reincarnated', [3], 20000, prepareCluster(function(t, tc, n) {
+    return [
+        localizeMemberships(t, tc),
+
+        dsl.changeStatus(t, tc, 1, 1, 'faulty', 0),
+        dsl.changeStatus(t, tc, 2, 2, 'faulty', 0),
+        dsl.waitForPingResponse(t, tc, 1),
+        dsl.waitForPingResponse(t, tc, 2),
+        dsl.assertStats(t, tc, 2, 0, 2),
+
+        // According to B, a1 is faulty.
+        markBFaultyInA(t, tc),
+
+        // Mark sut and a1 faulty in memberships of B.
+        markSutA1FaultyInB(t, tc),
+
+        // simulate that we received the initial suspect message for healing,
+        // but did not receive the new version of the other members of B
+        midwayThroughReincarnatingB(t, tc),
+
+        dsl.consumePings(t, tc),
+
+        // Trigger partition heal
+        dsl.callEndpoint(t, tc, "/admin/healpartition/disco", {},function(eventBody) {
+            validateHealRequest(t, tc, eventBody);
+        }),
+        waitForHealPartitionDiscoResponse(t, tc),
+
+        // Verify only 1 join request came for b1 or b2, if more responses came
+        // in they will stay in the event list when this test ends which will
+        // cause the test to fail
+        dsl.waitForJoins(t, tc, 1),
+
+        dsl.validateEventBody(t, tc, {
+            type: events.Types.Ping,
+            direction: 'request'
+        }, "ping after heal", function (ping) {
+            var a1 = tc.fakeNodes[0].getHostPort();
+            var b1 = tc.fakeNodes[1].getHostPort();
+            var b2 = tc.fakeNodes[2].getHostPort();
+
+            if (ping.receiver != b1 && ping.receiver != b2) {
+                t.fail("expected a ping to partition B during healing");
+                return false;
+            }
+
+            if (_.filter(ping.body.changes, {status: 'alive'}).length != 0) {
+                t.fail("did not expect alive declarations in the ping sent to B");
+                return false;
+            }
+
+            if (_.filter(ping.body.changes, {address: ping.receiver == b1 ? b2:b1, status: 'suspect'}).length != 1) {
+                t.fail("expected a suspect declaration for the non-reincarnated member of B");
+                return false;
+            }
+
+            return true;
+        }),
+
+        dsl.assertMembership(t, tc, {
+            0: /*a1*/ { incarnationNumber: 1337, status: 'suspect' },
+            1: /*b1*/ { incarnationNumber: 1337, status: 'faulty' },
+            2: /*b2*/ { incarnationNumber: 1337, status: 'faulty' },
+        }),
+    ]
+}));
 
 function waitForPingResponseFromTarget(t, tc) {
     return function waitForPingResponseFromTarget(list, cb) {
@@ -297,6 +363,31 @@ function increaseInternalIncB(t, tc) {
         _.find(tc.fakeNodes[1].membership, {port: b2_port}).incarnationNumber += 3;
         _.find(tc.fakeNodes[2].membership, {port: b1_port}).incarnationNumber += 3;
         _.find(tc.fakeNodes[2].membership, {port: b2_port}).incarnationNumber += 3;
+        cb(list);
+    }
+}
+
+// Put B in suspect states to simulate partition B in the process of reincarnating
+// b1: [sut: f1, a1: f1, b1: a2, b2: s1]
+// b2: [sut: f1, a1: f1, b1: s1, b2: a2]
+function midwayThroughReincarnatingB(t, tc) {
+    return function midwayThroughReincarnatingB(list, cb) {
+        // make sure that both nodes see them self incarnated since we do not
+        // control who the sut reaches out to
+        tc.fakeNodes[1].incarnationNumber += 1;
+        tc.fakeNodes[2].incarnationNumber += 1;
+
+        var b1_port = tc.fakeNodes[1].port;
+        var b2_port = tc.fakeNodes[2].port;
+        // b1 -> b1
+        _.find(tc.fakeNodes[1].membership, {port: b1_port}).incarnationNumber += 1;
+        // b1 -> b2
+        _.find(tc.fakeNodes[1].membership, {port: b2_port}).status = 'suspect';
+        // b2 -> b1
+        _.find(tc.fakeNodes[2].membership, {port: b1_port}).status = 'suspect';
+        // b2 -> b2
+        _.find(tc.fakeNodes[2].membership, {port: b2_port}).incarnationNumber += 1;
+
         cb(list);
     }
 }
@@ -395,7 +486,7 @@ function addMoreFakeNodes(t, tc, n) {
 }
 
 function validateHealRequest(t, tc, eventBody) {
-    t.equal(1, eventBody['targets'].length,
-            "/join was sent to one node as part of heal");
+    t.equal(eventBody['targets'].length, 1,
+            "expected 1 join target as part of the heal");
     tc.test_state['join_target'] = eventBody['targets'][0];
 }
