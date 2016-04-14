@@ -22,22 +22,52 @@
 var _ = require('lodash');
 var farmhash = require('farmhash');
 
-// entries must have address (hostport), status (e.g. "alive"), and incarnation numbers
-module.exports.checksum = function checksum(members) {
-    checksumString = _
+function generateChecksumString(members) {
+    return _
         .chain(members)
         .filter(function (member) {
             // remove members that are in the tombstone state
             return ['tombstone'].indexOf(member.status) < 0;
         })
-        .map(function (member){
-            return member.host + ':' + member.port +
-                member.status +
-                member.incarnationNumber+';';
+        .map(function (member) {
+            var address = member.address || (member.host + ':' + member.port);
+            return address +
+                    member.status +
+                    member.incarnationNumber
         })
         .value()
         .sort()
-        .join('');
-
+        .join(';');
+}
+// entries must have address (hostport), status (e.g. "alive"), and incarnation numbers
+function checksumGo(members) {
+    //add extra semi-colon to be compatible with the go implementation
+    var checksumString = generateChecksumString(members) + ';';
     return farmhash.fingerprint32(checksumString);
+}
+
+function checksumNode(members) {
+    var checksumString = generateChecksumString(members);
+    return farmhash.hash32(checksumString);
+}
+
+function checksumNodeCrossPlatform(members) {
+    var checksumString = generateChecksumString(members);
+    return farmhash.fingerprint32(checksumString);
+}
+
+function detect(members, checksum) {
+    if(checksumGo(members) === checksum) {
+        return checksumGo;
+    } else if(checksumNode(members) === checksum) {
+        return checksumNode;
+    } else if (checksumNodeCrossPlatform(members) === checksum) {
+        return checksumNodeCrossPlatform;
+    } else {
+        throw new Error('checksum method undetectable!');
+    }
+}
+
+module.exports = {
+    detect: detect
 };

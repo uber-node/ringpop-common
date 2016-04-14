@@ -326,4 +326,16 @@ TestCoordinator.prototype.getSUTHostPort = function getSUTHostPort() {
     return this.sutHostPort;
 };
 
+// There is an incompatibility in the way the checksum is calculated between ringpop-node and ringpop-go.
+// Also, the ringpop-node has two ways of hashing the checksum string.
+//
+// After the SUT is launched, it's admin/stats-endpoint is hit to get it's membership list and checksum so
+// the correct hashing method is determined by calculating and comparing a checksum based on it's membership
+// list with all three methods.
+// From that point onwards, the correct checksum method is used for calculating checksums in fake-node.
+TestCoordinator.prototype.checksum = function checksum() {
+    //default to no-checksum. This method is changed based on runtime data of the SUT
+    return null;
+};
+
 module.exports = TestCoordinator;

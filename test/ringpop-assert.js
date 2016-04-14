@@ -26,6 +26,7 @@ var events = require('./events');
 var safeJSONParse = require('./util').safeParse;
 var util = require('util');
 var makeHostPort = require('./util').makeHostPort;
+var detectChecksumMethod = require('./membership-checksum').detect;
 
 function errDetails(details) {
     return {error:{details:details}};
@@ -413,6 +414,33 @@ function waitForStatsAssertCorrectIncarnationNumbers(t, tc) {
     };
 }
 
+function assertDetectChecksumMethod(t, tc) {
+    return [
+        requestAdminStats(tc),
+        waitForStatsAssertDetectChecksumMethod(t, tc),
+    ];
+}
+
+function waitForStatsAssertDetectChecksumMethod(t, tc) {
+    return function waitForStatsAssertDetectChecksumMethod(list, cb) {
+        var ix = _.findIndex(list, {type: events.Types.Stats});
+        if (ix === -1) {
+            cb(null);
+            return;
+        }
+
+        var stats = safeJSONParse(list[ix].arg3);
+        t.ok(stats, 'parse stats response');
+        t.ok(stats.membership, 'get membership info');
+        t.ok(stats.membership.members, 'membership info has members');
+        t.ok(stats.membership.checksum, 'membership info has a checksum');
+        var checksumMethod = detectChecksumMethod(stats.membership.members, stats.membership.checksum);
+        t.ok(checksumMethod, 'checksum method detected');
+        tc.checksum = checksumMethod;
+
+        cb(_.reject(list, {type: events.Types.Stats}));
+    };
+}
 
 // members = {ix: {expected_field: 'expected_value', ...}, ix2: {...}, ... }
 function assertMembership(t, tc, members) {
@@ -912,4 +940,6 @@ module.exports = {
     waitForPingReqResponse: waitForPingReqResponse,
 
     piggyback: piggyback,
+
+    assertDetectChecksumMethod: assertDetectChecksumMethod,
 };
