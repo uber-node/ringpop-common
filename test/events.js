@@ -32,7 +32,8 @@ var Types = {
     AdminGossipTick: 'AdminGossipTick',
     AdminLookup: 'AdminLookup',
     AdminMemberLeave: 'AdminMemberLeave',
-    AdminMemberJoin: 'AdminMemberJoin'
+    AdminMemberJoin: 'AdminMemberJoin',
+    AdminReap: 'AdminReap'
 };
 
 function endpointToEventType(endpoint) {
@@ -59,6 +60,8 @@ function endpointToEventType(endpoint) {
             return Types.AdminMemberLeave;
         case '/admin/member/join':
             return Types.AdminMemberJoin;
+        case '/admin/reap':
+            return Types.AdminReap
         default:
             return Types.UnknownRequest;
     }

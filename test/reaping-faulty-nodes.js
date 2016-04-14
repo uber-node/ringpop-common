@@ -27,6 +27,21 @@ var prepareWithStatus = require('./test-util').prepareWithStatus;
 var dsl = require('./ringpop-assert');
 var getClusterSizes = require('./it-tests').getClusterSizes;
 
+
+test2('respond join requests with tombstone flag', getClusterSizes(2), 20000,
+    prepareWithStatus(1, 'tombstone', function(t, tc, n) { return [
+            dsl.sendJoin(t, tc, 1),
+            dsl.validateEventBody(t, tc, {
+                type: events.Types.Join,
+                direction: 'response'
+            }, "The membership list should contain a flagged tombstone", function (join) {
+                return _.filter(join.body.membership, { status: 'faulty', tombstone: true }).length === 1
+                    && _.filter(join.body.membership, { status: 'tombstone' }).length === 0;
+            }),
+    ];})
+);
+
+
 test2('join cluster with tombstone in memberlist', getClusterSizes(2), 20000, function init(t,tc, callback) {
     tc.addMembershipInformation('192.0.2.100:1234', 'tombstone', 127);
     callback();
@@ -36,10 +51,38 @@ test2('join cluster with tombstone in memberlist', getClusterSizes(2), 20000, fu
             type: events.Types.Ping,
             direction: 'request'
         }, "The tombstone should not be gossiped around by the SUT after joining an existing cluster with a tombstone", function (ping) {
-            console.dir(ping.body);
-            return _.filter(ping.body.changes, { status:'tombstone' }).length === 0;
+            // check tombstone state
+            return _.filter(ping.body.changes, { status:'tombstone' }).length === 0
+                && _.filter(ping.body.changes, { status:'faulty', tombstone: true }).length === 0;
         }),
 
+        // confirm that the tombstone has not been added to the membership list
+        dsl.assertStats(t, tc, {
+            alive: n + 1,
+            tombstone: 0,
+        }),
+    ];
+}));
+
+test2('join cluster with tombstone flag in memberlist', getClusterSizes(2), 20000, function init(t,tc, callback) {
+    tc.addMembershipInformation('192.0.2.100:1234', 'faulty', 127, {'tombstone': true});
+    callback();
+}, prepareCluster(function(t, tc, n) { return [
+        // Wait for a ping from the SUT and validate that it does not gossip about the tombstone
+        dsl.validateEventBody(t, tc, {
+            type: events.Types.Ping,
+            direction: 'request'
+        }, "The tombstone should not be gossiped around by the SUT after joining an existing cluster with a tombstone", function (ping) {
+            // check tombstone state
+            return _.filter(ping.body.changes, { status:'tombstone' }).length === 0
+                && _.filter(ping.body.changes, { status:'faulty', tombstone: true }).length === 0;
+        }),
+
+        // confirm that the tombstone has not been added to the membership list
+        dsl.assertStats(t, tc, {
+            alive: n + 1,
+            tombstone: 0,
+        }),
     ];
 }));
 
@@ -117,6 +160,112 @@ test2('tombstone should not be applied when gossiped about but unknown to the SU
                 direction: 'request'
             }, "The tombstone should not be gossiped around when the SUT didn't knew about the node before", function (ping) {
                 return _.filter(ping.body.changes, { status: 'tombstone' }).length === 0;
+            }),
+        ];
+    })
+);
+
+test2('test /admin/reap endpoint', getClusterSizes(2), 20000,
+    prepareWithStatus(1, 'faulty', function(t, tc, n) { return [
+        dsl.assertStats(t, tc, {alive: n, faulty: 1}, {1: {status: 'faulty'}}),
+
+        dsl.callEndpoint(t, tc, '/admin/reap'),
+        dsl.validateEventBody(t, tc, {
+            type: events.Types.AdminReap,
+            direction: 'response'
+        }, 'Wait for AdminReap response', function (response) {
+            return response.body.status === 'ok';
+        }),
+
+        dsl.assertStats(t, tc, {alive: n, tombstone: 1}, {1: {status: 'tombstone'}}),
+    ];})
+);
+
+test2('tombstone should be applied when sent as a state', getClusterSizes(2), 20000,
+    prepareCluster(function(t, tc, n) {
+        return [
+            dsl.sendPing(t, tc, 0, {
+                sourceIx: 0,
+                subjectIx: 1,
+                status: 'tombstone'
+            }),
+            dsl.waitForPingResponse(t, tc, 0),
+
+            // confirm that the tombstone has not been added to the membership list
+            dsl.assertStats(t, tc, {
+                alive: n,
+                tombstone: 1,
+            }),
+        ];
+    })
+);
+
+test2('tombstone should be gossiped with flag when applied as state', getClusterSizes(2), 20000,
+    prepareCluster(function(t, tc, n) {
+        return [
+            dsl.sendPing(t, tc, 0, {
+                sourceIx: 0,
+                subjectIx: 1,
+                status: 'tombstone'
+            }),
+            dsl.waitForPingResponse(t, tc, 0),
+
+            // clear all pings that happened before we gossiped the tombstone
+            dsl.consumePings(t, tc),
+
+            // Wait for a ping from the SUT and validate that it does not gossip about the tombstone
+            dsl.validateEventBody(t, tc, {
+                type: events.Types.Ping,
+                direction: 'request'
+            }, "The gossip should contain a flagged tombstone", function (ping) {
+                return _.filter(ping.body.changes, { status: 'faulty', tombstone: true }).length === 1
+                    && _.filter(ping.body.changes, { status: 'tombstone' }).length === 0;
+            }),
+        ];
+    })
+);
+
+test2('tombstone should be applied when sent as a flag', getClusterSizes(2), 20000,
+    prepareCluster(function(t, tc, n) {
+        return [
+            dsl.sendPing(t, tc, 0, {
+                sourceIx: 0,
+                subjectIx: 1,
+                status: 'faulty',
+                tombstone: true
+            }),
+            dsl.waitForPingResponse(t, tc, 0),
+
+            // confirm that the tombstone has not been added to the membership list
+            dsl.assertStats(t, tc, {
+                alive: n,
+                tombstone: 1,
+            }),
+        ];
+    })
+);
+
+test2('tombstone should be gossiped with flag when applied as a flag', getClusterSizes(2), 20000,
+    prepareCluster(function(t, tc, n) {
+        return [
+            dsl.sendPing(t, tc, 0, {
+                sourceIx: 0,
+                subjectIx: 1,
+                status: 'faulty',
+                tombstone: true
+            }),
+            dsl.waitForPingResponse(t, tc, 0),
+
+            // clear all pings that happened before we gossiped the tombstone
+            dsl.consumePings(t, tc),
+
+            // Wait for a ping from the SUT and validate that it does not gossip about the tombstone
+            dsl.validateEventBody(t, tc, {
+                type: events.Types.Ping,
+                direction: 'request'
+            }, "The gossip should contain a flagged tombstone", function (ping) {
+                return _.filter(ping.body.changes, { status: 'faulty', tombstone: true }).length === 1
+                    && _.filter(ping.body.changes, { status: 'tombstone' }).length === 0;
             }),
         ];
     })
