@@ -13,7 +13,7 @@
     "grafana-dash-gen": "uber/grafana-dash-gen#41a17abfa174fdda048f9a1084bc302dec28e6ff",
     "lodash": "^4.6.1",
     "strformat": "^0.0.7",
-    "uber-licence": "^1.5.4",
+    "uber-licence": "^2.0.1",
     "zero-config": "^5.0.0"
   },
   "pre-commit": [
