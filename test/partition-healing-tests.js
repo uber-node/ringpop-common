@@ -253,6 +253,56 @@ test2('merge partitions A and B when reincarnated', [3], 20000,
         })
      );
 
+test2('merge partitions A and B when reincarnated, while having an extra faulty node', [4], 20000, prepareCluster(function(t, tc, n) {
+    // most of the test is equal to the test above:`merge partitions A and B when reincarnated`
+    // however we have an extra node which we mark as faulty and shut down at the beginning of
+    // the test to simulate a partition with a shared faulty node
+    return [
+        // mark the last node as faulty as well, this will be the shared faulty node
+        dsl.changeStatus(t, tc, 0, 3, 'faulty', 0),
+        dsl.waitForPingResponse(t, tc, 0),
+
+        // disable the shared faulty node
+        function disableSharedFaulty(list, cb) {
+            tc.fakeNodes[3].shutdown();
+            cb(list);
+        },
+
+        localizeMemberships(t, tc),
+        dsl.changeStatus(t, tc, 0, 1, 'faulty', 0),
+        dsl.changeStatus(t, tc, 0, 2, 'faulty', 0),
+        dsl.waitForPingResponse(t, tc, 0),
+        dsl.waitForPingResponse(t, tc, 0),
+        dsl.assertStats(t, tc, 2, 0, 3),
+        markBFaultyInA(t, tc),
+        markSutA1FaultyInB(t, tc),
+        dsl.changeStatus(t, tc, 0, 0, 'alive', 3),
+        dsl.waitForPingResponse(t, tc, 0),
+        increaseInternalIncB(t, tc),
+        decreaseIncOfSutInB(t, tc),
+        dsl.consumePings(t, tc),
+        dsl.callEndpoint(t, tc, "/admin/healpartition/disco", {},
+                function(eventBody) { validateHealRequest(t, tc, eventBody) }),
+        waitForHealPartitionDiscoResponse(t, tc),
+        dsl.waitForJoins(t, tc, 1),
+        checkSutMergedWithB(t, tc),
+        function(list, cb) {
+            delete tc.fakeNodes[0]['membership'];
+            delete tc.fakeNodes[1]['membership'];
+            delete tc.fakeNodes[2]['membership'];
+            cb(list);
+        },
+        // assert that the partition is resolved and the rougue member is still
+        // marked as faulty
+        dsl.assertMembership(t, tc, {
+            0: /*a1*/ { incarnationNumber: 1340, status: 'alive' },
+            1: /*b1*/ { incarnationNumber: 1340, status: 'alive' },
+            2: /*b2*/ { incarnationNumber: 1340, status: 'alive' },
+            3: { incarnationNumber: 1337, status: 'faulty' },
+        }),
+    ]
+}));
+
 test2('dont\'t merge partitions when B is not fully reincarnated', [3], 20000, prepareCluster(function(t, tc, n) {
     return [
         localizeMemberships(t, tc),
