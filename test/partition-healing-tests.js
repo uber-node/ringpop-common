@@ -55,7 +55,7 @@ test2('reincarnating partitions A and B', [3], 20000,
 
                 // Trigger partition heal
                 dsl.callEndpoint(t, tc, "/admin/healpartition/disco", {},
-                        function(eventBody) { validateHealRequest(t, tc, eventBody) }),
+                        function(eventBody) { validateHealResponse(t, tc, eventBody) }),
                 waitForHealPartitionDiscoResponse(t, tc),
 
                 // Verify join request came in to b1 or b2
@@ -232,7 +232,7 @@ test2('merge partitions A and B when reincarnated', [3], 20000,
 
                 // Force SUT to merge the partition.
                 dsl.callEndpoint(t, tc, "/admin/healpartition/disco", {},
-                        function(eventBody) { validateHealRequest(t, tc, eventBody) }),
+                        function(eventBody) { validateHealResponse(t, tc, eventBody) }),
                 waitForHealPartitionDiscoResponse(t, tc),
 
                 // SUT sends /join to b.
@@ -282,7 +282,7 @@ test2('merge partitions A and B when reincarnated, while having an extra faulty 
         decreaseIncOfSutInB(t, tc),
         dsl.consumePings(t, tc),
         dsl.callEndpoint(t, tc, "/admin/healpartition/disco", {},
-                function(eventBody) { validateHealRequest(t, tc, eventBody) }),
+                function(eventBody) { validateHealResponse(t, tc, eventBody) }),
         waitForHealPartitionDiscoResponse(t, tc),
         dsl.waitForJoins(t, tc, 1),
         checkSutMergedWithB(t, tc),
@@ -327,7 +327,7 @@ test2('dont\'t merge partitions when B is not fully reincarnated', [3], 20000, p
 
         // Trigger partition heal
         dsl.callEndpoint(t, tc, "/admin/healpartition/disco", {},function(eventBody) {
-            validateHealRequest(t, tc, eventBody);
+            validateHealResponse(t, tc, eventBody);
         }),
         waitForHealPartitionDiscoResponse(t, tc),
 
@@ -503,7 +503,7 @@ function healerUnknownNodes(n) {
                         tc.createHostsFile(); cb(list);
                     },
                     dsl.callEndpoint(t, tc, "/admin/healpartition/disco", {},
-                            function(eventBody) { validateHealRequest(t, tc, eventBody) }),
+                            function(eventBody) { validateHealResponse(t, tc, eventBody) }),
                     waitForHealPartitionDiscoResponse(t, tc),
 
                     // Join request comes from sut to the other partition.
@@ -535,7 +535,7 @@ function addMoreFakeNodes(t, tc, n) {
     }
 }
 
-function validateHealRequest(t, tc, eventBody) {
+function validateHealResponse(t, tc, eventBody) {
     t.equal(eventBody['targets'].length, 1,
             "expected 1 join target as part of the heal");
     tc.test_state['join_target'] = eventBody['targets'][0];
