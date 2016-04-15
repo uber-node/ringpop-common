@@ -32,6 +32,9 @@
                     },
                     "sourceIncarnationNumber": {
                         "type": "number"
+                    },
+                    "tombstone": {
+                        "type": "boolean"
                     }
                 },
                 "required": [

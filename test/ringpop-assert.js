@@ -747,9 +747,19 @@ function validate(t, tc, scheme, deadline) {
     timer = setTimeout(function() {
         t.fail('timeout');
         tc.removeAllListeners('event');
+        tc.removeAllListeners('sut-died');
         tc.shutdown();
         t.end();
     }, deadline);
+
+    tc.on('sut-died', function(code) {
+        clearTimeout(timer);
+        t.fail('SUT crashed (code: ' + code + ')');
+        tc.removeAllListeners('event');
+        tc.removeAllListeners('sut-died');
+        tc.shutdown();
+        t.end();
+    });
 
     // flatten so arrays gets expanded and fns becomes one-dimensional
     fns = _.flatten(fns, true);
@@ -767,6 +777,7 @@ function validate(t, tc, scheme, deadline) {
             t.ok(true, 'validate done: all functions passed');
             tc.shutdown();
             tc.removeAllListeners('event');
+            tc.removeAllListeners('sut-died');
             t.end();
 
             inProgress = false;
@@ -809,6 +820,7 @@ var uuid = require('node-uuid');
 //    id: 'abcd-1234',
 //    sourceIncNoDelta: 1,
 //    subjectIncNoDelta: 1,
+//    tombstone: false,
 // }
 function piggyback(tc, opts) {
     if (opts === undefined) {
@@ -817,6 +829,7 @@ function piggyback(tc, opts) {
     update = {};
     update.id = opts.id || uuid.v4();
     update.status = opts.status;
+    update.tombstone = opts.tombstone || false;
 
     if(opts.sourceIx === 'sut') {
         update.source = tc.sutHostPort;

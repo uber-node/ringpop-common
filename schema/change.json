@@ -23,6 +23,9 @@
         },
         "timestamp": {
             "type": "number"
+        },
+        "tombstone": {
+            "type": "boolean"
         }
     },
     "required": [

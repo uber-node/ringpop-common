@@ -176,6 +176,13 @@ TestCoordinator.prototype.startSUT = function startSUT() {
         console.error('Error: ' + err.message + ', failed to spawn ' +  self.sutProgram + ' on ' + self.sutHostPort);
     });
 
+    newProc.on('exit', function (code, signal) {
+        if (code) {
+            // non-clean exit
+            self.emit('sut-died', code);
+        }
+    });
+
     var who = util.format('sut:%s', this.sutHostPort);
     function logOutput(data) {
         var lines = data.toString('utf8').split('\n');
@@ -267,7 +274,7 @@ TestCoordinator.prototype.getSUTAsMember = function getSUTAsMember() {
     };
 };
 
-TestCoordinator.prototype.addMembershipInformation = function(address, status, incarnationNumber) {
+TestCoordinator.prototype.addMembershipInformation = function(address, status, incarnationNumber, extraFields) {
     var parts = address.split(':', 2);
     var host = parts[0];
     var port = parts[1];
@@ -277,6 +284,7 @@ TestCoordinator.prototype.addMembershipInformation = function(address, status, i
         port: port,
         status: status,
         incarnationNumber: incarnationNumber,
+        extraFields: extraFields
     });
 };
 

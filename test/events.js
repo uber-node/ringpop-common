@@ -33,7 +33,8 @@ var Types = {
     AdminLookup: 'AdminLookup',
     AdminMemberLeave: 'AdminMemberLeave',
     AdminMemberJoin: 'AdminMemberJoin',
-    AdminHealPartitionDisco: 'AdminHealPartitionDisco'
+    AdminHealPartitionDisco: 'AdminHealPartitionDisco',
+    AdminReap: 'AdminReap'
 };
 
 function endpointToEventType(endpoint) {
@@ -62,6 +63,8 @@ function endpointToEventType(endpoint) {
             return Types.AdminMemberJoin;
         case '/admin/healpartition/disco':
             return Types.AdminHealPartitionDisco;
+        case '/admin/reap':
+            return Types.AdminReap
         default:
             return Types.UnknownRequest;
     }
