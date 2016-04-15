@@ -51,8 +51,8 @@ function waitForJoins(t, tc, n) {
         t.equals(joins.length, n, 'check number of joins',
             errDetails({journal: _.pluck(list, 'endpoint')}));
 
-        //XXX: a bit wonky to get sutIncarnationNumber like this
-        tc.sutIncarnationNumber = safeJSONParse(list[0].arg3).incarnationNumber;
+        //XXX: a bit inappropriate to get sutIncarnationNumber like this
+        tc.test_state['sutIncarnationNumber'] = safeJSONParse(joins[0].arg3).incarnationNumber;
         cb(_.reject(list, {type: events.Types.Join}));
     };
 }
@@ -361,8 +361,12 @@ function expectOnlyPingsAndPingReqs(t, tc) {
 }
 
 function consumePings(t, tc) {
-    return function consumePings(list, cb) {
-        cb(_.reject(list, {type: events.Types.Ping, direction: 'request'}));
+    return consumeRequests(t, tc, events.Types.Ping);
+}
+
+function consumeRequests(t, tc, type) {
+    return function consumeRequests(list, cb) {
+        cb(_.reject(list, {type: type, direction: 'request'}));
     };
 }
 
@@ -532,11 +536,11 @@ function waitForStatsAssertStatus(t, tc, statusCounts) {
 
         // check inc no of real-node against admin/stats
         var memberIx = _.findIndex(members, {address: tc.sutHostPort});
-        var member = members[memberIx];
-        t.equal(member.incarnationNumber, tc.sutIncarnationNumber,
-            'same incarnationNumber as sut ' + tc.sutIncarnationNumber,
-            errDetails({ expected: tc.sutIncarnationNumber, received: member}));
 
+        var member = members[memberIx];
+        t.equal(member.incarnationNumber, tc.test_state['sutIncarnationNumber'],
+                'same incarnationNumber as sut ' + tc.test_state['sutIncarnationNumber'],
+                errDetails({ expected: tc.test_state['sutIncarnationNumber'], received: member}));
 
         _.pullAt(list, ix);
         cb(list);
@@ -562,10 +566,10 @@ function waitForStatsAssertBumpedIncarnationNumber(t, tc) {
         var members = stats.membership.members;
         var memberIx = _.findIndex(members, {address: tc.sutHostPort});
         var member = members[memberIx];
-        t.true(member.incarnationNumber > tc.sutIncarnationNumber,
+        t.true(member.incarnationNumber > tc.test_state['sutIncarnationNumber'],
             'sut bumped incarnation number to ' + member.incarnationNumber,
-            errDetails({ old: tc.sutIncarnationNumber, new: member.incarnationNumber}));
-        tc.sutIncarnationNumber = member.incarnationNumber;
+            errDetails({ old: tc.test_state['sutIncarnationNumber'], new: member.incarnationNumber}));
+        tc.test_state['sutIncarnationNumber'] = member.incarnationNumber;
 
         _.pullAt(list, ix);
         cb(list);
@@ -829,7 +833,7 @@ function piggyback(tc, opts) {
 
     if(opts.sourceIx === 'sut') {
         update.source = tc.sutHostPort;
-        update.sourceIncarnationNumber = tc.sutIncarnationNumber;
+        update.sourceIncarnationNumber = tc.test_state['sutIncarnationNumber'];
     } else {
         update.source = tc.fakeNodes[opts.sourceIx].getHostPort();
         update.sourceIncarnationNumber = tc.fakeNodes[opts.sourceIx].incarnationNumber;
@@ -841,7 +845,7 @@ function piggyback(tc, opts) {
 
     if(opts.subjectIx === 'sut') {
         update.address = tc.sutHostPort;
-        update.sourceIncarnationNumber = tc.sutIncarnationNumber;
+        update.sourceIncarnationNumber = tc.test_state['sutIncarnationNumber'];
     } else if(opts.subjectIx === 'new') {
         // address from test network
         update.address = "192.0.2.0:1234";
@@ -875,6 +879,7 @@ module.exports = {
 
     callEndpoint: callEndpoint,
     consumePings: consumePings,
+    consumeRequests: consumeRequests,
 
     sendJoin: sendJoin,
     sendPing: sendPing,

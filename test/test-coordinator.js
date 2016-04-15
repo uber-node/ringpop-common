@@ -65,8 +65,10 @@ function TestCoordinator(options) {
     this.sutProgram = options.sut.program;
     this.sutInterpreter = options.sut.interpreter;
     this.sutProc = undefined;
-    this.sutIncarnationNumber = undefined;
     this.hostsFile = '/tmp/ringpop-integration-test-hosts.json';
+
+	// State held during a test run. This namespace can be polluted insite the test.
+    this.test_state = {};
 
     this.adminChannel = new TChannel().makeSubChannel({
         serviceName: 'ringpop',
@@ -262,7 +264,7 @@ TestCoordinator.prototype.getMembership = function getMembership() {
 TestCoordinator.prototype.getSUTAsMember = function getSUTAsMember() {
     var host = this.sutHostPort.split(':')[0];
     var port = this.sutHostPort.split(':')[1];
-    var incNo = this.sutIncarnationNumber;
+    var incNo = this.test_state['sutIncarnationNumber'];
 
     return {
         host: host,
