@@ -75,6 +75,7 @@ what we want. In our example, we want two partitions.
 With that in mind, a bit more sophistication in firewall rules is required. To
 easily create a partition in `tick-cluster` locally, we created
 `tools/make_partitions`, which, by reading the state of the connections from
-`lsof`, will emit `iptables`/`pf` commands accordingly.
+`lsof`, will emit `iptables`/`pf` commands accordingly. See the
+`tools/make_partitions --help` for usage.
 
 [1]: https://lwn.net/Articles/569678/

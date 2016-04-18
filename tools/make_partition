@@ -97,6 +97,8 @@ def _block_tuples(lsof, port_to_owner, AB):
             ip = col.split('->')[0].split(':')[0]
             if port_to_owner[src] != port_to_owner[dst] and (dst in AB):
                 ret.append((src, dst))
+    if not ret:
+        raise ValueError("Could not find ringpops on provided ports")
     return ip, ret
 
 
