@@ -110,9 +110,10 @@ def _block_preamble_darwin(ip, ports):
 
 def _block_preamble_linux(ip, ports):
     """Block new connections to listening ports on Linux."""
+    rst = "-A INPUT -p tcp -s %s -d %s --tcp-flags RST RST -j ACCEPT"
     tpl = ("-A INPUT -p tcp --syn -m state --state NEW "
            "-d %s --dport %s -j REJECT --reject-with tcp-reset")
-    return ["*filter"] + [tpl % (ip, port) for port in ports]
+    return ["*filter", rst % (ip, ip)] + [tpl % (ip, port) for port in ports]
 
 
 def _block_pair_darwin(ip, blocks):
