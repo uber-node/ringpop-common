@@ -20,19 +20,18 @@
 
 var farmhash = require('farmhash');
 var makeHostPort = require('./util').makeHostPort;
-var checksum = require('./membership-checksum').checksum;
 var _ = require('underscore');
 
 // send and handle join requests (check bottom of file for example request)
 
 // Responding node and allNodes must have host, port, status, and incarnationNumber fields
-function handleJoin(req, res, respondingNode, membershipList) {
+function handleJoin(req, res, respondingNode, membershipList, checksumMethod) {
     res.headers.as = 'raw';
-    res.sendOk(null, JSON.stringify(getJoinResponsePayload(respondingNode, membershipList)));
+    res.sendOk(null, JSON.stringify(getJoinResponsePayload(respondingNode, membershipList, checksumMethod)));
 }
 
 // Responding node and allNodes must have host, port, status, and incarnationNumber fields
-function getJoinResponsePayload(respondingNode, membershipList) {
+function getJoinResponsePayload(respondingNode, membershipList, checksumMethod) {
     // add fake nodes to membership
     var responderHostPort = makeHostPort(respondingNode.host, respondingNode.port);
 
@@ -48,7 +47,7 @@ function getJoinResponsePayload(respondingNode, membershipList) {
     return {
         app: 'ringpop',
         coordinator:  responderHostPort,
-        membershipChecksum: checksum(membership),
+        membershipChecksum: checksumMethod(membership),
         membership: membership
     };
 }

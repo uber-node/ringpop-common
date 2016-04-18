@@ -25,7 +25,6 @@ var handleJoin = require('./protocol-join').handleJoin;
 var handlePing = require('./protocol-ping').handlePing;
 var handlePingReq = require('./protocol-ping-req').handlePingReq;
 var events = require('./events');
-var checksum = require('./membership-checksum').checksum;
 
 function FakeNode(options) {
     this.coordinator = options.coordinator;
@@ -126,7 +125,7 @@ FakeNode.prototype.changeEndpoint = function modifyEndpoint(endpoint, handler) {
 // Useful, e.g., for partitioning tests.
 FakeNode.prototype.joinHandler = function joinHandler(req, res, arg2, arg3) {
     var membership = this.membership || this.coordinator.getMembership();
-    return handleJoin(req, res, this.toMemberInfo(), membership);
+    return handleJoin(req, res, this.toMemberInfo(), membership, this.coordinator.checksum);
 };
 
 FakeNode.prototype.disable = function disable() {
@@ -141,7 +140,7 @@ var safeJSONParse = require('./util').safeParse;
 FakeNode.prototype.pingHandler = function pingHandler(req, res, arg2, arg3) {
     if (!this.enabled) return; // Do nothing when disabled
 
-    var csum = checksum(this.coordinator.getMembership())
+    var csum = this.coordinator.checksum(this.coordinator.getMembership())
     return handlePing(res, csum);
 };
 
@@ -157,7 +156,7 @@ FakeNode.prototype.pingReqHandler = function pingReqHandler(req, res, arg2, arg3
         }
     });
 
-    var csum = checksum(this.coordinator.getMembership())
+    var csum = this.coordinator.checksum(this.coordinator.getMembership())
     return handlePingReq(req, res, status, csum);
 };
 
@@ -215,7 +214,7 @@ FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
 
     var body = JSON.stringify({
         source: self.getHostPort(),
-        checksum: checksum(self.coordinator.getMembership()),
+        checksum: self.coordinator.checksum(self.coordinator.getMembership()),
         changes: changes,
         sourceIncarnationNumber: self.incarnationNumber,
     });
@@ -260,7 +259,7 @@ FakeNode.prototype.requestPingReq = function requestPingReq(target, callback, pi
 
     var body = {
         source: self.getHostPort(),
-        checksum: checksum(this.coordinator.getMembership()),
+        checksum: this.coordinator.checksum(this.coordinator.getMembership()),
         changes: [],
         sourceIncarnationNumber: self.incarnationNumber,
         target: target,
