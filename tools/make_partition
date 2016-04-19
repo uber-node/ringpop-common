@@ -14,6 +14,15 @@ Check current firewall rules:
    pfctl -sr               # Darwin
    iptables -nvL           # Linux
 
+=== Specifying more ports ===
+Port definitions accept port ranges. For example, this is valid:
+
+    sudo lsof -Pnni | ./make_partition 3000-3009 3010-3019
+
+... and this:
+
+    sudo lsof -Pnni | ./make_partition 3001-3009,3019 3000,3010-3018
+
 === Limitations ===
 Undefined behavior when something else is listening on the same port, but
 different IP address, e.g.
