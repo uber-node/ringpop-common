@@ -22,8 +22,9 @@ var events = require('./events');
 var test2 = require('./test-util').test2;
 var dsl = require('./ringpop-assert');
 var prepareCluster = require('./test-util').prepareCluster;
-var prepareWithStatus = require('./test-util').prepareWithStatus;
 var getClusterSizes = require('./it-tests').getClusterSizes;
+
+var async = require('async');
 var _ = require('lodash');
 
 test2('bidirectional full sync test', getClusterSizes(5), 20000,
@@ -46,6 +47,107 @@ test2('bidirectional full sync test', getClusterSizes(5), 20000,
 	    ];
 	})
 );
+
+test2('bidirectional full sync throttling test', getClusterSizes(3), 20000,
+    prepareCluster(function(t, tc, n) {
+        return [
+            dsl.assertStats(t, tc, n+1, 0, 0),
+            dsl.waitForEmptyPing(t, tc),
+
+            assertReverseFullSyncThrottling(t, tc, 0, n*3, 5),
+
+            dsl.assertStats(t, tc, n+1, 0, 0),
+        ];
+    })
+);
+
+// assert if the number of joins is throttled.
+function assertReverseFullSyncThrottling(t, tc, idx, count, expectedJoins) {
+    var functions = [];
+
+    //pause handling joins to stall reverse full syncs
+    functions.push(pauseHandlingJoins);
+    functions.push(dsl.waitForEmptyPing(t, tc));
+
+    // trigger the reverse full syncs
+    functions.push(triggerReverseFullSyncs(tc, idx, count));
+
+    // verify the number of join requests
+    functions.push(verify);
+
+    // handle the joins
+    functions.push(resumeHandlingJoins);
+
+    // the SUT sends a join request to perform a bidirectional full sync
+    functions.push(dsl.waitForJoins(t, tc, expectedJoins));
+
+    var joins = [];
+
+    return functions;
+
+    function triggerReverseFullSyncs(tc, nodeIx, count) {
+        var f = function triggerFullSync(list, cb) {
+            async.times(count, function triggerFullSync(i, next){
+                tc.fakeNodes[nodeIx].requestPing(next, undefined, {checksum: 1}); //override checksum to trigger a fullsync
+            }, function done() {
+                cb(list);
+            });
+        };
+        f.callerName = 'triggerReverseFullSyncs';
+
+        return f;
+    }
+
+    function pauseHandlingJoins(list, cb) {
+        var fakeNode = tc.fakeNodes[idx];
+
+        fakeNode.endpoints['Join'].handler = function() {
+            console.log('handling join');
+            joins.push(arguments)
+        };
+
+
+        cb(list);
+    }
+
+    function verify(list, cb) {
+        if (joins.length < expectedJoins) {
+            cb(null);
+            return;
+        }
+        t.equal(joins.length, expectedJoins);
+
+        var pings = _.filter(list, {
+            type: events.Types.Ping,
+            direction: 'response'
+        });
+
+        pings = _.filter(pings, function(event) {
+            return event.receiver === tc.fakeNodes[idx].getHostPort();
+        });
+
+        if (pings.length < count) {
+            cb(null);
+            return;
+        }
+
+        t.equals(pings.length, count);
+
+        cb(_.reject(list, {type: events.Types.Ping, direction: 'response'}));
+    }
+
+    function resumeHandlingJoins(list, cb) {
+        var fakeNode = tc.fakeNodes[idx];
+
+        fakeNode.endpoints['Join'].handler = fakeNode.joinHandler;
+
+        for(var i=0; i< joins.length; i++) {
+            fakeNode.joinHandler.apply(fakeNode, joins[i]);
+        }
+
+        cb(list);
+    }
+}
 
 // create partition marks some fake nodes as faulty but doesn't inform the SUT
 // on the changes.

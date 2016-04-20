@@ -19,6 +19,8 @@
 // THE SOFTWARE.
 
 var TChannel = require('tchannel');
+var _ = require('lodash');
+
 var safeParse = require('./util').safeParse;
 var makeHostPort = require('./util').makeHostPort;
 var handleJoin = require('./protocol-join').handleJoin;
@@ -204,7 +206,7 @@ FakeNode.prototype.requestJoin = function requestJoin(callback) {
     });
 };
 
-FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
+FakeNode.prototype.requestPing = function requestPing(callback, piggybackData, bodyOverrides) {
     var self = this;
 
     var changes = [];
@@ -212,12 +214,13 @@ FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
         changes.push(piggybackData);
     }
 
-    var body = JSON.stringify({
+    var bodyObject = {
         source: self.getHostPort(),
         checksum: self.coordinator.checksum(self.coordinator.getMembership()),
         changes: changes,
         sourceIncarnationNumber: self.incarnationNumber,
-    });
+    };
+    var body = JSON.stringify(_.extend(bodyObject, bodyOverrides));
 
 
     self.channel.waitForIdentified({
