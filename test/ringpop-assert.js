@@ -224,13 +224,13 @@ function changeStatus(t, tc, sourceIx, subjectIx, status, subjectIncNoDelta) {
     return f;
 }
 
-function sendPing(t, tc, nodeIx, piggybackOpts) {
+function sendPing(t, tc, nodeIx, piggybackOpts, bodyOverwrites) {
     var f = _.once(function sendPing(list, cb) {
         var piggybackData = piggyback(tc, piggybackOpts);
 
         tc.fakeNodes[nodeIx].requestPing(function() {
             cb(list);
-        }, piggybackData);
+        }, piggybackData, bodyOverwrites);
     });
     f.callerName = 'sendPing';
     return f;
