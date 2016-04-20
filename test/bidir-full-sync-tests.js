@@ -92,6 +92,7 @@ function overwriteJoinHandlerWithPause(tc, idx) {
         var fakeNode = tc.fakeNodes[idx];
 
         fakeNode.cachedJoins = [];
+        fakeNode.originalJoinHandler = fakeNode.endpoints['Join'].handler;
         fakeNode.endpoints['Join'].handler = function() {
             fakeNode.cachedJoins.push(arguments)
         };
@@ -147,12 +148,13 @@ function handleCachedJoinsAndRestoreJoinHandler(tc, idx) {
     return function handleCachedJoinsAndRestoreJoinHandler(list, cb) {
         var fakeNode = tc.fakeNodes[idx];
 
-        fakeNode.endpoints['Join'].handler = fakeNode.joinHandler;
+        var originalHandler = fakeNode.originalJoinHandler;
+        fakeNode.endpoints['Join'].handler = originalHandler;
 
         var cachedJoins = fakeNode.cachedJoins;
 
         for(var i=0; i< cachedJoins.length; i++) {
-            fakeNode.joinHandler.apply(fakeNode, cachedJoins[i]);
+            originalHandler.apply(fakeNode, cachedJoins[i]);
         }
 
         cb(list);
