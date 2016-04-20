@@ -67,97 +67,78 @@ test2('bidirectional full sync throttling test', getClusterSizes(3), 20000,
             dsl.assertStats(t, tc, n+1, 0, 0),
             dsl.waitForEmptyPing(t, tc),
 
-            //pause handling joins to stall reverse full syncs
-            overwriteJoinHandlerWithPause(tc, 0),
-
-            // trigger the reverse full syncs
-            triggerReverseFullSyncs(tc, 0, numberOfFullSyncsToTrigger),
-
-            // verify the number of )cached) join requests
-            verifyCachedJoins(t, tc, 0, numberOfFullSyncsToTrigger, expectedJoins),
-
-            // handle the joins and restore the original join-handler.
-            handleCachedJoinsAndRestoreJoinHandler(tc, 0),
+            assertReverseFullSyncThrottling(t, tc, 0, numberOfFullSyncsToTrigger, expectedJoins),
 
             // wait for the joins to be handled.
             dsl.waitForJoins(t, tc, expectedJoins),
-
+            dsl.expectOnlyPings(t, tc),
             dsl.assertStats(t, tc, n+1, 0, 0)
         ];
     })
 );
 
-function overwriteJoinHandlerWithPause(tc, idx) {
-    return function overwriteJoinHandlerWithPause(list, cb) {
-        var fakeNode = tc.fakeNodes[idx];
 
-        fakeNode.cachedJoins = [];
-        fakeNode.originalJoinHandler = fakeNode.endpoints['Join'].handler;
-        fakeNode.endpoints['Join'].handler = function() {
-            fakeNode.cachedJoins.push(arguments)
-        };
+function assertReverseFullSyncThrottling(t, tc, nodeIx, numberOfFullSyncsToTrigger, expectedJoins){
 
-        cb(list);
-    }
-}
+    var cachedJoins;
+    var originalJoinHandler;
 
-function verifyCachedJoins(t, tc, idx, fullSyncs, expectedJoins) {
-    return function verifyCachedJoins(list, cb) {
-        var fakeNode = tc.fakeNodes[idx];
-        var cachedJoins = fakeNode.cachedJoins;
-        if (cachedJoins.length < expectedJoins) {
-            cb(null);
-            return;
-        }
-        t.equal(cachedJoins.length, expectedJoins);
+    return [
+        //pause handling joins to stall reverse full syncs
+        overwriteJoinHandlerWithPause(tc, nodeIx),
 
-        var pings = _.filter(list, {
-            type: events.Types.Ping,
-            direction: 'response'
-        });
+        // trigger the reverse full syncs
+        _.times(numberOfFullSyncsToTrigger, function(){
+            return [
+                dsl.sendPing(t, tc, nodeIx, undefined, {checksum: 1}),
+                dsl.waitForPingResponse(t, tc, nodeIx)
+            ];
+        }),
 
-        pings = _.filter(pings, function(event) {
-            return event.receiver === tc.fakeNodes[idx].getHostPort();
-        });
+        // verify the number of (cached) join requests
+        verifyCachedJoins(t, expectedJoins),
 
-        if (pings.length < fullSyncs) {
-            cb(null);
-            return;
-        }
+        // process the cached joins requests and restore the original join-handler.
+        handleCachedJoinsAndRestoreJoinHandler(tc, nodeIx)
+    ];
 
-        t.equals(pings.length, fullSyncs);
+    function overwriteJoinHandlerWithPause(tc, idx) {
+        return function overwriteJoinHandlerWithPause(list, cb) {
+            var fakeNode = tc.fakeNodes[idx];
 
-        cb(_.reject(list, {type: events.Types.Ping, direction: 'response'}));
-    }
-}
+            cachedJoins = [];
+            originalJoinHandler = fakeNode.endpoints['Join'].handler;
+            fakeNode.endpoints['Join'].handler = function() {
+                cachedJoins.push(arguments)
+            };
 
-function triggerReverseFullSyncs(tc, nodeIx, count) {
-    var f = function triggerFullSync(list, cb) {
-        async.times(count, function triggerFullSync(i, next){
-            tc.fakeNodes[nodeIx].requestPing(next, undefined, {checksum: 1}); //override checksum to trigger a fullsync
-        }, function done() {
             cb(list);
-        });
-    };
-    f.callerName = 'triggerReverseFullSyncs';
-
-    return f;
-}
-
-function handleCachedJoinsAndRestoreJoinHandler(tc, idx) {
-    return function handleCachedJoinsAndRestoreJoinHandler(list, cb) {
-        var fakeNode = tc.fakeNodes[idx];
-
-        var originalHandler = fakeNode.originalJoinHandler;
-        fakeNode.endpoints['Join'].handler = originalHandler;
-
-        var cachedJoins = fakeNode.cachedJoins;
-
-        for(var i=0; i< cachedJoins.length; i++) {
-            originalHandler.apply(fakeNode, cachedJoins[i]);
         }
+    }
 
-        cb(list);
+    function verifyCachedJoins(t, expectedJoins) {
+        return function verifyCachedJoins(list, cb) {
+            if (cachedJoins.length < expectedJoins) {
+                cb(null);
+                return;
+            }
+            t.equal(cachedJoins.length, expectedJoins);
+
+            cb(list);
+        }
+    }
+
+    function handleCachedJoinsAndRestoreJoinHandler(tc, idx) {
+        return function handleCachedJoinsAndRestoreJoinHandler(list, cb) {
+            var fakeNode = tc.fakeNodes[idx];
+            fakeNode.endpoints['Join'].handler = originalJoinHandler;
+
+            for(var i=0; i< cachedJoins.length; i++) {
+                originalJoinHandler.apply(fakeNode, cachedJoins[i]);
+            }
+
+            cb(list);
+        }
     }
 }
 
