@@ -19,6 +19,8 @@
 // THE SOFTWARE.
 
 var TChannel = require('tchannel');
+var _ = require('lodash');
+
 var safeParse = require('./util').safeParse;
 var makeHostPort = require('./util').makeHostPort;
 var handleJoin = require('./protocol-join').handleJoin;
@@ -204,7 +206,16 @@ FakeNode.prototype.requestJoin = function requestJoin(callback) {
     });
 };
 
-FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
+/**
+ * Make a ping request to the SUT.
+ *
+ * @param {function} callback The callback to call after receiving the response of the ping-request.
+ *  It's signature matches the TChannel callback (err, res, arg2, arg3).
+ * @param {object} piggybackData The changes to piggy back on the ping.
+ * @param {object} bodyOverrides Overwrite specific ping body parameters (checksum, source, sourceIncarnationNumber, changes)
+ * @returns {Function} Returns the function that'll be invoked when running the integration test.
+ */
+FakeNode.prototype.requestPing = function requestPing(callback, piggybackData, bodyOverrides) {
     var self = this;
 
     var changes = [];
@@ -212,12 +223,13 @@ FakeNode.prototype.requestPing = function requestPing(callback, piggybackData) {
         changes.push(piggybackData);
     }
 
-    var body = JSON.stringify({
+    var bodyObject = {
         source: self.getHostPort(),
         checksum: self.coordinator.checksum(self.coordinator.getMembership()),
         changes: changes,
         sourceIncarnationNumber: self.incarnationNumber,
-    });
+    };
+    var body = JSON.stringify(_.extend(bodyObject, bodyOverrides));
 
 
     self.channel.waitForIdentified({
