@@ -224,6 +224,16 @@ function changeStatus(t, tc, sourceIx, subjectIx, status, subjectIncNoDelta) {
     return f;
 }
 
+/**
+ * Send a ping to the SUT from a fake node
+ *
+ * @param {Test} t The current running test
+ * @param {TestCoordinator} tc The test coordinator.
+ * @param {number} nodeIx The index of the fakeNode that should send the ping.
+ * @param {object} piggybackOpts The changes to piggy back on the ping.
+ * @param {object} bodyOverrides Overwrite specific ping body parameters (checksum, source, sourceIncarnationNumber, changes)
+ * @returns {Function} Returns the function that'll be invoked when running the integration test.
+ */
 function sendPing(t, tc, nodeIx, piggybackOpts, bodyOverrides) {
     var f = _.once(function sendPing(list, cb) {
         var piggybackData = piggyback(tc, piggybackOpts);

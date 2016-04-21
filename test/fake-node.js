@@ -206,6 +206,15 @@ FakeNode.prototype.requestJoin = function requestJoin(callback) {
     });
 };
 
+/**
+ * Make a ping request to the SUT.
+ *
+ * @param {function} callback The callback to call after receiving the response of the ping-request.
+ *  It's signature matches the TChannel callback (err, res, arg2, arg3).
+ * @param {object} piggybackData The changes to piggy back on the ping.
+ * @param {object} bodyOverrides Overwrite specific ping body parameters (checksum, source, sourceIncarnationNumber, changes)
+ * @returns {Function} Returns the function that'll be invoked when running the integration test.
+ */
 FakeNode.prototype.requestPing = function requestPing(callback, piggybackData, bodyOverrides) {
     var self = this;
 
