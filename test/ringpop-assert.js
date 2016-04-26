@@ -740,7 +740,6 @@ function createValidateEvent(t, tc) {
     // /admin/gossip
     // /admin/join
     // /admin/leave
-    // /admin/reload
     // /admin/tick
 
     return function validateIncommingEvent(event) {
