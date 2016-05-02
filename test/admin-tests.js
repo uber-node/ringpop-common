@@ -27,8 +27,6 @@ var getClusterSizes = require('./it-tests').getClusterSizes;
 // TODO endpoints
 //   /admin/debugClear (NOOP in go, toggle between ping logs in node2)
 //   /admin/debugSet
-// node only:
-//   /admin/reload
 
 test2('endpoint: /admin/gossip/stop', getClusterSizes(), 5000, prepareCluster(function(t,tc,n) {
     return [
