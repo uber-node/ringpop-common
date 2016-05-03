@@ -102,7 +102,11 @@ test2('ringpop sends piggyback info in ping-req response', getClusterSizes(3), 2
     ];
 }));
 
-test2('ringpop piggybacking decays', getClusterSizes(3), 20000, prepareCluster(function(t, tc, n) {
+// The timeout here is increased because it's possible to have a faulty to
+// tombstone transition during the test that will also be disseminated.
+// This happens when the cluster size >= 10 and causes the piggy back counter
+// to double to 30.
+test2('ringpop piggybacking decays', getClusterSizes(3), 40000, prepareCluster(function(t, tc, n) {
     return [
         // TODO clear the dissemination information from the SUT by flooding it with pings instead of waiting for it
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
