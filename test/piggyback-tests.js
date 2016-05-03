@@ -112,8 +112,8 @@ test2('ringpop piggybacking decays', getClusterSizes(3), 40000, prepareCluster(f
         dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
 
         // send information to be piggy backed
-        dsl.changeStatus(t, tc, 0, 1, 'suspect'),
-        dsl.waitForPingResponse(t, tc, 0),
+        dsl.changeStatus(t, tc, 1, 2, 'suspect'),
+        dsl.waitForPingResponse(t, tc, 1),
 
         // if the SUT decays the updates it will start pinging with 0 updates at some point
         // TODO do this with a set number of pings to the SUT to speed up the test

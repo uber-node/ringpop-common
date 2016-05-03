@@ -92,6 +92,15 @@ function waitForPing(t, tc) {
     };
 }
 
+function fasterWaitForEmptyPing(t, tc) {
+    // waitForEmptyPing(t, tc);
+    return [
+        sendPings(t, tc, _.times(30, _.constant(0))),
+        waitForPingResponses(t, tc, _.times(30, _.constant(0))),
+        waitForEmptyPing(t, tc),
+    ];
+}
+
 function waitForEmptyPing(t, tc) {
     // Waits for a ping with an empty changes list, and consumes all pings with changes in them
     // usefull to wait for a 'stable' SUT before doing piggyback tests. Given that decay works in the SUT
@@ -224,16 +233,11 @@ function changeStatus(t, tc, sourceIx, subjectIx, status, subjectIncNoDelta) {
     return f;
 }
 
-/**
- * Send a ping to the SUT from a fake node
- *
- * @param {Test} t The current running test
- * @param {TestCoordinator} tc The test coordinator.
- * @param {number} nodeIx The index of the fakeNode that should send the ping.
- * @param {object} piggybackOpts The changes to piggy back on the ping.
- * @param {object} bodyOverrides Overwrite specific ping body parameters (checksum, source, sourceIncarnationNumber, changes)
- * @returns {Function} Returns the function that'll be invoked when running the integration test.
- */
+
+// Send a ping to the SUT from a fake node, where:
+// - nodeIx is the index of the fakeNode that should send the ping.
+// - piggybackOpts are the changes to piggy back on the ping.
+// - bodyOverrides overwrite specific ping body parameters (checksum, source, sourceIncarnationNumber, changes)
 function sendPing(t, tc, nodeIx, piggybackOpts, bodyOverrides) {
     var f = _.once(function sendPing(list, cb) {
         var piggybackData = piggyback(tc, piggybackOpts);
@@ -910,8 +914,9 @@ module.exports = {
     waitForJoins: waitForJoins,
     waitForPingReqs: waitForPingReqs,
     waitForPing: waitForPing,
-    waitForEmptyPing: waitForEmptyPing,
-    // drainSUTDissemination: drainSUTDissemination,
+    // waitForEmptyPing: waitForEmptyPing,
+    waitForEmptyPing: fasterWaitForEmptyPing,
+
     validateEventBody: validateEventBody,
 
     callEndpoint: callEndpoint,
