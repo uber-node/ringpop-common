@@ -97,8 +97,8 @@ function testStateTransitions(ns, initial, newState, finalState, incNoDelta, sta
             expectedMembers[ix] = {status: finalState};
 
             // alive is a delta
-            counts = _.extend({}, statusCounts)
-            counts.alive = (counts.alive || 0) + n
+            var counts = _.extend({}, statusCounts);
+            counts.alive = (counts.alive || 0) + n;
             return [
                 dsl.changeStatus(t, tc, 0, 1, newState, incNoDelta),
                 dsl.waitForPingResponse(t, tc, 0),
