@@ -19,12 +19,14 @@
 // THE SOFTWARE.
 
 var dsl = require('./ringpop-assert');
+var _ = require('lodash');
 var TestCoordinator = require('./test-coordinator');
 var getProgramPath = require('./it-tests').getProgramPath;
 var getProgramInterpreter = require('./it-tests').getProgramInterpreter;
 var main = require('./it-tests');
 // test is like normal tape test but also prints t.error.details if a fail occured
 var Test = require('tape');
+
 function test(msg, opts, cb) {
     var t = Test(msg, opts, cb);
     t.on('result', function(res) {
@@ -95,11 +97,12 @@ function testStateTransitions(ns, initial, newState, finalState, incNoDelta, sta
             expectedMembers[ix] = {status: finalState};
 
             // alive is a delta
-            statusCounts.alive = (statusCounts.alive || 0) + n
+            var counts = _.extend({}, statusCounts);
+            counts.alive = (counts.alive || 0) + n;
             return [
                 dsl.changeStatus(t, tc, 0, 1, newState, incNoDelta),
                 dsl.waitForPingResponse(t, tc, 0),
-                dsl.assertStats(t, tc, statusCounts, expectedMembers),
+                dsl.assertStats(t, tc, counts, expectedMembers),
             ];
         })
     );
