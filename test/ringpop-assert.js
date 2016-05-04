@@ -92,8 +92,13 @@ function waitForPing(t, tc) {
     };
 }
 
-function fasterWaitForEmptyPing(t, tc) {
-    // waitForEmptyPing(t, tc);
+// drainDisseminator sends 30 pings to the SUT. The SUT responds with changes
+// that it has to disseminate. After a change has been disseminated maxP times
+// the SUT will remove that change from it's disseminator. maxP depends on
+// cluster size. For clusters smaller than 10, maxP=15, for clusters smaller
+// than 100, maxP=30 by default. After the 30 pings we call waitForEmptyPing
+// to make sure that the disseminator is indeed drained.
+function drainDisseminator(t, tc) {
     return [
         sendPings(t, tc, _.times(30, _.constant(0))),
         waitForPingResponses(t, tc, _.times(30, _.constant(0))),
@@ -233,11 +238,16 @@ function changeStatus(t, tc, sourceIx, subjectIx, status, subjectIncNoDelta) {
     return f;
 }
 
-
-// Send a ping to the SUT from a fake node, where:
-// - nodeIx is the index of the fakeNode that should send the ping.
-// - piggybackOpts are the changes to piggy back on the ping.
-// - bodyOverrides overwrite specific ping body parameters (checksum, source, sourceIncarnationNumber, changes)
+/**
+ * Send a ping to the SUT from a fake node
+ *
+ * @param {Test} t The current running test
+ * @param {TestCoordinator} tc The test coordinator.
+ * @param {number} nodeIx The index of the fakeNode that should send the ping.
+ * @param {object} piggybackOpts The changes to piggy back on the ping.
+ * @param {object} bodyOverrides Overwrite specific ping body parameters (checksum, source, sourceIncarnationNumber, changes)
+ * @returns {Function} Returns the function that'll be invoked when running the integration test.
+ */
 function sendPing(t, tc, nodeIx, piggybackOpts, bodyOverrides) {
     var f = _.once(function sendPing(list, cb) {
         var piggybackData = piggyback(tc, piggybackOpts);
@@ -914,8 +924,10 @@ module.exports = {
     waitForJoins: waitForJoins,
     waitForPingReqs: waitForPingReqs,
     waitForPing: waitForPing,
+
+    // waitForEmptyPing is slow. If possible, use drainDisseminator instead.
     // waitForEmptyPing: waitForEmptyPing,
-    waitForEmptyPing: fasterWaitForEmptyPing,
+    drainDisseminator: drainDisseminator,
 
     validateEventBody: validateEventBody,
 

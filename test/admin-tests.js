@@ -131,7 +131,7 @@ test2('endpoint: /admin/stats', getClusterSizes(), 5000, prepareCluster(function
 test2('endpoint: /admin/member/leave', getClusterSizes(), 10000, prepareCluster(function(t, tc, n) {
     return [
         // this makes testing the piggy backed status easier
-        dsl.waitForEmptyPing(t, tc),
+        dsl.drainDisseminator(t, tc),
 
         // instruct node to leave cluster
         dsl.callEndpoint(t, tc, '/admin/member/leave'),
@@ -160,7 +160,7 @@ test2('endpoint: /admin/member/leave', getClusterSizes(), 10000, prepareCluster(
 test2('endpoint: /admin/member/join', getClusterSizes(), 10000, prepareCluster(function(t, tc, n) {
     return [
         // this makes testing the piggy backed status easier
-        dsl.waitForEmptyPing(t, tc), // problem is that if decay is not working you might never get to this point
+        dsl.drainDisseminator(t, tc), // problem is that if decay is not working you might never get to this point
 
         // instruct node to leave cluster
         dsl.callEndpoint(t, tc, '/admin/member/leave'),
