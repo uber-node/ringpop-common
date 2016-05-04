@@ -92,6 +92,20 @@ function waitForPing(t, tc) {
     };
 }
 
+// drainDisseminator sends 30 pings to the SUT. The SUT responds with changes
+// that it has to disseminate. After a change has been disseminated maxP times
+// the SUT will remove that change from it's disseminator. maxP depends on
+// cluster size. For clusters smaller than 10, maxP=15, for clusters smaller
+// than 100, maxP=30 by default. After the 30 pings we call waitForEmptyPing
+// to make sure that the disseminator is indeed drained.
+function drainDisseminator(t, tc) {
+    return [
+        sendPings(t, tc, _.times(30, _.constant(0))),
+        waitForPingResponses(t, tc, _.times(30, _.constant(0))),
+        waitForEmptyPing(t, tc),
+    ];
+}
+
 function waitForEmptyPing(t, tc) {
     // Waits for a ping with an empty changes list, and consumes all pings with changes in them
     // usefull to wait for a 'stable' SUT before doing piggyback tests. Given that decay works in the SUT
@@ -910,8 +924,10 @@ module.exports = {
     waitForJoins: waitForJoins,
     waitForPingReqs: waitForPingReqs,
     waitForPing: waitForPing,
-    waitForEmptyPing: waitForEmptyPing,
-    // drainSUTDissemination: drainSUTDissemination,
+
+    // waitForEmptyPing is slow. If possible, use drainDisseminator instead.
+    drainDisseminator: drainDisseminator,
+
     validateEventBody: validateEventBody,
 
     callEndpoint: callEndpoint,

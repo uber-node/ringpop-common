@@ -31,7 +31,7 @@ test2('bidirectional full sync test', getClusterSizes(5), 20000,
     prepareCluster(function(t, tc, n) {
 	    return [
             dsl.assertStats(t, tc, n+1, 0, 0),
-            dsl.waitForEmptyPing(t, tc),
+            dsl.drainDisseminator(t, tc),
 
             // create faulties so that the membership of the faulty nodes is
             // out of sync with the membership of the SUT
@@ -65,7 +65,7 @@ test2('bidirectional full sync throttling test', getClusterSizes(3), 20000,
         var expectedJoins = 5;
         return [
             dsl.assertStats(t, tc, n+1, 0, 0),
-            dsl.waitForEmptyPing(t, tc),
+            dsl.drainDisseminator(t, tc),
 
             assertReverseFullSyncThrottling(t, tc, 0, numberOfFullSyncsToTrigger, expectedJoins),
 
