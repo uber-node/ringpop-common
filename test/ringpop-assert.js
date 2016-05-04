@@ -926,7 +926,6 @@ module.exports = {
     waitForPing: waitForPing,
 
     // waitForEmptyPing is slow. If possible, use drainDisseminator instead.
-    // waitForEmptyPing: waitForEmptyPing,
     drainDisseminator: drainDisseminator,
 
     validateEventBody: validateEventBody,
