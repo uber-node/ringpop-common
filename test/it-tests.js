@@ -75,6 +75,7 @@ var features = {
         ]
     },
     'bidirectional-full-syncs': {
+        mandatory: true,
         tests: [
             './bidir-full-sync-tests'
         ]
