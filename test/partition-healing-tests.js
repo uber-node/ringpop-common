@@ -336,9 +336,20 @@ test2('dont\'t merge partitions when B is not fully reincarnated', [3], 20000, p
         // cause the test to fail
         dsl.waitForJoins(t, tc, 1),
 
-        dsl.validateEventBody(t, tc, {
-            type: events.Types.Ping,
-            direction: 'request'
+        dsl.validateEventBody(t, tc, function selectPingToB(ping) {
+            // responses can sometimes come back out-of-order on slow machines
+            if (ping.type !== events.Types.Ping) {
+                return false;
+            }
+            if (ping.direction !== 'request') {
+                return false;
+            }
+            var b1 = tc.fakeNodes[1].getHostPort();
+            var b2 = tc.fakeNodes[2].getHostPort();
+            if (ping.receiver != b1 && ping.receiver != b2) {
+                return false;
+            }
+            return true;
         }, "ping after heal", function (ping) {
             var a1 = tc.fakeNodes[0].getHostPort();
             var b1 = tc.fakeNodes[1].getHostPort();
