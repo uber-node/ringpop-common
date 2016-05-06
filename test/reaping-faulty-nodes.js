@@ -174,7 +174,11 @@ test2('test /admin/reap endpoint', getClusterSizes(2), 20000,
             type: events.Types.AdminReap,
             direction: 'response'
         }, 'Wait for AdminReap response', function (response) {
-            return response.body.status === 'ok';
+            var correctCount = true;
+            if (response.body.reaped !== undefined) {
+                correctCount = response.body.reaped === 1;
+            }
+            return response.body.status === 'ok' && correctCount;
         }),
 
         dsl.assertStats(t, tc, {alive: n, tombstone: 1}, {1: {status: 'tombstone'}}),
