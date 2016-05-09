@@ -370,6 +370,11 @@ test2('dont\'t merge partitions when B is not fully reincarnated', [3], 20000, p
                 return false;
             }
 
+            if (_.filter(ping.body.changes, {source: tc.sutHostPort}).length !== 0) {
+                t.fail("expected the source address to be different to prevent a bi-directional full sync");
+                return;
+            }
+
             return true;
         }),
 
