@@ -1,6 +1,6 @@
 # Partition Healing
 
-In the original implementation of ringpop, if a cluster is split to multiple partitions, nodes in each partition declare each other as faulty, and afterward will no longer communicate. Ringpop implemented support for merging the partitions, which we call `healing`.
+In the original implementation of ringpop, if a cluster is split to multiple partitions due to failing network connectivity between them, nodes in each partition declare each other as faulty, and afterward will no longer communicate. Ringpop implemented support for merging the partitions, which we call `healing`. If the network partition is healed, the ringpop cluster is still partitioned into smaller ringpop clusters that don't ping each other. We introduce Partition Healing to merge these smaller clusters back into one healthy ringpop cluster.
 
 ## Basic algorithm
 
@@ -19,7 +19,14 @@ We test this feature in 3 ways:
 
 ## Detailed algorithm
 
-This document describes a strategy to heal a partitioned ringpop cluster. The first section describes the mechanism a node triggers when it attempts to heal a partition, the second describes how, how often and when a node should trigger this mechanism.
+This chapter describes a strategy to heal a partitioned ringpop cluster. The first section describes the mechanism a node triggers when it attempts to heal a partition, the second describes how, how often and when a node should trigger this mechanism.
+
+Glossary:
+
+* _Ringpop Partition_: a ringpop cluster split into two or more parts which can't communicate to each other, and believe the other parts are faulty.
+* _Network Partition_: an event in network infrastructure which denies two (or more) parts of ringpop cluster to communicate, causing a _Ringpop Partition_.
+* _Discovery Provider_: a mechanism to retrieve a list of members that should be in the ringpop cluster. Can be local (e.g. list of hosts in a file), or remote (e.g. remote member discovery service).
+* _Partition Healing_: mechanism in ringpop to resolve _Ringpop Partitions_.
 
 ### When and How Often
 
