@@ -183,7 +183,8 @@ That's it, we have a partition! To break it, we need to wipe the firewall rules:
 * OS X: `pfctl -f /etc/pf.conf`.
 * Linux: `iptables -F`.
 
-... and wait for partition healing to kick in.
+... and wait for partition healing to kick in, or execute the `ringpop-admin
+heal` [command][1].
 
 ## Final remarks
 
@@ -192,3 +193,5 @@ That's it, we have a partition! To break it, we need to wipe the firewall rules:
 * `tools/make_partition` is not intended to be used in an automated way. See
   `--help` to learn about the limitations.
 
+
+[1]: https://github.com/uber/ringpop-admin
