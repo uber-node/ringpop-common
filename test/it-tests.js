@@ -70,6 +70,7 @@ var features = {
 
     // features implemented in only one language
     'reaping-faulty-nodes': {
+        mandatory: true,
         tests: [
             './reaping-faulty-nodes'
         ]
@@ -81,6 +82,7 @@ var features = {
         ]
     },
     'partition-healing': {
+        mandatory: true,
         tests: [
             './partition-healing-tests'
         ]
