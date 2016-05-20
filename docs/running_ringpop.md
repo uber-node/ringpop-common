@@ -66,7 +66,7 @@ that Ringpop emits:
 |dissemination.bump-bypass|Number of times piggyback count is preserved after failed ping or ping-req|count
 |filtered-change|A change to be disseminated was deduped|count
 |full-sync|Number of full syncs transmitted|count
-|heal.triggered.discover_provider|Number of times the partition healing is initiated using the discover provider. Note: this stat will be emitted even if there is no faulty or unknown target found; the actual number of heal attempts can be measured using `heal.attempt`.|count
+|heal.triggered|Number of times the partition healing is initiated. Note: this stat will be emitted even if there is no faulty or unknown target found; the actual number of heal attempts can be measured using `heal.attempt`.|count
 |heal.attempt|Number of times a heal opeartion is performed to a target-node|count
 |join|Time required to complete join process successfully|timer
 |join.complete|Join process completed successfully|count
