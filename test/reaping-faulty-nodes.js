@@ -218,9 +218,10 @@ test2('tombstone should be gossiped with flag when applied as state', getCluster
             dsl.consumePings(t, tc),
 
             // Wait for a ping from the SUT and validate that it does not gossip about the tombstone
-            dsl.validateEventBody(t, tc, {
-                type: events.Types.Ping,
-                direction: 'request'
+            dsl.validateEventBody(t, tc, function(ping) {
+                return ping.type === events.Types.Ping
+                    && ping.direction === 'request'
+                    && ping.body.changes[0].status !== 'alive'
             }, "The gossip should contain a flagged tombstone", function (ping) {
                 return _.filter(ping.body.changes, { status: 'faulty', tombstone: true }).length === 1
                     && _.filter(ping.body.changes, { status: 'tombstone' }).length === 0;
@@ -264,9 +265,10 @@ test2('tombstone should be gossiped with flag when applied as a flag', getCluste
             dsl.consumePings(t, tc),
 
             // Wait for a ping from the SUT and validate that it does not gossip about the tombstone
-            dsl.validateEventBody(t, tc, {
-                type: events.Types.Ping,
-                direction: 'request'
+            dsl.validateEventBody(t, tc, function(ping) {
+                return ping.type === events.Types.Ping
+                    && ping.direction === 'request'
+                    && ping.body.changes[0].status !== 'alive'
             }, "The gossip should contain a flagged tombstone", function (ping) {
                 return _.filter(ping.body.changes, { status: 'faulty', tombstone: true }).length === 1
                     && _.filter(ping.body.changes, { status: 'tombstone' }).length === 0;
