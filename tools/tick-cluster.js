@@ -243,6 +243,11 @@ function debugClear() {
     });
 }
 
+function shutdown() {
+    killAllProcs();
+    process.exit();
+}
+
 var state = 'top';
 var func = null;
 var numArgRe = /^[1-9]$/;
@@ -252,8 +257,7 @@ function onData(char) {
         switch (char) {
             case '\u0003': // watch for control-c explicitly, because we are in raw-mode
             case 'q':
-                killAllProcs();
-                process.exit();
+                shutdown();
                 break;
             case 't':
                 tickAll();
@@ -480,6 +484,9 @@ function startCluster() {
 
 function main() {
     logMsg('init', color.cyan('tick-cluster started'));
+
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
 
     if (bindInterface) {
         localIP = bindInterface;
