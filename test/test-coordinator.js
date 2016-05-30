@@ -165,11 +165,27 @@ TestCoordinator.prototype.startSUT = function startSUT() {
     var newProc;
     var hostsFileArg = util.format('--hosts=%s', this.hostsFile);
     var listenArg = util.format('--listen=%s', this.sutHostPort);
+    var suspectPeriodArg = util.format('--suspect=5')
+    var faultyPeriodArg = util.format('--faulty=5')
+    var tombstonePeriodArg = util.format('--tombstone=5')
     console.log(this.sutProgram, listenArg, hostsFileArg);
     if (this.sutInterpreter) {
-        newProc = childProc.spawn(this.sutInterpreter, [this.sutProgram, listenArg, hostsFileArg]);
+        newProc = childProc.spawn(this.sutInterpreter, [
+            this.sutProgram,
+            listenArg,
+            hostsFileArg,
+            suspectPeriodArg,
+            faultyPeriodArg,
+            tombstonePeriodArg,
+        ]);
     } else {
-        newProc = childProc.spawn(this.sutProgram, [listenArg, hostsFileArg]);
+        newProc = childProc.spawn(this.sutProgram, [
+            listenArg,
+            hostsFileArg,
+            suspectPeriodArg,
+            faultyPeriodArg,
+            tombstonePeriodArg,
+        ]);
     }
 
     newProc.on('error', function(err) {
