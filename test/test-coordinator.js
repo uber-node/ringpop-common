@@ -64,6 +64,9 @@ function TestCoordinator(options) {
     this.sutHostPort = makeHostPort('127.0.0.1', _.random(10000, 30000));
     this.sutProgram = options.sut.program;
     this.sutInterpreter = options.sut.interpreter;
+    this.suspectPeriod = 5000;
+    this.faultyPeriod = 5000;
+    this.tombstonePeriod = 5000;
     this.sutProc = undefined;
     this.hostsFile = '/tmp/ringpop-integration-test-hosts.json';
 
@@ -165,9 +168,9 @@ TestCoordinator.prototype.startSUT = function startSUT() {
     var newProc;
     var hostsFileArg = util.format('--hosts=%s', this.hostsFile);
     var listenArg = util.format('--listen=%s', this.sutHostPort);
-    var suspectPeriodArg = util.format('--suspect=5')
-    var faultyPeriodArg = util.format('--faulty=5')
-    var tombstonePeriodArg = util.format('--tombstone=5')
+    var suspectPeriodArg = util.format('--suspect-period=%d', this.suspectPeriod)
+    var faultyPeriodArg = util.format('--faulty-period=%d', this.faultyPeriod)
+    var tombstonePeriodArg = util.format('--tombstone-period=%d', this.tombstonePeriod)
     console.log(this.sutProgram, listenArg, hostsFileArg);
     if (this.sutInterpreter) {
         newProc = childProc.spawn(this.sutInterpreter, [
