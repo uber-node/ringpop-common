@@ -64,6 +64,9 @@ function TestCoordinator(options) {
     this.sutHostPort = makeHostPort('127.0.0.1', _.random(10000, 30000));
     this.sutProgram = options.sut.program;
     this.sutInterpreter = options.sut.interpreter;
+    this.suspectPeriod = 5000;
+    this.faultyPeriod = 5000;
+    this.tombstonePeriod = 5000;
     this.sutProc = undefined;
     this.hostsFile = '/tmp/ringpop-integration-test-hosts.json';
 
@@ -163,14 +166,22 @@ TestCoordinator.prototype.start = function start(callback) {
 TestCoordinator.prototype.startSUT = function startSUT() {
     var self = this;
     var newProc;
-    var hostsFileArg = util.format('--hosts=%s', this.hostsFile);
-    var listenArg = util.format('--listen=%s', this.sutHostPort);
-    console.log(this.sutProgram, listenArg, hostsFileArg);
+    var args = [];
+
+    var program = this.sutProgram;
     if (this.sutInterpreter) {
-        newProc = childProc.spawn(this.sutInterpreter, [this.sutProgram, listenArg, hostsFileArg]);
-    } else {
-        newProc = childProc.spawn(this.sutProgram, [listenArg, hostsFileArg]);
+        program = this.sutInterpreter
+        args.push(this.sutProgram)
     }
+    args.push(util.format('--hosts=%s', this.hostsFile));
+    args.push(util.format('--listen=%s', this.sutHostPort));
+    args.push(util.format('--suspect-period=%d', this.suspectPeriod));
+    args.push(util.format('--faulty-period=%d', this.faultyPeriod));
+    args.push(util.format('--tombstone-period=%d', this.tombstonePeriod));
+
+    console.log(program, args.join(" "));
+    newProc = childProc.spawn(program, args);
+
 
     newProc.on('error', function(err) {
         console.error('Error: ' + err.message + ', failed to spawn ' +  self.sutProgram + ' on ' + self.sutHostPort);
