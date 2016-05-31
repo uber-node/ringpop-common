@@ -217,7 +217,10 @@ test2('tombstone should be gossiped with flag when applied as state', getCluster
             // clear all pings that happened before we gossiped the tombstone
             dsl.consumePings(t, tc),
 
-            // Wait for a ping from the SUT and validate that it does not gossip about the tombstone
+            // Wait for a ping from the SUT and validate that it does not gossip about the tombstone.
+            //
+            // Since we pinged nodeIx=0, the node filters that changes, therefore the conditional
+            // to skip it's ping request below.
             dsl.validateEventBody(t, tc, function(ping) {
                 return ping.type === events.Types.Ping
                     && ping.direction === 'request'
@@ -265,6 +268,9 @@ test2('tombstone should be gossiped with flag when applied as a flag', getCluste
             dsl.consumePings(t, tc),
 
             // Wait for a ping from the SUT and validate that it does not gossip about the tombstone
+            //
+            // Since we pinged nodeIx=0, the node filters that changes, therefore the conditional
+            // to skip it's ping request below.
             dsl.validateEventBody(t, tc, function(ping) {
                 return ping.type === events.Types.Ping
                     && ping.direction === 'request'
