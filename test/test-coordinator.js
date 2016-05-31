@@ -166,30 +166,22 @@ TestCoordinator.prototype.start = function start(callback) {
 TestCoordinator.prototype.startSUT = function startSUT() {
     var self = this;
     var newProc;
-    var hostsFileArg = util.format('--hosts=%s', this.hostsFile);
-    var listenArg = util.format('--listen=%s', this.sutHostPort);
-    var suspectPeriodArg = util.format('--suspect-period=%d', this.suspectPeriod)
-    var faultyPeriodArg = util.format('--faulty-period=%d', this.faultyPeriod)
-    var tombstonePeriodArg = util.format('--tombstone-period=%d', this.tombstonePeriod)
-    console.log(this.sutProgram, listenArg, hostsFileArg);
+    var args = [];
+
+    var program = this.sutProgram;
     if (this.sutInterpreter) {
-        newProc = childProc.spawn(this.sutInterpreter, [
-            this.sutProgram,
-            listenArg,
-            hostsFileArg,
-            suspectPeriodArg,
-            faultyPeriodArg,
-            tombstonePeriodArg,
-        ]);
-    } else {
-        newProc = childProc.spawn(this.sutProgram, [
-            listenArg,
-            hostsFileArg,
-            suspectPeriodArg,
-            faultyPeriodArg,
-            tombstonePeriodArg,
-        ]);
+        program = this.sutInterpreter
+        args.push(this.sutProgram)
     }
+    args.push(util.format('--hosts=%s', this.hostsFile));
+    args.push(util.format('--listen=%s', this.sutHostPort));
+    args.push(util.format('--suspect-period=%d', this.suspectPeriod));
+    args.push(util.format('--faulty-period=%d', this.faultyPeriod));
+    args.push(util.format('--tombstone-period=%d', this.tombstonePeriod));
+
+    console.log(program, args.join(" "));
+    newProc = childProc.spawn(program, args);
+
 
     newProc.on('error', function(err) {
         console.error('Error: ' + err.message + ', failed to spawn ' +  self.sutProgram + ' on ' + self.sutHostPort);
