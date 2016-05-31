@@ -41,6 +41,14 @@ function test(msg, opts, cb) {
             console.log();
             console.log('============================================');
             console.log();
+            if(t._tc) {
+                console.log('============== node index : hostport ===============');
+                console.log("sut: "+ t._tc.sutHostPort);
+                t._tc.fakeNodes.forEach(function(fakeNode, i) {
+                    console.log(i + " => " + fakeNode.host + ":" + fakeNode.port);
+                });
+                console.log('====================================================');
+            }
         }
     });
 }
@@ -63,6 +71,7 @@ function test2(str, ns, deadline, init, callback) {
                 },
                 numNodes: n,
             });
+            t._tc = tc;
 
             init(t, tc, function onInit() {
                 tc.start(function onTCStarted() {
