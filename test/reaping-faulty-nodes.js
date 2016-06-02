@@ -222,10 +222,16 @@ test2('tombstone should be gossiped with flag when applied as state', getCluster
             // Since we pinged SUT from nodeIx=0, the node filters that
             // changes, therefore the conditional to skip it's ping request
             // below.
+            //
+            // We also ignore ping requests that gossip 'alive' status.
+            // That can happen because, at least in ringpop-node, a ping request
+            // before disseminator update could have been executed after the ping
+            // response above is sent over the wire.
             dsl.validateEventBody(t, tc, function(ping) {
                 return ping.type === events.Types.Ping
                     && ping.direction === 'request'
-                    && ping.receiver !== tc.fakeNodes[0].getHostPort()
+                    && ping.receiver !== tc.fakeNodes[0].getHostPort() // ignore nodeIx=0
+                    && ping.body.changes[0].status !== 'alive'  // ignore old ping
             }, "The gossip should contain a flagged tombstone", function (ping) {
                 return _.filter(ping.body.changes, { status: 'faulty', tombstone: true }).length === 1
                     && _.filter(ping.body.changes, { status: 'tombstone' }).length === 0;
@@ -273,10 +279,16 @@ test2('tombstone should be gossiped with flag when applied as a flag', getCluste
             // Since we pinged SUT from nodeIx=0, the node filters that
             // changes, therefore the conditional to skip it's ping request
             // below.
+            //
+            // We also ignore ping requests that gossip 'alive' status.
+            // That can happen because, at least in ringpop-node, a ping request
+            // before disseminator update could have been executed after the ping
+            // response above is sent over the wire.
             dsl.validateEventBody(t, tc, function(ping) {
                 return ping.type === events.Types.Ping
                     && ping.direction === 'request'
-                    && ping.receiver !== tc.fakeNodes[0].getHostPort()
+                    && ping.receiver !== tc.fakeNodes[0].getHostPort() // ignore nodeIx=0
+                    && ping.body.changes[0].status !== 'alive'  // ignore old ping
             }, "The gossip should contain a flagged tombstone", function (ping) {
                 return _.filter(ping.body.changes, { status: 'faulty', tombstone: true }).length === 1
                     && _.filter(ping.body.changes, { status: 'tombstone' }).length === 0;
