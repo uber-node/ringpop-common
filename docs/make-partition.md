@@ -144,13 +144,13 @@ If you are happy with the output, apply the rules:
 OS X:
 
 ```shell
-$ sudo lsof -Pnni | ./tools/make_partition 3000,3001 3002,3003 | sudo pfctl -emf -
+$ sudo -v && sudo lsof -Pnni | ./tools/make_partition 3000,3001 3002,3003 | sudo pfctl -emf -
 ```
 
 Linux:
 
 ```
-$ sudo lsof -Pnni | ./tools/make_partition 3000,3001 3002,3003 | sudo iptables-restore
+$ sudo -v && sudo lsof -Pnni | ./tools/make_partition 3000,3001 3002,3003 | sudo iptables-restore
 ```
 
 In a few seconds, you should see output from `tick-cluster` that some of the

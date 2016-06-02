@@ -34,10 +34,13 @@ Executing the algorithm from the previous section on every tick doesn't scale we
 
 Let `N` be the number of hosts the previous query to the discovery provider has given us. If we, for example set `P = 3/N` and `T = 30 s`, we get on average 6 heal attempts per minute in the entire cluster, with a 95% probability that there is at least one heal attempt in 30 seconds. This means that we only query the discovery provider six times per minute regardless the size of the cluster.
 
-### Configurables
+### Partition Healing Parameters
 
-* `T` -- partition healer execution interval, seconds. Configurable from within ringpop.
-* `P` -- probability of executing the partition healing algorithm. Well-displayed constant in ringpop.
+The variables below are from within ringpop, and may be exposed to application
+developers in the future.
+
+* `T` -- partition healer execution interval, seconds.
+* `P` -- probability of executing the partition healing algorithm.
 
 ### Algorithm Flow
 
