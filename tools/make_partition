@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """
 Usage:
-    sudo lsof -Pnni | ./make_partition 3000,3001 3002,3003 | sudo FIREWALL
+    sudo -v && sudo lsof -Pnni | ./make_partition 3000,3001 3002,3003 |\
+            sudo FIREWALL
 
 FIREWALL :=
     pfctl -emf -      # Darwin

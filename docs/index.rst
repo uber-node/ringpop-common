@@ -13,5 +13,6 @@ To find out more, head to the Getting Started section below.
    programming_ringpop
    architecture_design
    partitions
+   make-partition
    references
    community
