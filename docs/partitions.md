@@ -36,8 +36,8 @@ Let `N` be the number of hosts the previous query to the discovery provider has 
 
 ### Configurables
 
-* `T` -- partition healer execution interval, seconds. Configurable for application.
-* `P` -- probability of executing the partition healing algorithm. Well-displayed constant in ringpop. Easily accessible for ringpop developers.
+* `T` -- partition healer execution interval, seconds. Configurable from within ringpop.
+* `P` -- probability of executing the partition healing algorithm. Well-displayed constant in ringpop.
 
 ### Algorithm Flow
 
@@ -45,11 +45,11 @@ When a ringpop cluster is partitioned, some nodes are viewed alive by some nodes
 
 #### Part 1 -- making memberships compatible
 
-Goal of the first part is to make sure the membership lists of both partitions are _compatible_. That is, if they are merged according to the SWIM rules, no new faulty nodes shoul be created. To reach our goal we need to bump the incarnation numbers of nodes on both sides of the partition (because a state with a higher incarnation number always has precedence regardless of the status). Here's how we do it:
+Goal of the first part is to make sure the membership lists of both partitions are _compatible_. That is, if they are merged according to the SWIM rules, no new faulty nodes should be created. To reach our goal we need to bump the incarnation numbers of nodes on both sides of the partition (because a state with a higher incarnation number always has precedence regardless of the status). Here's how we do it:
 
 1. `c` (coordinator) downloads `t`'s (target's, in the other partition) membership list by doing a `/join` call.
 2. `c` pings node `t` saying: the nodes that are faulty according to `c`, but alive according to `t`, are suspects. Then `t` will disseminate suspect messages to its own partition, and all nodes in `t`'s partition will reincarnate.
-3. mark all `c`'s nodes suspect, and disseminate that information in `c`'s cluster. That will trigger the `c`'s partition to reincarnate.
+3. mark all `c`'s nodes, which are faulty according to `t`, suspect, and disseminate that information in `c`'s cluster. That will trigger the `c`'s partition to reincarnate.
 
 After reincarnations are complete, the membership lists are compatible. Now we need to merge them.
 
