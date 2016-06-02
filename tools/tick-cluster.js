@@ -21,6 +21,7 @@
 
 'use strict';
 
+var _ = require('lodash');
 var childProc = require('child_process');
 var color = require('cli-color');
 var farmhash = require('farmhash').hash32;
@@ -30,7 +31,7 @@ var TChannel = require('tchannel');
 var fs = require('fs');
 
 var programInterpreter, programPath, startingPort, bindInterface, procsToStart = 5;
-var hosts, procs, ringPool, localIP, toSuspend, toKill, tchannel; // defined later
+var hosts, procs, ringPool, localIP, tchannel; // defined later
 
 /* jshint maxparams: 6 */
 
@@ -250,8 +251,9 @@ function shutdown() {
 
 var state = 'top';
 var func = null;
-var numArgRe = /^[1-9]$/;
+var numArgRe = /^[0-9]$/;
 var debugRe = /^[ph]$/;
+var num = 0;
 function onData(char) {
     if (state === 'top') {
         switch (char) {
@@ -285,12 +287,12 @@ function onData(char) {
             case 'l':
                 func = suspendProc;
                 state = 'readnum';
-                process.stdout.write('suspend count (1-9): ');
+                process.stdout.write('suspend count: ');
                 break;
             case 'k':
                 func = killProc;
                 state = 'readnum';
-                process.stdout.write('kill count (1-9): ');
+                process.stdout.write('kill count: ');
                 break;
             case 'K':
                 reviveProcs();
@@ -309,18 +311,22 @@ function onData(char) {
                 console.log('Unknown key');
         }
     } else if (state === 'readnum') {
+        process.stdout.write(char);
         if (char.match(numArgRe)) {
-            console.log();
-            func(char);
+            num = num * 10 + (char - '0');
+	} else if (char === '\r') {
+            func(num)
             state = 'top';
             func = null;
+            num = 0;
         } else {
             console.error('expecting: ' + numArgRe);
             state = 'top';
+            num = 0;
         }
     } else if (state === 'readchar') {
+        process.stdout.write(char);
         if (char.match(debugRe)) {
-            console.log();
             func(char);
             state = 'top';
             func = null;
@@ -351,7 +357,6 @@ function findLocalIP() {
     logMsg('cluster', color.red('could not find local IP with IPv4 address, defaulting to 127.0.0.1'));
     localIP = '127.0.0.1';
 }
-
 
 function ClusterProc(port) {
     var newProc;
@@ -434,35 +439,30 @@ function reviveProcs() {
 }
 
 function suspendProc(count) {
-    toSuspend = +count;
+    var processesToSuspend = _.chain(procs)
+        .filter(function (proc) { return !proc.killed && !proc.suspended; })
+        .sampleSize(+count)
+        .value();
 
-    var suspended = [];
-    while (suspended.length < toSuspend) {
-        var rand = Math.floor(Math.random() * procs.length);
-        var proc = procs[rand];
-        if (proc.killed === null && proc.suspended === null) {
-            logMsg(proc.port, color.green('pid ' + proc.pid) + color.red(' randomly selected for sleep'));
-            process.kill(proc.proc.pid, 'SIGSTOP');
-            proc.suspended = Date.now();
-            suspended.push(proc);
-        }
-    }
+
+    _.each(processesToSuspend, function suspend(proc) {
+        logMsg(proc.port, color.green('pid ' + proc.pid) + color.red(' randomly selected for sleep'));
+        process.kill(proc.proc.pid, 'SIGSTOP');
+        proc.suspended = Date.now();
+    });
 }
 
 function killProc(count) {
-    toKill = +count;
+    var processesToKill = _.chain(procs)
+        .filter(function (proc) { return !proc.killed && !proc.suspended; })
+        .sampleSize(+count)
+        .value();
 
-    var killed = [];
-    while (killed.length < toKill) {
-        var rand = Math.floor(Math.random() * procs.length);
-        var proc = procs[rand];
-        if (proc.killed === null && proc.suspended === null) {
-            logMsg(proc.port, color.green('pid ' + proc.pid) + color.red(' randomly selected for death'));
-            process.kill(proc.proc.pid, 'SIGKILL');
-            proc.killed = Date.now();
-            killed.push(proc);
-        }
-    }
+    _.each(processesToKill, function kill(proc) {
+        logMsg(proc.port, color.green('pid ' + proc.pid) + color.red(' randomly selected for death'));
+        process.kill(proc.proc.pid, 'SIGKILL');
+        proc.killed = Date.now();
+    });
 }
 
 function killAllProcs() {
