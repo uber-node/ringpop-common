@@ -204,7 +204,7 @@ test2('tombstone should be applied when sent as a state', getClusterSizes(2), 20
     })
 );
 
-test2('tombstone should be gossiped with flag when applied as state', getClusterSizes(2), 20000,
+test2('tombstone should be gossiped with flag when applied as state', getClusterSizes(3), 20000,
     prepareCluster(function(t, tc, n) {
         return [
             dsl.sendPing(t, tc, 0, {
@@ -217,14 +217,8 @@ test2('tombstone should be gossiped with flag when applied as state', getCluster
             // clear all pings that happened before we gossiped the tombstone
             dsl.consumePings(t, tc),
 
-            // Wait for a ping from the SUT and validate that it does not gossip about the tombstone
-            dsl.validateEventBody(t, tc, {
-                type: events.Types.Ping,
-                direction: 'request'
-            }, "The gossip should contain a flagged tombstone", function (ping) {
-                return _.filter(ping.body.changes, { status: 'faulty', tombstone: true }).length === 1
-                    && _.filter(ping.body.changes, { status: 'tombstone' }).length === 0;
-            }),
+            // Wait for a ping with tombstone, see function doc.
+            pingNotTombstoneState(t, tc)
         ];
     })
 );
@@ -249,7 +243,7 @@ test2('tombstone should be applied when sent as a flag', getClusterSizes(2), 200
     })
 );
 
-test2('tombstone should be gossiped with flag when applied as a flag', getClusterSizes(2), 20000,
+test2('tombstone should be gossiped with flag when applied as a flag', getClusterSizes(3), 20000,
     prepareCluster(function(t, tc, n) {
         return [
             dsl.sendPing(t, tc, 0, {
@@ -263,14 +257,30 @@ test2('tombstone should be gossiped with flag when applied as a flag', getCluste
             // clear all pings that happened before we gossiped the tombstone
             dsl.consumePings(t, tc),
 
-            // Wait for a ping from the SUT and validate that it does not gossip about the tombstone
-            dsl.validateEventBody(t, tc, {
-                type: events.Types.Ping,
-                direction: 'request'
-            }, "The gossip should contain a flagged tombstone", function (ping) {
-                return _.filter(ping.body.changes, { status: 'faulty', tombstone: true }).length === 1
-                    && _.filter(ping.body.changes, { status: 'tombstone' }).length === 0;
-            }),
+            // Wait for a ping with tombstone, see function doc.
+            pingNotTombstoneState(t, tc)
         ];
     })
 );
+
+// Wait for a ping from the SUT and validate that it does not gossip about the
+// tombstone as a state.
+//
+// Since we pinged SUT from nodeIx=0, the node filters that changes, therefore
+// the conditional to skip it's ping request below.
+//
+// We also ignore ping requests that gossip 'alive' status.  That can happen
+// because, at least in ringpop-node, a ping request before disseminator update
+// could have been executed after the ping response above is sent over the
+// wire.
+function pingNotTombstoneState(t, tc) {
+    return dsl.validateEventBody(t, tc, function(ping) {
+        return ping.type === events.Types.Ping
+            && ping.direction === 'request'
+            && ping.receiver !== tc.fakeNodes[0].getHostPort() // ignore nodeIx=0
+            && ping.body.changes[0].status !== 'alive'  // ignore old ping
+    }, "The gossip should contain a flagged tombstone", function (ping) {
+        return _.filter(ping.body.changes, { status: 'faulty', tombstone: true }).length === 1
+            && _.filter(ping.body.changes, { status: 'tombstone' }).length === 0;
+    })
+}
