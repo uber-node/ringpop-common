@@ -24,8 +24,9 @@ var TestCoordinator = require('./test-coordinator');
 var getProgramPath = require('./it-tests').getProgramPath;
 var getProgramInterpreter = require('./it-tests').getProgramInterpreter;
 var main = require('./it-tests');
-// test is like normal tape test but also prints t.error.details if a fail occured
-var Test = require('tape');
+// test is like normal tape-catch test but also prints t.error.details if a fail occured.
+// tape-catch catches JS exceptions and reports them as test failures.
+var Test = require('tape-catch');
 
 function test(msg, opts, cb) {
     var t = Test(msg, opts, cb);
