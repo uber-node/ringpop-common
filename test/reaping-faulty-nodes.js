@@ -278,7 +278,7 @@ function pingNotTombstoneState(t, tc) {
         return ping.type === events.Types.Ping
             && ping.direction === 'request'
             && ping.receiver !== tc.fakeNodes[0].getHostPort() // ignore nodeIx=0
-            && ! isASingleAliveMessage(ping) // race in ringpop-node, described above
+            && !isASingleAliveMessage(ping) // race in ringpop-node, described above
     }, "The gossip should contain a flagged tombstone", function (ping) {
         return _.filter(ping.body.changes, { status: 'faulty', tombstone: true }).length === 1
             && _.filter(ping.body.changes, { status: 'tombstone' }).length === 0;
