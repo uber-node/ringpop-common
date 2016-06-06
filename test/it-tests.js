@@ -68,8 +68,6 @@ var features = {
             './admin-tests'
         ]
     },
-
-    // features implemented in only one language
     'reaping-faulty-nodes': {
         mandatory: true,
         tests: [
@@ -86,6 +84,13 @@ var features = {
         mandatory: true,
         tests: [
             './partition-healing-tests'
+        ]
+    },
+
+    // features implemented in only one language
+    'double-reincarnation': {
+        tests: [
+            './double-reincarnation'
         ]
     }
 };
