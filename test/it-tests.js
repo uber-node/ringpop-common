@@ -52,7 +52,8 @@ var features = {
     'reincarnate': {
         mandatory: true,
         tests: [
-            './incarnation-no-tests'
+            './incarnation-no-tests',
+            './reincarnation-source'
         ]
     },
     'gossip': {
