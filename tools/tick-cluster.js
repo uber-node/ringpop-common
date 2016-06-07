@@ -527,7 +527,7 @@ function main() {
         stdin.resume();
         stdin.setEncoding('utf8');
         stdin.on('data', onData);
-        logMsg('init', color.red('d: debug flags, g: gossip, j: join, k: kill, K: revive all, l: sleep, p: protocol stats, q: quit, s: cluster stats, t: tick'));
+        logMsg('init', color.red('d: debug flags, g: stop gossip, G: start gossip, j: join, k: kill, K: revive all, l: sleep, p: protocol stats, q: quit, s: cluster stats, t: tick'));
     } catch (e) {
         logMsg('init', 'Unable to open stdin; interactive commands disabled');
     }
