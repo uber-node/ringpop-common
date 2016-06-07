@@ -283,10 +283,10 @@ function onData(char) {
             case 'j':
                 joinAll();
                 break;
-            case 'G':
+            case 'g':
                 stopGossip();
                 break;
-            case 'g':
+            case 'G':
                 startGossip();
                 break;
             case 's':
@@ -536,8 +536,8 @@ function main() {
 function displayMenu(logFn) {
     logFn('\td <flag>\tSet debug flag');
     logFn('\tD\t\tClear debug flags');
-    logFn('\tG\t\tStop gossip');
-    logFn('\tg\t\tStart gossip');
+    logFn('\tg\t\tStop gossip');
+    logFn('\tG\t\tStart gossip');
     logFn('\th\t\tHelp menu');
     logFn('\tj\t\tJoin nodes');
     logFn('\tk <count>\tKill processes');
