@@ -129,7 +129,7 @@ function statsAll() {
                 console.error(color.red('err: ' + err.message + ' [' + host + ']'));
             } else {
                 var membership = JSON.stringify(safeParse(arg3).membership.members);
-                
+
                 var csum = farmhash(membership);
                 if (csums[csum] === undefined) {
                     csums[csum] = [];
@@ -196,11 +196,27 @@ function startGossip() {
     logMsg('cluster', color.cyan('starting gossip on all nodes'));
     hostsUp().forEach(function (host, pos, list) {
         var start = Date.now();
-        send(host, '/admin/gossip', function onSend() {
+        send(host, '/admin/gossip/start', function onSend() {
             var durMs = Date.now() - start;
             completed.push(durMs);
             if (completed.length === list.length) {
                 logMsg('cluster', color.cyan('gossip all completed: ') + color.green(completed.join(', ')));
+            }
+        });
+    });
+}
+
+function stopGossip() {
+    var completed = [];
+
+    logMsg('cluster', color.cyan('stopping gossip on all nodes'));
+    hostsUp().forEach(function (host, pos, list) {
+        var start = Date.now();
+        send(host, '/admin/gossip/stop', function onSend() {
+            var durMs = Date.now() - start;
+            completed.push(durMs);
+            if (completed.length === list.length) {
+                logMsg('cluster', color.cyan('stop gossip all completed: ') + color.green(completed.join(', ')));
             }
         });
     });
@@ -266,6 +282,9 @@ function onData(char) {
                 break;
             case 'j':
                 joinAll();
+                break;
+            case 'G':
+                stopGossip();
                 break;
             case 'g':
                 startGossip();
@@ -517,6 +536,7 @@ function main() {
 function displayMenu(logFn) {
     logFn('\td <flag>\tSet debug flag');
     logFn('\tD\t\tClear debug flags');
+    logFn('\tG\t\tStop gossip');
     logFn('\tg\t\tStart gossip');
     logFn('\th\t\tHelp menu');
     logFn('\tj\t\tJoin nodes');
