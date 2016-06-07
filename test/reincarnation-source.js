@@ -44,7 +44,6 @@ test2('ringpop gossips its reincarnation with itself as the source', getClusterS
                 && reincarnation.source == tc.sutHostPort
                 && reincarnation.sourceIncarnationNumber == reincarnation.incarnationNumber
                 && reincarnation.status == 'alive';
-
         }),
     ];})
 );
