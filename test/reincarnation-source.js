@@ -27,7 +27,7 @@ var getClusterSizes = require('./it-tests').getClusterSizes;
 
 test2('ringpop gossips its reincarnation with itself as the source', getClusterSizes(2), 20000,
     prepareCluster(function(t, tc, n) { return [
-        // send ping that causes the sut to reincarnate
+        // do not disable node
         dsl.sendPing(t, tc, 0, {
             sourceIx: 0,
             subjectIx: 'sut',
@@ -44,8 +44,7 @@ test2('ringpop gossips its reincarnation with itself as the source', getClusterS
                 && reincarnation.source == tc.sutHostPort
                 && reincarnation.sourceIncarnationNumber == reincarnation.incarnationNumber
                 && reincarnation.status == 'alive';
+
         }),
-        // if this test fails due to join requests being left in the queue the
-        // test triggered a full sync.
     ];})
 );
