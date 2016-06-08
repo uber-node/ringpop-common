@@ -76,7 +76,7 @@ that Ringpop emits:
 |join.retries|Number of retries required by join process|gauge
 |join.succeeded|Join process succeeded|count
 |lookup|Time required to perform a ring lookup|timer
-|lookupn.N|Time required to perform a ring lookupN with for a preference list of N nodes|timer
+|lookupn.N|Time required to perform a ring lookupN for a preference list of N nodes|timer
 |make-alive|A member was declared alive|count
 |make-damped|A member was declared damped|count
 |make-faulty|A member was declared faulty|count
