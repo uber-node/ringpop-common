@@ -53,7 +53,8 @@ var features = {
         mandatory: true,
         tests: [
             './incarnation-no-tests',
-            './reincarnation-source'
+            './reincarnation-source',
+            './double-reincarnation'
         ]
     },
     'gossip': {
@@ -84,13 +85,6 @@ var features = {
         mandatory: true,
         tests: [
             './partition-healing-tests'
-        ]
-    },
-
-    // features implemented in only one language
-    'double-reincarnation': {
-        tests: [
-            './double-reincarnation'
         ]
     }
 };
