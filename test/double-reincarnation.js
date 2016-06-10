@@ -32,7 +32,7 @@ test2('ringpop should not bump incarnation number when gossip is older', getClus
             status: 'suspect',
             subjectIncNoDelta: -1 // send a gossip with an older incarnation number
         }),
-        dsl.waitForPingResponse(t, tc, 0, 1, true),
+        dsl.waitForPingResponse(t, tc, 0, 1),
 
         // assert stats relies on the incarnation number not being bumped
         dsl.assertStats(t, tc, n+1, 0, 0),
