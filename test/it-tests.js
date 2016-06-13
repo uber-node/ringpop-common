@@ -53,7 +53,8 @@ var features = {
         mandatory: true,
         tests: [
             './incarnation-no-tests',
-            './reincarnation-source'
+            './reincarnation-source',
+            './double-reincarnation'
         ]
     },
     'gossip': {
@@ -68,8 +69,6 @@ var features = {
             './admin-tests'
         ]
     },
-
-    // features implemented in only one language
     'reaping-faulty-nodes': {
         mandatory: true,
         tests: [

@@ -896,7 +896,7 @@ function piggyback(tc, opts) {
 
     if(opts.subjectIx === 'sut') {
         update.address = tc.sutHostPort;
-        update.sourceIncarnationNumber = tc.test_state['sutIncarnationNumber'];
+        update.incarnationNumber = tc.test_state['sutIncarnationNumber'];
     } else if(opts.subjectIx === 'new') {
         // address from test network
         update.address = "192.0.2.0:1234";
