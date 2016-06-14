@@ -1,0 +1,170 @@
+cfg:
+  hosts:
+    - name: appdocker22-sjc1
+      capacity: 100
+
+scenarios:
+  - name: heal
+    size: <N>
+    desc: partition a cluster of size <N> in a <A>, <B> split.
+
+    script:
+    - t0: partition <A> <B>
+    - t1: recover
+
+    measure:
+    - t0 t1 convtime 2 in [1s, 3s]
+    - t0 t1 count membership-update.suspect is [2*<N>-1]
+    - t0 t1 count full-sync is 0
+    - t1 .. convtime 1 in [0s, 60s]
+    - t1 .. count full-sync is 0
+
+    runs:
+      - [<N>, <A>, <B>]
+      - [ 10,   5,   5]
+      - [ 20,  10,  10]
+      - [ 20,   1,  19]
+      - [100,  50,  50]
+      - [100,  10,  90]
+      - [100,   1,  99]
+
+
+
+  - name: bootstrap
+    size: <N>
+    desc: startup <N> nodes at the same time and wait for bootstrap
+
+    script:
+    # on the start of every script the nodes will be bootstrapped,
+    # therefor, we can leave the script empty  for this scenario.
+
+    measure:
+    # Use ".. .." to indicate from start to end simulation
+    - .. .. convtime 1 in [1s, 5s]
+
+    runs:
+    - [<N>]
+    - [10]
+    - [20]
+    - [50]
+    - [100]
+
+
+
+  - name: kill and revive
+    size: <N>
+    desc: kill and revive <P> nodes of a <N>-node cluster
+
+    script:
+    - t0: kill <P>
+    - t1: wait
+    - t2: start <P>
+
+    measure:
+    - t0 t1 convtime 1 in [1s, 5s]
+    - t0 t1 count membership-update.suspect is [<N>-1]
+    - t0 t1 count protocol.ping-req in [1,]
+
+    - t1 t2 convtime 1 in [1s, 5s]
+    - t0 t1 count membership-update.faulty is [<N>-1]
+
+    - t2 .. convtime 1 in [1s, 5s]
+    - t2 .. count membership-update.alive is [<N>-1]
+
+    - t0 .. count full-sync is 0
+    - t0 .. count ring.* is 0
+
+    runs:
+    - [<N>, <P>]
+    - [100, 10] #10%
+    - [100, 30] #30%
+    - [100, 50] #50%
+    - [1000, 100] #10%
+    - [1000, 300] #30%
+    - [1000, 500] #50%
+
+
+
+  - name: rolling restart
+  - size: <N>
+  - desc: start a rolling restart
+
+  - script:
+    - t0: rolling <BatchSize> <StartupDelay>
+
+  measure:
+  - t0 .. count full-sync is 0
+  - t0 .. count protocol.ping-req is 0
+  - t0 .. count membership-update.faulty is 0
+  - t0 .. count ring.* is 0
+
+  runs:
+    - [<N>, <BatchSize>, <StartupDelay>]
+    - [10,            2,             4s]
+    - [30,            3,             1s]
+    - [100,          10,             2s]
+
+
+
+  name: packet loss
+  size: <N>
+  desc: how does <P>% packet loss influence a <N>-node cluster
+
+  script:
+    - t0: drop <P>
+    - t1: kill 1
+    - t2: start 1
+    - t3: kill 1
+    - t4: start 1
+    - t5: kill 1
+    - t6: start 1
+
+  measure:
+  - t1 t2 convtime 1 in [1s, 3s]
+  - t2 t3 convtime 1 in [1s, 3s]
+  - t3 t4 convtime 1 in [1s, 3s]
+  - t4 t5 convtime 1 in [1s, 3s]
+  - t5 t6 convtime 1 in [1s, 3s]
+  - t6 .. convtime 1 in [1s, 3s]
+
+  - t0 .. convtime 1
+  - t0 .. count membership-update.faulty is 0
+  - t0 .. count ring.* is 0
+
+  runs:
+    - [<N>, <P>]
+    - [100, 25]
+    - [100, 50]
+    - [100, 60]
+    - [100, 70]
+
+
+  name: network delay
+  size: <N>
+  desc: how does <T> network delay influence a <N>-node cluster
+
+  script:
+    - t0: delay <T>
+    - t1: kill 1
+    - t2: start 1
+    - t3: kill 1
+    - t4: start 1
+    - t5: kill 1
+    - t6: start 1
+
+  measure:
+  - t1 t2 convtime 1 in [1s, 3s]
+  - t2 t3 convtime 1 in [1s, 3s]
+  - t3 t4 convtime 1 in [1s, 3s]
+  - t4 t5 convtime 1 in [1s, 3s]
+  - t5 t6 convtime 1 in [1s, 3s]
+  - t6 .. convtime 1 in [1s, 3s]
+
+  - t0 .. count membership-update.faulty is 0
+  - t0 .. count ring.* is 0
+
+  runs:
+    - [<N>, <T>]
+    - [100, 20ms]
+    - [100, 100ms]
+    - [100, 200ms]

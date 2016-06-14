@@ -31,6 +31,7 @@ var TChannel = require('tchannel');
 var fs = require('fs');
 
 var programInterpreter, programPath, startingPort, bindInterface, procsToStart = 5;
+var statsUdp;
 var hosts, procs, ringPool, localIP, tchannel; // defined later
 
 /* jshint maxparams: 6 */
@@ -383,13 +384,20 @@ function ClusterProc(port) {
     this.port = port;
     this.hostPort = localIP + ':' + port;
 
+    var prog = programPath
+    var args = [];
     if (programInterpreter) {
-        newProc = childProc.spawn(programInterpreter,
-            [programPath, '--listen=' + this.hostPort, '--hosts=./hosts.json']);
-    } else {
-        newProc = childProc.spawn(programPath,
-            ['--listen=' + this.hostPort, '--hosts=./hosts.json']);
+        prog = programInterpreter;
+        args.push(programPath)
     }
+    args.push('--listen=' + this.hostPort, '--hosts=./hosts.json');
+    if (statsUdp) {
+        console.log(statsUdp)
+        args.push('--stats-udp='+statsUdp);
+    }
+    console.log(args);
+
+    newProc = childProc.spawn(prog, args);
 
     var self = this;
 
@@ -592,6 +600,7 @@ program
     .option('-i, --interpreter <interpreter>', 'Interpreter that runs program. Usually `node`.')
     .option('--interface <address>', 'Interface to bind ringpop instances to.')
     .option('--port <num>', 'Starting port for instances.')
+    .option('--stats-udp <statsUdp>', 'address to send stats over udp')
     .arguments('<program>')
     .description('tick-cluster is a tool that launches a ringpop cluster of arbitrary size')
     .action(function onAction(path, options) {
@@ -605,6 +614,7 @@ program
         }
         programInterpreter = options.interpreter;
         bindInterface = options.interface;
+        statsUdp = options.statsUdp;
         startingPort = parseInt(options.port);
     });
 
