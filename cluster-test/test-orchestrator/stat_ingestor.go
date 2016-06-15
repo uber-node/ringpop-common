@@ -33,6 +33,10 @@ import (
 	"time"
 )
 
+// The StatIngester is a UDP server that accepts ringpop stats with added
+// timestamps. The StatIngester analyzes the stream so that it knows when the
+// cluster reaches a stable state. It also writes the stream into a file for
+// later analysis.
 type StatIngester struct {
 	sync.Mutex
 	emptyNodes  map[string]bool
@@ -40,37 +44,31 @@ type StatIngester struct {
 	wasUnstable bool
 }
 
+// NewStatIngester creates a new StatIngester
 func NewStatIngester() *StatIngester {
 	return &StatIngester{
 		emptyNodes: make(map[string]bool),
 	}
 }
 
+// WaitForStable blocks and waits until the cluster has reached a stable state.
+// waits for the cluster to first become unstable if it isn't already, and then
+// blocks until the cluster has reached a stable state again.
 func (si *StatIngester) WaitForStable(hosts []string) {
 	// wait for cluster to become unstable
 	for !si.wasUnstable {
-		// fmt.Println("not unstable yet")
 		time.Sleep(200 * time.Millisecond)
 	}
-	// fmt.Println("unstable")
 	// wait for cluster to become stable
 	for !si.IsClusterStable(hosts) {
-		// count := 0
-		// for _, h := range hosts {
-		// 	e, ok := si.emptyNodes[h]
-		// 	if ok && e {
-		// 		count++
-		// 	}
-		// }
-		// fmt.Println()
-		// fmt.Println(count)
-		// fmt.Println(si.emptyNodes)
-		// fmt.Println(hosts)
 		time.Sleep(200 * time.Millisecond)
 	}
 	si.wasUnstable = false
 }
 
+// IsClusterStable indicates, judging from the processed stats, whether the
+// cluster is in a stable state. The input are the hosts that should be
+// alive.
 func (si *StatIngester) IsClusterStable(hosts []string) bool {
 	si.Lock()
 	defer si.Unlock()
@@ -85,10 +83,13 @@ func (si *StatIngester) IsClusterStable(hosts []string) bool {
 	return true
 }
 
+// InsertLabel writes a label into the stats file.
 func (si *StatIngester) InsertLabel(label, cmd string) {
 	writeln(si.file, []byte(fmt.Sprintf("label:%s|cmd: %s", label, cmd)))
 }
 
+// Listen starts listening on the specified port and writes the data into the
+// specified file.
 func (si *StatIngester) Listen(file string, port string) error {
 	// open output file
 	f, err := os.Create(file)
@@ -128,27 +129,31 @@ func (si *StatIngester) Listen(file string, port string) error {
 				log.Fatalln(err)
 			}
 
-			queue <- []byte(string(buf[0:n]))
+			statsQueue <- []byte(string(buf[0:n]))
 		}
 	}()
 
 	return nil
 }
 
-var queue = make(chan []byte, 1024)
+// All incomming stats are put on this queue for realtime-analysis.
+var statsQueue = make(chan []byte, 1024)
 
+// startIngestion starts a worker that picks stats from the statQueue for
+// realtime-analysis.
 func (si *StatIngester) startIngestion() {
 	for {
-		str, open := <-queue
+		str, open := <-statsQueue
 		if !open {
 			fmt.Println("CLOSED")
 			break
 		}
-		si.handleString(str)
+		si.handleStat(str)
 	}
 }
 
-func (si *StatIngester) handleString(buf []byte) {
+// handleStat handles a single stat for realtime-analysis.
+func (si *StatIngester) handleStat(buf []byte) {
 	si.Lock()
 	defer si.Unlock()
 
@@ -171,6 +176,8 @@ func (si *StatIngester) handleString(buf []byte) {
 	si.emptyNodes[hostport] = empty
 }
 
+// getBetween get a substring from the input buffer between before and after.
+// The function returns whether this was a success.
 func getBetween(buf, before, after []byte) (string, bool) {
 	start := bytes.Index(buf, before)
 	if start == -1 {
@@ -186,6 +193,7 @@ func getBetween(buf, before, after []byte) (string, bool) {
 	return string(buf[:end]), true
 }
 
+// writeln is a helper function that writes one line to the writer.
 func writeln(w io.Writer, bts []byte) error {
 	n, err := w.Write(bts)
 	if err != nil {

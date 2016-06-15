@@ -26,13 +26,33 @@ import (
 	"strings"
 )
 
+// Value should ever be either a float64 or a time.Duration.
+type Value interface{}
+
+// A Measurement generates a Value which can be either a duration or a number
+// from ringpop stats. The Measurement can count stat occurrences, analyze
+// convergence time, and analyze membership checksum convergence.
+//
+// The Measurement also carries an assertion that determines whether the
+// measured Value is as expected.
 type Measurement struct {
+	// Selects a window of the stats that we want to measure
+	// the values should be equal to one of the Labels in the
+	// Commands of the script.
 	Start, End string
-	Quantity   string
-	Args       []string
-	Assertion  *Assertion
+
+	// One of count, convtime or checksums.
+	Quantity string
+
+	// Currently only count accepts an argument, which is the statpath of
+	// the stats we want to count.
+	Args []string
+
+	// The expected result of this measurement.
+	Assertion *Assertion
 }
 
+// String converts the Measurement into a string.
 func (m Measurement) String() string {
 	strs := []string{m.Quantity}
 	strs = append(strs, m.Args...)
@@ -42,8 +62,10 @@ func (m Measurement) String() string {
 	return strings.Join(strs, " ")
 }
 
-func Measure(s Scanner, m Measurement) Value {
-	// select stats section we want to to measure on
+// Measure performs the measurement and returns the resulting value on stats
+// that are extracted from the given Scanner.
+func (m Measurement) Measure(s Scanner) Value {
+	// select stats window we want to to measure on
 	var err error
 	s, err = NewSectionScanner(s, m.Start, m.End)
 	if err != nil {

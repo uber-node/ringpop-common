@@ -75,11 +75,11 @@ func (s *Scenario) MeasureAndReport(file string) bool {
 		defer f.Close()
 		s := bufio.NewScanner(f)
 
-		r := Measure(s, m)
+		r := m.Measure(s)
 
-		results[i] = fmt.Sprintf("|%8v | %-32v|", r, m)
+		results[i] = fmt.Sprintf("|%8v | %-37v|", r, m)
 
-		err = Assert(r, m.Assertion)
+		err = m.Assertion.Assert(r)
 		if err != nil {
 			results[i] += fmt.Sprintf(" FAILED %v", err)
 			success = false
@@ -91,7 +91,6 @@ func (s *Scenario) MeasureAndReport(file string) bool {
 	// measurements that are printed between two commands
 	printed := make(map[int]struct{})
 
-	seperator := "+-------------------------------------------+"
 	for i := -1; i < len(s.Script); i++ {
 		if len(s.Script) == 0 && i == 0 {
 			break
@@ -100,18 +99,17 @@ func (s *Scenario) MeasureAndReport(file string) bool {
 		if i > -1 {
 			start = s.Script[i].Label
 
-			s := fmt.Sprintf("|%8s | %-32s|", start, s.Script[i].String())
+			s := fmt.Sprintf("|%8s | %-37s|", start, s.Script[i].String())
 
-			// fmt.Println(strings.Repeat("-", len(s)))
-			fmt.Println(seperator)
+			fmt.Println("+---------+--------------------------------------+")
 			fmt.Println()
-			fmt.Println(seperator)
+			fmt.Println("+---------+--------------------------------------+")
 			fmt.Println(s)
-			fmt.Println("|-------------------------------------------|")
+			fmt.Println("|---------+--------------------------------------|")
 		} else {
-			fmt.Println(seperator)
-			fmt.Println("|      .. | bootstrap                       |")
-			fmt.Println("|-------------------------------------------|")
+			fmt.Println("+---------+--------------------------------------+")
+			fmt.Println("|      .. | bootstrap                            |")
+			fmt.Println("|---------+--------------------------------------|")
 		}
 
 		end := ".."
@@ -126,23 +124,23 @@ func (s *Scenario) MeasureAndReport(file string) bool {
 			}
 		}
 	}
-	fmt.Println(seperator)
+	fmt.Println(("+---------+--------------------------------------+"))
 
+	// Print all measurements that have not yet been printed.
 	if len(printed) < len(s.Measure) {
 		fmt.Println()
 		fmt.Println("Extra Measurements")
-		fmt.Println(seperator)
+		fmt.Println(("+---------+--------------------------------------+"))
 	}
-
 	for i, m := range s.Measure {
 		if _, ok := printed[i]; ok {
 			continue
 		}
 
-		fmt.Printf("|%8s | %-32s|\n%s\n", m.Start+" "+m.End, "", results[i])
+		fmt.Printf("|%8s | %-37s|\n%s\n", m.Start+" "+m.End, "", results[i])
 	}
 	if len(printed) < len(s.Measure) {
-		fmt.Println(seperator)
+		fmt.Println(("+---------+--------------------------------------+"))
 	}
 
 	return success

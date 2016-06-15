@@ -28,7 +28,9 @@ import (
 	"strconv"
 )
 
-func Eval(str string) (f float64, err error) {
+// Eval evaluates the value of an expression to a float64. It can be used
+// as a simple calculator. e.g: `"2+3*4" -> 14.0`.
+func Eval(expression string) (f float64, err error) {
 	// recover from panic and change the err return value
 	defer func() {
 		if r := recover(); r != nil {
@@ -37,7 +39,7 @@ func Eval(str string) (f float64, err error) {
 	}()
 
 	// parse expression
-	expr, err := parser.ParseExpr(str)
+	expr, err := parser.ParseExpr(expression)
 	if err != nil {
 		return 0, err
 	}
@@ -46,13 +48,15 @@ func Eval(str string) (f float64, err error) {
 	return eval(expr), nil
 }
 
+// eval evaluates an ast.Expr, panicking when there is a problem.
+// This function is called by Eval which recovers from the panics.
 func eval(expr ast.Expr) float64 {
 	switch e := expr.(type) {
 	case *ast.ParenExpr:
 		return eval(e.X)
 
 	case *ast.BinaryExpr:
-		return evalBin(e.Op.String(), e.X, e.Y)
+		return evalBin(e)
 
 	case *ast.BasicLit:
 		v, err := strconv.ParseFloat(e.Value, 64)
@@ -66,11 +70,12 @@ func eval(expr ast.Expr) float64 {
 	return 0
 }
 
-func evalBin(op string, X, Y ast.Expr) float64 {
-	x := eval(X)
-	y := eval(Y)
+// evalBin executes the binary operator "+", "-", "*" or "/" on two
+func evalBin(expr *ast.BinaryExpr) float64 {
+	x := eval(expr.X)
+	y := eval(expr.Y)
 
-	switch op {
+	switch expr.Op.String() {
 	case "*":
 		return x * y
 	case "/":
@@ -81,6 +86,6 @@ func evalBin(op string, X, Y ast.Expr) float64 {
 		return x - y
 	}
 
-	panic(fmt.Sprintf("unsupported operator %s", op))
+	panic(fmt.Sprintf("unsupported operator %s", expr.Op))
 	return 0
 }

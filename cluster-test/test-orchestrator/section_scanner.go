@@ -25,23 +25,39 @@ import (
 	"strings"
 )
 
+// Scanner is inspired on bufio.Scanner. It provides an interface that is
+// commonly used in the following pattern.
+//
+// ```
+// for s.Scan() {
+//     // do something with s.Text()
+// }
+// if s.Err()!=nil {
+//     panic(s.Err())
+// }
+// ```
 type Scanner interface {
 	Scan() bool
 	Text() string
 	Err() error
 }
 
+// A SectionScanner wraps a Scanner and is a Scanner that only scans between
+// the given Start and End labels.
 type SectionScanner struct {
 	Scanner
-	sectionStart string
-	sectionEnd   string
+	Start string
+	End   string
 }
 
+// NewSectionScanner returns a Section scanner given Scanner and a start and
+// end label. The scanner is progressed to the Start label and returns an
+// error if that label isn't present.
 func NewSectionScanner(scanner Scanner, start, end string) (*SectionScanner, error) {
 	s := &SectionScanner{
-		Scanner:      scanner,
-		sectionStart: start,
-		sectionEnd:   end,
+		Scanner: scanner,
+		Start:   start,
+		End:     end,
 	}
 
 	if start == ".." {
@@ -50,24 +66,26 @@ func NewSectionScanner(scanner Scanner, start, end string) (*SectionScanner, err
 
 	// find section start
 	for s.Scan() {
-		if strings.HasPrefix(s.Text(), "label:"+s.sectionStart) {
+		if strings.HasPrefix(s.Text(), "label:"+s.Start) {
 			return s, nil
 		}
 	}
 
-	return nil, errors.New("section start not found, " + start)
+	return nil, errors.New("section start not found, " + s.Start)
 }
 
+// Scan progresses performs one scan on the wrapped Scanner. Returns whether
+// the End label is reached or the wrapped Scanner is finished.
 func (s *SectionScanner) Scan() bool {
 	if s.Scanner.Scan() == false {
 		return false
 	}
 
-	if s.sectionEnd == ".." {
+	if s.End == ".." {
 		return true
 	}
 
-	if strings.HasPrefix(s.Scanner.Text(), "label:"+s.sectionEnd) {
+	if strings.HasPrefix(s.Scanner.Text(), "label:"+s.End) {
 		return false
 	}
 

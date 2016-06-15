@@ -91,7 +91,8 @@ func uniq(m map[string]string) int {
 	return len(u)
 }
 
-// StatConvergenceTime measures the time it takes from the first changes until the
+// StatConvergenceTime measures the time it takes from the first changes is
+// applied until the last.
 func StatConvergenceTime(s Scanner) time.Duration {
 	var firstChange string
 	for s.Scan() {
@@ -125,6 +126,7 @@ func StatConvergenceTime(s Scanner) time.Duration {
 	return d / time.Millisecond * time.Millisecond
 }
 
+// timeDiff returns the duration between two stat lines.
 func timeDiff(stat1, stat2 string) time.Duration {
 	i1 := strings.Index(stat1, "|")
 	if i1 == -1 {

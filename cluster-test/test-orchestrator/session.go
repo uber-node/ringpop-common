@@ -28,8 +28,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// A Session is a structure that is used to communicate with the
+// cluster-manager. It is used to bootstrap, start and stop testpop nodes.
 type Session map[interface{}]SessionHost
 
+//TODO(wieger): collaps into one struct when we can generate from yaml.
 type SessionHost struct {
 	Bridge SessionBridge
 	VHosts []*SessionVHost
@@ -51,6 +54,7 @@ type SessionVHost struct {
 	Target    string
 }
 
+// NewSession queries the cluster-manager program for a new session object.
 func NewSession(cfg *configYaml) (Session, error) {
 	// seshBts, err := exec.Command("cs", "create", "10.10.0.0/8", "h1/40", "h2/40", "h3/40").Output()
 	// if err != nil {
@@ -70,102 +74,7 @@ func NewSession(cfg *configYaml) (Session, error) {
 	return s, nil
 }
 
-func (s Session) StartedHosts() []string {
-	var ret []string
-	for _, h := range s {
-		for _, vh := range h.VHosts {
-			split := strings.Split(vh.Iface, "/")
-			// ret = append(ret, split[0]+":"+ringpopPort)
-			ret = append(ret, split[0])
-		}
-	}
-
-	return ret
-}
-
-func (s Session) Start(n int) bool {
-	for _, host := range s {
-		for _, vh := range host.VHosts {
-			if vh.Target == "started" {
-				continue
-			}
-			vh.Target = "started"
-			n--
-			if n == 0 {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func (s Session) Stop(n int) bool {
-	for _, host := range s {
-		for _, vh := range host.VHosts {
-			if vh.Target == "stopped" {
-				continue
-			}
-			vh.Target = "stopped"
-			n--
-			if n == 0 {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func (s Session) StartAll() {
-	for _, host := range s {
-		for _, vh := range host.VHosts {
-			vh.Target = "started"
-		}
-	}
-}
-
-func (s Session) StopAll() {
-	for _, host := range s {
-		for _, vh := range host.VHosts {
-			vh.Target = "stopped"
-		}
-	}
-}
-
-func (s Session) Prepare() error {
-	cmd := exec.Command("cs", "prepare", "./testpop")
-	cmd.Start()
-	s.writeToStdin(cmd)
-	return cmd.Wait()
-}
-
-func (s Session) Apply() error {
-	cmd := exec.Command("cs", "apply")
-	cmd.Start()
-	s.writeToStdin(cmd)
-	return cmd.Wait()
-}
-
-func (s Session) writeToStdin(cmd *exec.Cmd) error {
-	in, err := yaml.Marshal(s)
-	if err != nil {
-		return err
-	}
-	w, err := cmd.StdinPipe()
-	if err != nil {
-		return err
-	}
-
-	n, err := w.Write(in)
-	if err != nil {
-		return err
-	}
-	if n != len(in) {
-		return errors.New("not written full Session to apply command")
-	}
-
-	return w.Close()
-}
-
+// TODO(wieger): remove this
 var seshStr = `
 host1:
   bridge:
@@ -190,3 +99,112 @@ host2:
   - {device: vc_tap2, iface: 10.0.0.7/16, namespace: ns2, target: stopped}
   - {device: vc_tap3, iface: 10.0.0.8/16, namespace: ns3, target: stopped}
 `
+
+// Prepare communicates to the cluster-manager that it needs to prepare the
+// cluster that is described in the Session.
+func (s Session) Prepare() error {
+	cmd := exec.Command("cs", "prepare", "./testpop")
+	cmd.Start()
+	s.writeToStdin(cmd)
+	return cmd.Wait()
+}
+
+// Apply communicates to the cluster-manager that it needs to apply the given
+// Session. This is usually done after the Session object is mutated by
+// starting or stopping nodes.
+func (s Session) Apply() error {
+	cmd := exec.Command("cs", "apply")
+	cmd.Start()
+	s.writeToStdin(cmd)
+	return cmd.Wait()
+}
+
+// writeToStdin writes the Session as yaml to the stdin of the command that
+// runs the cluster-manager.
+func (s Session) writeToStdin(cmd *exec.Cmd) error {
+	in, err := yaml.Marshal(s)
+	if err != nil {
+		return err
+	}
+	w, err := cmd.StdinPipe()
+	if err != nil {
+		return err
+	}
+
+	n, err := w.Write(in)
+	if err != nil {
+		return err
+	}
+	if n != len(in) {
+		return errors.New("not written full Session to apply command")
+	}
+
+	return w.Close()
+}
+
+// StartedHosts returns a list of hosts that have target: "started".
+func (s Session) StartedHosts() []string {
+	var ret []string
+	for _, h := range s {
+		for _, vh := range h.VHosts {
+			split := strings.Split(vh.Iface, "/")
+			// TODO(wieger):
+			// ret = append(ret, split[0]+":"+ringpopPort)
+			ret = append(ret, split[0])
+		}
+	}
+
+	return ret
+}
+
+// StartAll marks all nodes with target: "started" in the Session object.
+func (s Session) StartAll() {
+	for _, host := range s {
+		for _, vh := range host.VHosts {
+			vh.Target = "started"
+		}
+	}
+}
+
+// StopAll marks all nodes with target: "stopped" in the Session object.
+func (s Session) StopAll() {
+	for _, host := range s {
+		for _, vh := range host.VHosts {
+			vh.Target = "stopped"
+		}
+	}
+}
+
+// Start marks n stopped nodes with target: "started" in the Session object.
+func (s Session) Start(n int) bool {
+	for _, host := range s {
+		for _, vh := range host.VHosts {
+			if vh.Target == "started" {
+				continue
+			}
+			vh.Target = "started"
+			n--
+			if n == 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// Stop marks n started nodes with target: "stopped" in the Session object.
+func (s Session) Stop(n int) bool {
+	for _, host := range s {
+		for _, vh := range host.VHosts {
+			if vh.Target == "stopped" {
+				continue
+			}
+			vh.Target = "stopped"
+			n--
+			if n == 0 {
+				return true
+			}
+		}
+	}
+	return false
+}

@@ -91,6 +91,7 @@ scenarios:
     measure:
     - .. t0 convtime in (0s,3s)
     - .. t0 checksums is 1
+    - .. t0 count membership-set.alive in (10*10,99999)
 
     - t0 t1 convtime in (0s,3s)
     - t0 t1 checksums is 1

@@ -29,21 +29,37 @@ import (
 
 var ringpopPort = "3000"
 
+// Command runs command that affect the cluster in different ways. Commands are
+// commenly used to form the Script field of the Scenario struct.
 type Command struct {
+	// Indicates when the command is run.
 	Label string
-	Cmd   string
-	Args  []string
+
+	// Cmd can be one of:
+	// - `cluster-kill`
+	// - `cluster-start`
+	// - `cluster-rolling-restart`
+	// - `network-drop <SPLIT> <PERCENTAGE>`
+	// - `network-delay <SPLIT> <DURATION>`
+	// - `wait-for-stable`
+	Cmd string
+
+	// The arguments of the command.
+	Args []string
 }
 
+//TODO(wieger): implement the execution of commands
 func (cmd *Command) Run(s Session) {
 	// TODO(wieger): implement
 	log.Fatal("run not implemented")
 }
 
+// String converts a Command to a string.
 func (cmd Command) String() string {
 	return fmt.Sprintf("%s %s", cmd.Cmd, strings.Join(cmd.Args, " "))
 }
 
+// tickcluster spins up a tickcluster in the background.
 func tickcluster() *exec.Cmd {
 	return exec.Command(
 		"/Users/wiegersteggerda/code/ringpop-common/tools/tick-cluster.js",
