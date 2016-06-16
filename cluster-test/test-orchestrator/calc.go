@@ -21,11 +21,12 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"strconv"
+
+	"github.com/pkg/errors"
 )
 
 // Eval evaluates the value of an expression to a float64. It can be used
@@ -41,7 +42,7 @@ func Eval(expression string) (f float64, err error) {
 	// parse expression
 	expr, err := parser.ParseExpr(expression)
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrapf(err, "eval %s\n", expression)
 	}
 
 	// evaluate expression

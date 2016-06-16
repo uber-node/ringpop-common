@@ -23,11 +23,12 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"time"
 )
 
-// An assertion checks if a Value is equal or is contained by an interval.
+// An Assertion checks if a Value is equal or is contained by an interval.
 type Assertion struct {
 	Type AssertionType // can be is or in
 
@@ -44,7 +45,11 @@ type Assertion struct {
 type AssertionType string
 
 const (
+	// AssertionTypeIs is the type that is used for exact comparisons
 	AssertionTypeIs AssertionType = "is"
+
+	// AssertionTypeIn is the type that is used to check a value is containded
+	// by an interval.
 	AssertionTypeIn AssertionType = "in"
 )
 
@@ -64,7 +69,7 @@ func (a *Assertion) String() string {
 		return fmt.Sprintf("in (%v,%v)", a.V1, a.V2)
 	}
 
-	panic("unknown assertion type")
+	log.Fatalf("Unknown assertion %s", a.Type)
 	return ""
 }
 
@@ -76,34 +81,35 @@ func (a *Assertion) Assert(v Value) error {
 
 	switch a.Type {
 	case AssertionTypeIs:
-		return isAssert(v, a.V1)
+		return equalsAssert(v, a.V1)
 	case AssertionTypeIn:
-		return inAssert(v, a.V1, a.V2)
+		return rangeAssert(v, a.V1, a.V2)
 	}
 
-	return errors.New(fmt.Sprintf("assertion type must be 'in' or 'is' but is %v", a.Type))
+	msg := fmt.Sprintf("assertion type must be 'in' or 'is' but is %v", a.Type)
+	return errors.New(msg)
 }
 
 // isAssert checks if the Values are equal and returns an error otherwise.
-func isAssert(v, V1 Value) error {
+func equalsAssert(v, V1 Value) error {
 	if reflect.DeepEqual(v, V1) {
 		return nil
 	}
 
-	return errors.New(fmt.Sprintf("assertion expected %v got %v ", V1, v))
+	msg := fmt.Sprintf("assertion expected %v got %v ", V1, v)
+	return errors.New(msg)
 }
 
 // inAssert checks if the Value is contained by the interval (V1, V2) and
 // returns an error otherwise.
-func inAssert(v, V1, V2 Value) error {
-
-	// check if types are equal
+func rangeAssert(v, V1, V2 Value) error {
+	// check if types match
 	tv := reflect.TypeOf(v)
 	tv1 := reflect.TypeOf(V1)
 	tv2 := reflect.TypeOf(V2)
 	if tv != tv1 || tv != tv2 {
-		str := fmt.Sprintf("assertion type mismatch %v (%v,%v)", v, V1, V2)
-		return errors.New(str)
+		msg := fmt.Sprintf("assertion type mismatch %v (%v,%v)", v, V1, V2)
+		return errors.New(msg)
 	}
 
 	// convert to float for easy comparison
@@ -112,7 +118,8 @@ func inAssert(v, V1, V2 Value) error {
 	f2 := toFloat64(V2)
 
 	if f < f1 || f2 < f {
-		return errors.New(fmt.Sprintf("assertion %v not in (%v,%v)", v, V1, V2))
+		msg := fmt.Sprintf("assertion %v not in (%v,%v)", v, V1, V2)
+		return errors.New(msg)
 	}
 
 	return nil

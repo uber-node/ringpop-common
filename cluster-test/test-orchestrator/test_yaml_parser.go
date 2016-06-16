@@ -71,7 +71,7 @@ func parseScenarios(bts []byte) ([]*Scenario, error) {
 
 // extractScenarios returns a scenario for every element in the runs list.
 func extractScenarios(runs *testYaml) ([]*Scenario, error) {
-	result := make([]*Scenario, 0)
+	var result []*Scenario
 	for _, scenarioData := range runs.Scenarios {
 		for i := 1; i < len(scenarioData.Runs); i++ {
 			s, err := extractScenario(scenarioData, i)
@@ -109,18 +109,10 @@ func extractScenario(data *scenarioYaml, runIx int) (*Scenario, error) {
 		return nil, errors.Wrapf(err, "size \"%s\"\n", sizeStr)
 	}
 
-	// extract Script
-	var labels, cmds []string
-	for _, cmdData := range data.Script {
-		if len(cmdData) != 1 {
-			msg := fmt.Sprintf("\"%v\" is not a valid command, should contain exactly entry", cmdData)
-			return nil, errors.New(msg)
-		}
-
-		for label, cmd := range cmdData {
-			labels = append(labels, replace(label, varsData, runData))
-			cmds = append(cmds, replace(cmd, varsData, runData))
-		}
+	// extract script
+	labels, cmds, err := extractScript(data.Script, varsData, runData)
+	if err != nil {
+		return nil, err
 	}
 	script, err := parseScript(labels, cmds)
 	if err != nil {
@@ -144,6 +136,21 @@ func extractScenario(data *scenarioYaml, runIx int) (*Scenario, error) {
 		Script:  script,
 		Measure: measure,
 	}, nil
+}
+
+func extractScript(script []map[string]string, varsData, runData []string) (labels, cmds []string, err error) {
+	for _, cmdData := range script {
+		if len(cmdData) != 1 {
+			msg := fmt.Sprintf("\"%v\" is not a valid command, should contain exactly entry", cmdData)
+			return nil, nil, errors.New(msg)
+		}
+
+		for label, cmd := range cmdData {
+			labels = append(labels, replace(label, varsData, runData))
+			cmds = append(cmds, replace(cmd, varsData, runData))
+		}
+	}
+	return labels, cmds, nil
 }
 
 func parseScript(labels, cmdStrs []string) ([]*Command, error) {

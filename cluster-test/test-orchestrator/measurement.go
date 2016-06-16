@@ -22,8 +22,9 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // Value should ever be either a float64 or a time.Duration.
@@ -64,27 +65,39 @@ func (m *Measurement) String() string {
 
 // Measure performs the measurement and returns the resulting value on stats
 // that are extracted from the given Scanner.
-func (m *Measurement) Measure(s Scanner) Value {
+func (m *Measurement) Measure(s Scanner) (Value, error) {
 	// select stats window we want to to measure on
 	var err error
 	s, err = NewSectionScanner(s, m.Start, m.End)
 	if err != nil {
-		log.Fatalf("scanner init failed, ", err)
+		return nil, errors.Wrapf(err, "measure %s\n", m)
 	}
-
-	// var v Value
 	switch m.Quantity {
 	case "convtime":
-		return StatConvergenceTime(s)
+		convtime, err := ConvergenceTimeAnalysis(s)
+		if err != nil {
+			return nil, errors.Wrapf(err, "measure %s\n", m)
+		}
+		return convtime, nil
 	case "checksums":
-		return float64(StatChecksums(s))
+		csums, err := ChecksumsAnalysis(s)
+		if err != nil {
+			return nil, errors.Wrapf(err, "measure %s\n", m)
+		}
+		return float64(csums), nil
 	case "count":
 		if len(m.Args) != 1 {
-			panic(fmt.Sprintf("count expects one argument, has %v", m.Args))
+			msg := fmt.Sprintf("count expects one argument, has %v", m.Args)
+			return nil, errors.New(msg)
 		}
 		statpath := m.Args[0]
-		return float64(StatCount(s, statpath))
+		count, err := CountAnalysis(s, statpath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "measure %s\n", m)
+		}
+		return float64(count), nil
 	}
 
-	return nil
+	msg := fmt.Sprintf("no such quantity: %s", m.Quantity)
+	return nil, errors.New(msg)
 }

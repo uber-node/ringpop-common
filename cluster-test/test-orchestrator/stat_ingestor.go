@@ -22,7 +22,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -31,6 +30,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // The StatIngester is a UDP server that accepts ringpop stats with added
@@ -88,6 +89,9 @@ func (si *StatIngester) InsertLabel(label, cmd string) {
 	writeln(si.file, []byte(fmt.Sprintf("label:%s|cmd: %s", label, cmd)))
 }
 
+// statsQueue will receive all incomming stats for realtime-analysis.
+var statsQueue = make(chan []byte, 1024)
+
 // Listen starts listening on the specified port and writes the data into the
 // specified file.
 func (si *StatIngester) Listen(file string, port string) error {
@@ -136,44 +140,47 @@ func (si *StatIngester) Listen(file string, port string) error {
 	return nil
 }
 
-// All incomming stats are put on this queue for realtime-analysis.
-var statsQueue = make(chan []byte, 1024)
-
 // startIngestion starts a worker that picks stats from the statQueue for
 // realtime-analysis.
 func (si *StatIngester) startIngestion() {
 	for {
 		str, open := <-statsQueue
 		if !open {
-			fmt.Println("CLOSED")
 			break
 		}
-		si.handleStat(str)
+		err := si.handleStat(str)
+		if err != nil {
+			err = errors.Wrap(err, "stat ingestion\n")
+			log.Fatalf(err.Error())
+		}
 	}
 }
 
 // handleStat handles a single stat for realtime-analysis.
-func (si *StatIngester) handleStat(buf []byte) {
+func (si *StatIngester) handleStat(buf []byte) error {
 	si.Lock()
 	defer si.Unlock()
 
 	// check if changes were disseminated
 	changes, ok := getBetween(buf, []byte("changes.disseminate:"), []byte("|"))
 	if !ok {
-		return
+		return nil
 	}
 	empty := changes == "0"
 
 	// lookup hostport
 	hostport, ok := getBetween(buf, []byte("ringpop."), []byte("."))
 	if !ok {
-		log.Fatalf("no hostport found in stat, ", string(buf))
+		msg := fmt.Sprintf("no hostport found in stat \"%s\"", string(buf))
+		return errors.New(msg)
 	}
 
 	if !empty {
 		si.wasUnstable = true
 	}
 	si.emptyNodes[hostport] = empty
+
+	return nil
 }
 
 // getBetween get a substring from the input buffer between before and after.

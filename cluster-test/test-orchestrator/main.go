@@ -21,10 +21,14 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
+
+	"github.com/pkg/errors"
 )
 
 var onlyMeasure = flag.Bool("only-measure", false, "The script will not be executed and the measurement will be done on an existing file")
@@ -66,6 +70,16 @@ func main() {
 		cmd.Wait()
 	}
 	scns[0].MeasureAndReport("file-name.stats")
+}
+
+// tickcluster spins up a tickcluster in the background.
+func tickcluster() *exec.Cmd {
+	return exec.Command(
+		"/Users/wiegersteggerda/code/ringpop-common/tools/tick-cluster.js",
+		"/Users/wiegersteggerda/go/src/github.com/uber/ringpop-go/scripts/testpop/testpop",
+		"-n", "10",
+		"--stats-udp=127.0.0.1:3300",
+	)
 }
 
 var scenariosYaml = `
@@ -163,3 +177,126 @@ scenarios:
 // #    - [120,   5, "24 24 24 24 24"]
 // #    - [120,   6, "20 20 20 20 20 20"]
 // `
+
+func (s *Scenario) run(sesh Session, si *StatIngester) {
+	s.bootstrap(sesh, si)
+
+	for _, cmd := range s.Script {
+		// TODO(wieger): insert label to stats
+		fmt.Println(cmd.String())
+		si.InsertLabel(cmd.Label, cmd.String())
+
+		// cmd.Run(sesh)
+		si.WaitForStable(sesh.StartedHosts())
+	}
+
+	sesh.StopAll()
+	sesh.Apply()
+}
+
+func (s *Scenario) bootstrap(sesh Session, si *StatIngester) {
+	sesh.StopAll()
+	sesh.Apply()
+	sesh.Start(s.Size)
+	// TODO(wieger): check size
+	sesh.Apply()
+	si.WaitForStable(sesh.StartedHosts())
+}
+
+// MeasureAndReport runs the measurements of the scenario on a file containing
+// the stats that the cluster has emitted. The results are reported to the
+// stdout. The function returns whether all the assertions in the measurements
+// have passed.
+func (s *Scenario) MeasureAndReport(file string) bool {
+	//TODO(wieger): split up in smaller functions
+	success := true
+
+	results := make([]string, len(s.Measure))
+	for i, m := range s.Measure {
+		f, err := os.Open(file)
+		if err != nil {
+			panic(fmt.Sprintf("failed to open %s file, %v", err))
+		}
+		defer f.Close()
+		scanner := bufio.NewScanner(f)
+
+		r, err := m.Measure(scanner)
+		if err != nil {
+			err := errors.Wrapf(err, "failed to measure %s on scenario %s", m, s.Name)
+			log.Fatalf(err.Error())
+		}
+
+		results[i] = fmt.Sprintf("|%8v | %-37v|", r, m)
+
+		err = m.Assertion.Assert(r)
+		if err != nil {
+			results[i] += fmt.Sprintf(" FAILED %v", err)
+			success = false
+		}
+	}
+
+	// print results in a human readable way in between the commands
+
+	// measurements that are printed between two commands
+	printed := make(map[int]struct{})
+
+	for i := -1; i < len(s.Script); i++ {
+		if len(s.Script) == 0 && i == 0 {
+			break
+		}
+		start := ".."
+		if i > -1 {
+			start = s.Script[i].Label
+
+			s := fmt.Sprintf("|%8s | %-37s|", start, s.Script[i].String())
+
+			fmt.Println("+---------+--------------------------------------+")
+			fmt.Println()
+			fmt.Println("+---------+--------------------------------------+")
+			fmt.Println(s)
+			fmt.Println("|---------+--------------------------------------|")
+		} else {
+			fmt.Println("+---------+--------------------------------------+")
+			fmt.Println("|      .. | bootstrap                            |")
+			fmt.Println("|---------+--------------------------------------|")
+		}
+
+		end := ".."
+		if i+1 < len(s.Script) {
+			end = s.Script[i+1].Label
+		}
+
+		for i, m := range s.Measure {
+			if m.Start == start && m.End == end {
+				fmt.Println(results[i])
+				printed[i] = struct{}{}
+			}
+		}
+	}
+	fmt.Println(("+---------+--------------------------------------+"))
+
+	// Print all measurements that have not yet been printed.
+	if len(printed) < len(s.Measure) {
+		fmt.Println()
+		fmt.Println("Extra Measurements")
+		fmt.Println(("+---------+--------------------------------------+"))
+	}
+	for i, m := range s.Measure {
+		if _, ok := printed[i]; ok {
+			continue
+		}
+
+		fmt.Printf("|%8s | %-37s|\n%s\n", m.Start+" "+m.End, "", results[i])
+	}
+	if len(printed) < len(s.Measure) {
+		fmt.Println(("+---------+--------------------------------------+"))
+	}
+
+	return success
+}
+
+// TODO(wieger): implement the execution of commands
+func (cmd *Command) Run(s Session) {
+	// TODO(wieger): implement
+	log.Fatal("run not implemented")
+}

@@ -50,6 +50,11 @@ type SectionScanner struct {
 	End   string
 }
 
+const (
+	scriptStartLabel = ".."
+	scriptEndLabel   = ".."
+)
+
 // NewSectionScanner returns a Section scanner given Scanner and a start and
 // end label. The scanner is progressed to the Start label and returns an
 // error if that label isn't present.
@@ -60,7 +65,7 @@ func NewSectionScanner(scanner Scanner, start, end string) (*SectionScanner, err
 		End:     end,
 	}
 
-	if start == ".." {
+	if start == scriptStartLabel {
 		return s, nil
 	}
 
@@ -81,7 +86,7 @@ func (s *SectionScanner) Scan() bool {
 		return false
 	}
 
-	if s.End == ".." {
+	if s.End == scriptEndLabel {
 		return true
 	}
 

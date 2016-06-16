@@ -22,8 +22,6 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"os/exec"
 	"strings"
 )
 
@@ -48,23 +46,7 @@ type Command struct {
 	Args []string
 }
 
-//TODO(wieger): implement the execution of commands
-func (cmd *Command) Run(s Session) {
-	// TODO(wieger): implement
-	log.Fatal("run not implemented")
-}
-
 // String converts a Command to a string.
 func (cmd Command) String() string {
 	return fmt.Sprintf("%s %s", cmd.Cmd, strings.Join(cmd.Args, " "))
-}
-
-// tickcluster spins up a tickcluster in the background.
-func tickcluster() *exec.Cmd {
-	return exec.Command(
-		"/Users/wiegersteggerda/code/ringpop-common/tools/tick-cluster.js",
-		"/Users/wiegersteggerda/go/src/github.com/uber/ringpop-go/scripts/testpop/testpop",
-		"-n", "10",
-		"--stats-udp=127.0.0.1:3300",
-	)
 }

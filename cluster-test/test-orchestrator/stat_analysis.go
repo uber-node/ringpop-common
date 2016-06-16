@@ -21,10 +21,12 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -34,26 +36,26 @@ const (
 	hostportRegex          = "[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,3}_[0-9]{1,6}"
 )
 
-// StatCount counts the number of occurences of stat in the scanner.
-func StatCount(s Scanner, stat string) int {
+// CountAnalysis counts the number of occurences of stat in the scanner.
+func CountAnalysis(s Scanner, stat string) (int, error) {
 	stat += ":"
 	count := 0
 	for s.Scan() {
-		// TODO fetch count from stat line (don't just count number of lines)
+		// TODO fetch actual count from stat line (don't just count number of lines)
 		if ok, err := regexp.MatchString(stat, s.Text()); ok && err == nil {
 			count++
 		}
 	}
 	if s.Err() != nil {
-		panic(s.Err())
+		return 0, errors.Wrap(s.Err(), "count analysis\n")
 	}
 
-	return count
+	return count, nil
 }
 
-// StatChecksums counts the number of unique checksums among nodes after
+// ChecksumsAnalysis counts the number of unique checksums among nodes after
 // scanning all the stats in the scanner.
-func StatChecksums(s Scanner) int {
+func ChecksumsAnalysis(s Scanner) (int, error) {
 	m := make(map[string]string)
 	for s.Scan() {
 		line := s.Text()
@@ -64,22 +66,24 @@ func StatChecksums(s Scanner) int {
 
 		csum := line[ix+len(membershipChecksumPath):]
 		if csum[len(csum)-2:] != "|g" {
-			panic("membership.checksum is not a gauge. csum=" + csum)
+			msg := fmt.Sprintf("membership.checksum is not a gauge. csum=%s", csum)
+			return 0, errors.New(msg)
 		}
 		csum = csum[:len(csum)-2]
 
 		r := regexp.MustCompile(hostportRegex)
 		host := r.FindString(line)
 		if host == "" {
-			panic("membership.checksum stat does not contain host")
+			msg := fmt.Sprintf("membership.checksum stat \"%s\" does not contain host", line)
+			return 0, errors.New(msg)
 		}
 		m[host] = csum
 	}
 	if s.Err() != nil {
-		panic(s.Err())
+		return 0, errors.Wrap(s.Err(), "checksums analysis\n")
 	}
 
-	return uniq(m)
+	return uniq(m), nil
 }
 
 // uniq returns the number of unique values in a map.
@@ -91,63 +95,61 @@ func uniq(m map[string]string) int {
 	return len(u)
 }
 
-// StatConvergenceTime measures the time it takes from the first changes is
+// ConvergenceTimeAnalysis measures the time it takes from the first changes is
 // applied until the last.
-func StatConvergenceTime(s Scanner) time.Duration {
+func ConvergenceTimeAnalysis(s Scanner) (time.Duration, error) {
 	var firstChange string
+	var lastChange string
 	for s.Scan() {
 		if strings.Contains(s.Text(), membershipSetPath) {
 			firstChange = s.Text()
+			lastChange = s.Text()
 			break
 		}
 	}
+	if firstChange == "" {
+		return 0, errors.New("first membership change not found in convergence time analysis")
+	}
 
-	var lastChange string
 	for s.Scan() {
 		if strings.Contains(s.Text(), membershipSetPath) {
 			lastChange = s.Text()
 		}
-
-		// changes, ok := getBetween([]byte(s.Text()), []byte(changesDisseminatePath), []byte("|"))
-		// if ok && changes != "0" {
-		// 	lastChange = s.Text()
-		// }
 	}
 	if s.Err() != nil {
-		panic(s.Err())
+		return 0, errors.Wrap(s.Err(), "convergence time analysis\n")
 	}
 
-	if firstChange == "" || lastChange == "" {
-		return 0
+	d, err := timeDiff(firstChange, lastChange)
+	if err != nil {
+		return 0, errors.Wrap(err, "convergence time analaysis\n")
 	}
 
-	d := timeDiff(firstChange, lastChange)
-	// foce millisecond precission
-	return d / time.Millisecond * time.Millisecond
+	// force millisecond precission
+	return d / time.Millisecond * time.Millisecond, nil
 }
 
 // timeDiff returns the duration between two stat lines.
-func timeDiff(stat1, stat2 string) time.Duration {
+func timeDiff(stat1, stat2 string) (time.Duration, error) {
 	i1 := strings.Index(stat1, "|")
 	if i1 == -1 {
-		log.Fatal("stat1 didn't contain a timestamp, ", stat1)
+		msg := fmt.Sprintf("stat1 \"%s\" doesn't contain a timestamp", stat1)
+		return 0, errors.New(msg)
 	}
 	i2 := strings.Index(stat2, "|")
 	if i2 == -1 {
-		log.Fatal("stat2 didn't contain a timestamp, ", stat2)
+		msg := fmt.Sprintf("stat2 \"%s\" doesn't contain a timestamp", stat2)
+		return 0, errors.New(msg)
 	}
 
-	s1 := stat1[:i1]
-	s2 := stat2[:i2]
-
-	t1, err := time.Parse(time.RFC3339Nano, s1)
+	t1, err := time.Parse(time.RFC3339Nano, stat1[:i1])
 	if err != nil {
-		log.Fatal("stat didn't contain a timestamp, ", err)
+		return 0, errors.Wrap(err, "parse timestamp stat1\n")
 	}
-	t2, err := time.Parse(time.RFC3339Nano, s2)
+	t2, err := time.Parse(time.RFC3339Nano, stat2[:i2])
 	if err != nil {
-		log.Fatal("stat didn't contain a timestamp, ", err)
+		return 0, errors.Wrap(err, "parse timestamp stat2\n")
 	}
 
-	return t2.Sub(t1)
+	return t2.Sub(t1), nil
 }
