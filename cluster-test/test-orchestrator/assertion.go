@@ -44,8 +44,8 @@ type Assertion struct {
 type AssertionType string
 
 const (
-	AssertionTypeIs = "is"
-	AssertionTypeIn = "in"
+	AssertionTypeIs AssertionType = "is"
+	AssertionTypeIn AssertionType = "in"
 )
 
 // String converts an assertion to its string representation. Some examples:
@@ -79,9 +79,9 @@ func (a *Assertion) Assert(v Value) error {
 		return isAssert(v, a.V1)
 	case AssertionTypeIn:
 		return inAssert(v, a.V1, a.V2)
-	default:
-		return errors.New(fmt.Sprintf("assertion type must be 'in' or 'is' but is %v", a))
 	}
+
+	return errors.New(fmt.Sprintf("assertion type must be 'in' or 'is' but is %v", a.Type))
 }
 
 // isAssert checks if the Values are equal and returns an error otherwise.
@@ -90,7 +90,7 @@ func isAssert(v, V1 Value) error {
 		return nil
 	}
 
-	return errors.New(fmt.Sprintf("assertion got %v expected %v", v, V1))
+	return errors.New(fmt.Sprintf("assertion expected %v got %v ", V1, v))
 }
 
 // inAssert checks if the Value is contained by the interval (V1, V2) and

@@ -23,6 +23,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -34,7 +35,7 @@ func main() {
 	si := NewStatIngester()
 	si.Listen("file-name.stats", "3300")
 
-	base := "172.18.24.220"
+	base := "172.18.24.214"
 	var hosts []string
 	for p := 3000; p < 3010; p++ {
 		hosts = append(hosts, fmt.Sprintf("%s:%d", base, p))
@@ -52,17 +53,19 @@ func main() {
 	sesh["host1"] = h1
 
 	// GET SCENARIOS
-	scns := toScenarios([]byte(scenariosYaml))
-	for _, s := range scns {
-		if !*onlyMeasure {
-			cmd := tickcluster()
-			cmd.Start()
-			s.run(sesh, si)
-			cmd.Process.Signal(os.Interrupt)
-			cmd.Wait()
-		}
-		s.MeasureAndReport("file-name.stats")
+	scns, err := parseScenarios([]byte(scenariosYaml))
+	if err != nil {
+		log.Fatalf(err.Error())
 	}
+
+	if !*onlyMeasure {
+		cmd := tickcluster()
+		cmd.Start()
+		scns[0].run(sesh, si)
+		cmd.Process.Signal(os.Interrupt)
+		cmd.Wait()
+	}
+	scns[0].MeasureAndReport("file-name.stats")
 }
 
 var scenariosYaml = `
@@ -103,12 +106,11 @@ scenarios:
 
     - .. .. count full-sync is 0
 
-
     runs:
     - [<N>, <C>, <SPLIT>]
     - [ 10,   2, "5 5"]
-#    - [ 40,   2, "20 20"]
-#    - [120,   2, "60 60"]
+    - [ 40,   2, "20 20"]
+    - [120,   2, "60 60"]
 #    - [120,   2, "110 10"]
 #    - [120,   2, "90 30"]
 #    - [120,   3, "40 40 40"]

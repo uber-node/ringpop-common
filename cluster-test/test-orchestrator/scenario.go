@@ -26,15 +26,22 @@ import (
 	"os"
 )
 
+// A Scenario is a structure that captures the information of a single
+// cluster-test. It contains a script of commands that exercise different
+// failure conditions on ringpop cluster. After the script has run different
+// measurements on the ringpop stats that the cluster emits are executed.
+// It is possible to add constraints in the form of Assertions to these
+// measurements.
 type Scenario struct {
 	Name string
 	Size int
 	Desc string
 
-	Script  []Command
-	Measure []Measurement
+	Script  []*Command
+	Measure []*Measurement
 }
 
+//
 func (s *Scenario) run(sesh Session, si *StatIngester) {
 	s.bootstrap(sesh, si)
 
@@ -51,8 +58,6 @@ func (s *Scenario) run(sesh Session, si *StatIngester) {
 	sesh.Apply()
 }
 
-// prepare(n int)
-
 func (s *Scenario) bootstrap(sesh Session, si *StatIngester) {
 	sesh.StopAll()
 	sesh.Apply()
@@ -62,8 +67,12 @@ func (s *Scenario) bootstrap(sesh Session, si *StatIngester) {
 	si.WaitForStable(sesh.StartedHosts())
 }
 
-//TODO(wieger): split up in smaller functions
+// MeasureAndReport runs the measurements of the scenario on a file containing
+// the stats that the cluster has emitted. The results are reported to the
+// stdout. The function returns whether all the assertions in the measurements
+// have passed.
 func (s *Scenario) MeasureAndReport(file string) bool {
+	//TODO(wieger): split up in smaller functions
 	success := true
 
 	results := make([]string, len(s.Measure))

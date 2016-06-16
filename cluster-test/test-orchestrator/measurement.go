@@ -53,7 +53,7 @@ type Measurement struct {
 }
 
 // String converts the Measurement into a string.
-func (m Measurement) String() string {
+func (m *Measurement) String() string {
 	strs := []string{m.Quantity}
 	strs = append(strs, m.Args...)
 	if m.Assertion != nil {
@@ -64,7 +64,7 @@ func (m Measurement) String() string {
 
 // Measure performs the measurement and returns the resulting value on stats
 // that are extracted from the given Scanner.
-func (m Measurement) Measure(s Scanner) Value {
+func (m *Measurement) Measure(s Scanner) Value {
 	// select stats window we want to to measure on
 	var err error
 	s, err = NewSectionScanner(s, m.Start, m.End)
