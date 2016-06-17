@@ -18,6 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+// The file contains a utility for calculation expressions. This is useful when
+// parsing the tests because when for example we want to assert that the
+// number of suspect declarations in a split brane is equal to
+// "N/2 * N/2 * 2" where N is the cluster size.
+
 package main
 
 import (
