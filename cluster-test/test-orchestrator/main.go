@@ -31,6 +31,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+var base = "172.18.24.192"
+
 var onlyMeasure = flag.Bool("only-measure", false, "The script will not be executed and the measurement will be done on an existing file")
 
 func main() {
@@ -39,7 +41,6 @@ func main() {
 	si := NewStatIngester()
 	si.Listen("file-name.stats", "3300")
 
-	base := "172.18.24.214"
 	var hosts []string
 	for p := 3000; p < 3010; p++ {
 		hosts = append(hosts, fmt.Sprintf("%s:%d", base, p))
