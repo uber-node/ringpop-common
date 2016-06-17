@@ -18,6 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+// This file contains is responsible for ingesting the ringpop stats of the
+// entire cluster. The stats are analyzed in real-time to assess cluster
+// stability and the stats are at the same time written to a file for later
+// analysis.
+
 package main
 
 import (
