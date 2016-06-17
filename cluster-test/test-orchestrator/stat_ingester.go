@@ -98,65 +98,15 @@ func (si *StatIngester) IsClusterStable(hosts []string) bool {
 	return true
 }
 
-// InsertLabel writes a label into the stats file.
-// Example of label: "label:t0|cmd: kill 1"
+// InsertLabel writes a line like "label:t0|cmd: kill 1" into the stats file.
+// The line indicates at what time a command is run. The idea is that all stats
+// that are recorded between two labels can be used to measure the effect of
+// the command associated with the first label.
 func (si *StatIngester) InsertLabel(label, cmd string) {
 	writeln(si.file, []byte(fmt.Sprintf("label:%s|cmd: %s", label, cmd)))
 }
 
-// Listen starts listening on the specified port and writes the data into the
-// specified file.
-func (si *StatIngester) Listen(file string, port string) error {
-	// open output file
-	f, err := os.Create(file)
-	if err != nil {
-		return err
-	}
-	si.file = f
-
-	// start listening to stats
-	sAddr, err := net.ResolveUDPAddr("udp", ":"+port)
-	if err != nil {
-		return err
-	}
-
-	sConn, err := net.ListenUDP("udp", sAddr)
-	if err != nil {
-		return err
-	}
-
-	// handle stats
-	go func() {
-		buf := make([]byte, 1024)
-		for {
-			n, err := sConn.Read(buf)
-			if err != nil {
-				log.Fatalln(err)
-			}
-			if n == 0 {
-				return
-			}
-
-			err = si.handleStat(buf[0:n])
-			if err != nil {
-				err = errors.Wrap(err, "stat ingestion\n")
-				log.Fatalf(err.Error())
-			}
-
-			// write to file
-			err = writeln(si.file, buf[0:n])
-			if err != nil {
-				log.Fatalln(err)
-			}
-
-			// statsQueue <- []byte(string(buf[0:n]))
-		}
-	}()
-
-	return nil
-}
-
-// handleStat handles a single stat for realtime-analysis.
+// handleStat handles a single stat for cluster-stability analysis.
 func (si *StatIngester) handleStat(buf []byte) error {
 	si.Lock()
 	defer si.Unlock()
@@ -198,6 +148,58 @@ func getBetween(buf, before, after []byte) (string, bool) {
 	}
 
 	return string(buf[:end]), true
+}
+
+// Listen starts listening on the specified port for ringpop stats. The stats
+// are analyzed to determine cluster-stability and written to a file.
+func (si *StatIngester) Listen(file string, port string) error {
+	// open output file
+	f, err := os.Create(file)
+	if err != nil {
+		return err
+	}
+	si.file = f
+
+	// setup udp connection
+	sAddr, err := net.ResolveUDPAddr("udp", ":"+port)
+	if err != nil {
+		return err
+	}
+
+	sConn, err := net.ListenUDP("udp", sAddr)
+	if err != nil {
+		return err
+	}
+
+	// listen to and handle stats that come through the udp connection
+	go func() {
+		buf := make([]byte, 1024)
+		for {
+			// read a single stat
+			n, err := sConn.Read(buf)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			if n == 0 {
+				return
+			}
+
+			// handle stat for cluster stability analysis
+			err = si.handleStat(buf[0:n])
+			if err != nil {
+				err = errors.Wrap(err, "stat ingestion\n")
+				log.Fatalf(err.Error())
+			}
+
+			// write stat to file
+			err = writeln(si.file, buf[0:n])
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}
+	}()
+
+	return nil
 }
 
 // writeln is a helper function that writes one line to the writer.
