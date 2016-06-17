@@ -86,7 +86,7 @@ func (a *Assertion) Assert(v Value) error {
 		return rangeAssert(v, a.V1, a.V2)
 	}
 
-	msg := fmt.Sprintf("assertion type must be 'in' or 'is' but is %v", a.Type)
+	msg := fmt.Sprintf("FAILED assertion: type must be 'in' or 'is' but is %v", a.Type)
 	return errors.New(msg)
 }
 
@@ -96,7 +96,7 @@ func equalsAssert(v, V1 Value) error {
 		return nil
 	}
 
-	msg := fmt.Sprintf("assertion expected %v got %v ", V1, v)
+	msg := fmt.Sprintf("FAILED assertion: expected %v got %v", V1, v)
 	return errors.New(msg)
 }
 
@@ -108,7 +108,7 @@ func rangeAssert(v, V1, V2 Value) error {
 	tv1 := reflect.TypeOf(V1)
 	tv2 := reflect.TypeOf(V2)
 	if tv != tv1 || tv != tv2 {
-		msg := fmt.Sprintf("assertion type mismatch %v (%v,%v)", v, V1, V2)
+		msg := fmt.Sprintf("FAILED assertion: type mismatch %v (%v,%v)", v, V1, V2)
 		return errors.New(msg)
 	}
 
@@ -118,7 +118,7 @@ func rangeAssert(v, V1, V2 Value) error {
 	f2 := toFloat64(V2)
 
 	if f < f1 || f2 < f {
-		msg := fmt.Sprintf("assertion %v not in (%v,%v)", v, V1, V2)
+		msg := fmt.Sprintf("FAILED assertion: %v not in (%v,%v)", v, V1, V2)
 		return errors.New(msg)
 	}
 
