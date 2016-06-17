@@ -18,6 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+// A SectionScanner wraps a scanner and filters out all data before the start-
+// label and after the end-label, keeping only the data between the labels.
+// A label indicates when what command of the script of a scenario is ran. The
+// lines that look like "label:t0|cmd: kill 1"" are inserted into the ringpop
+// stats.
+
 package main
 
 import (

@@ -18,6 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+// This file contains the static ringpop stats analysis for: convergence time;
+// number of converged checksums; and counting of individual stats.
+
 package main
 
 import (
