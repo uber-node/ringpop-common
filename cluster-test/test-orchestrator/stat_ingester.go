@@ -39,9 +39,23 @@ import (
 // cluster reaches a stable state. It also writes the stream into a file for
 // later analysis.
 type StatIngester struct {
+	// The file where the stats are written to.
+	file *os.File
+
+	// Protects emptyNodes and wasUnstable
 	sync.Mutex
-	emptyNodes  map[string]bool
-	file        *os.File
+
+	// The stat ingester listens for dissemination stats to determine if the
+	// cluster has reached a stable state. When there are no changes being
+	// disseminated by any node, the cluster is said to be stable.
+	// emptyNodes holds track of which nodes are empty and which nodes still
+	// have changes to disseminate.
+	emptyNodes map[string]bool
+
+	// When waiting for the cluster to be stable, we first want to make sure
+	// that the cluster was unstable at some point. This makes sure that any
+	// failure condition we throw at the cluster has taken effect before we
+	// move onto the next failure condition.
 	wasUnstable bool
 }
 
@@ -84,79 +98,15 @@ func (si *StatIngester) IsClusterStable(hosts []string) bool {
 	return true
 }
 
-// InsertLabel writes a label into the stats file.
+// InsertLabel writes a line like "label:t0|cmd: kill 1" into the stats file.
+// The line indicates at what time a command is run. The idea is that all stats
+// that are recorded between two labels can be used to measure the effect of
+// the command associated with the first label.
 func (si *StatIngester) InsertLabel(label, cmd string) {
 	writeln(si.file, []byte(fmt.Sprintf("label:%s|cmd: %s", label, cmd)))
 }
 
-// statsQueue will receive all incomming stats for realtime-analysis.
-var statsQueue = make(chan []byte, 1024)
-
-// Listen starts listening on the specified port and writes the data into the
-// specified file.
-func (si *StatIngester) Listen(file string, port string) error {
-	// open output file
-	f, err := os.Create(file)
-	if err != nil {
-		return err
-	}
-	si.file = f
-
-	// start listening to stats
-	sAddr, err := net.ResolveUDPAddr("udp", ":"+port)
-	if err != nil {
-		return err
-	}
-
-	sConn, err := net.ListenUDP("udp", sAddr)
-	if err != nil {
-		return err
-	}
-
-	go si.startIngestion()
-
-	// handle stats
-	go func() {
-		buf := make([]byte, 1024)
-		for {
-			n, err := sConn.Read(buf)
-			if err != nil {
-				log.Fatalln(err)
-			}
-			if n == 0 {
-				return
-			}
-
-			// write to file
-			err = writeln(si.file, buf[0:n])
-			if err != nil {
-				log.Fatalln(err)
-			}
-
-			statsQueue <- []byte(string(buf[0:n]))
-		}
-	}()
-
-	return nil
-}
-
-// startIngestion starts a worker that picks stats from the statQueue for
-// realtime-analysis.
-func (si *StatIngester) startIngestion() {
-	for {
-		str, open := <-statsQueue
-		if !open {
-			break
-		}
-		err := si.handleStat(str)
-		if err != nil {
-			err = errors.Wrap(err, "stat ingestion\n")
-			log.Fatalf(err.Error())
-		}
-	}
-}
-
-// handleStat handles a single stat for realtime-analysis.
+// handleStat handles a single stat for cluster-stability analysis.
 func (si *StatIngester) handleStat(buf []byte) error {
 	si.Lock()
 	defer si.Unlock()
@@ -198,6 +148,58 @@ func getBetween(buf, before, after []byte) (string, bool) {
 	}
 
 	return string(buf[:end]), true
+}
+
+// Listen starts listening on the specified port for ringpop stats. The stats
+// are analyzed to determine cluster-stability and written to a file.
+func (si *StatIngester) Listen(file string, port string) error {
+	// open output file
+	f, err := os.Create(file)
+	if err != nil {
+		return err
+	}
+	si.file = f
+
+	// setup udp connection
+	sAddr, err := net.ResolveUDPAddr("udp", ":"+port)
+	if err != nil {
+		return err
+	}
+
+	sConn, err := net.ListenUDP("udp", sAddr)
+	if err != nil {
+		return err
+	}
+
+	// listen to and handle stats that come through the udp connection
+	go func() {
+		buf := make([]byte, 1024)
+		for {
+			// read a single stat
+			n, err := sConn.Read(buf)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			if n == 0 {
+				return
+			}
+
+			// handle stat for cluster stability analysis
+			err = si.handleStat(buf[0:n])
+			if err != nil {
+				err = errors.Wrap(err, "stat ingestion\n")
+				log.Fatalf(err.Error())
+			}
+
+			// write stat to file
+			err = writeln(si.file, buf[0:n])
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}
+	}()
+
+	return nil
 }
 
 // writeln is a helper function that writes one line to the writer.
