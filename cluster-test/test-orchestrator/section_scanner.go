@@ -70,7 +70,7 @@ func NewSectionScanner(scanner Scanner, start, end string) (*SectionScanner, err
 	}
 
 	// find section start
-	for s.Scan() {
+	for s.Scanner.Scan() {
 		if strings.HasPrefix(s.Text(), "label:"+s.Start) {
 			return s, nil
 		}

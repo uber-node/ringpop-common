@@ -60,6 +60,8 @@ func ChecksumsAnalysis(s Scanner) (int, error) {
 	for s.Scan() {
 		line := s.Text()
 		ix := strings.Index(line, membershipChecksumPath)
+
+		// filter out everything that is not a membership checksum
 		if ix == -1 || strings.Contains(line, "ring.checksum") {
 			continue
 		}
