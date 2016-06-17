@@ -47,7 +47,8 @@ func Eval(expression string) (f float64, err error) {
 	// parse expression
 	expr, err := parser.ParseExpr(expression)
 	if err != nil {
-		return 0, errors.Wrapf(err, "eval %s\n", expression)
+		msg := fmt.Sprintf("eval error for expression: \"%s\"", expression)
+		return 0, errors.New(msg)
 	}
 
 	// evaluate expression
