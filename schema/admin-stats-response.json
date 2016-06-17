@@ -28,6 +28,14 @@
                             },
                             "dampScore": {
                                 "type": "number"
+                            },
+                            "labels": {
+                                "type": "object",
+                                 "patternProperties": {
+                                    "^.*$": {
+                                        "type": "string"
+                                    }
+                                }
                             }
                         },
                         "required": [

@@ -111,12 +111,22 @@ FakeNode.prototype.shutdown = function shutdown() {
 };
 
 FakeNode.prototype.toMemberInfo = function toMemberInfo() {
-    return {
+    var memberInfo = {
         host: this.host,
         port: this.port,
         status: this.status,
         incarnationNumber: this.incarnationNumber,
     };
+
+    if (this.labels) {
+        // the easiest way to get the labels in the join response.
+        if (!memberInfo.extraFields) {
+            memberInfo.extraFields = {};
+        }
+        memberInfo.extraFields.labels = this.labels;
+    }
+
+    return memberInfo;
 };
 
 FakeNode.prototype.changeEndpoint = function modifyEndpoint(endpoint, handler) {
@@ -127,6 +137,8 @@ FakeNode.prototype.changeEndpoint = function modifyEndpoint(endpoint, handler) {
 // Useful, e.g., for partitioning tests.
 FakeNode.prototype.joinHandler = function joinHandler(req, res, arg2, arg3) {
     var membership = this.membership || this.coordinator.getMembership();
+
+    console.log("membership:",JSON.stringify(membership, null, 2));
     return handleJoin(req, res, this.toMemberInfo(), membership, this.coordinator.checksum);
 };
 

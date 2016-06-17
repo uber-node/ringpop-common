@@ -31,9 +31,21 @@ function generateChecksumString(members) {
         })
         .map(function (member) {
             var address = member.address || (member.host + ':' + member.port);
+            var labelsStr = ''
+
+            if (member.labels) {
+                var keys = Object.keys(member.labels);
+                keys.sort();
+
+                keys.forEach(function (key) {
+                    labelsStr += '-' + key + '-' + member.labels[key];
+                });
+            }
+
             return address +
                     member.status +
-                    member.incarnationNumber
+                    member.incarnationNumber +
+                    labelsStr
         })
         .value()
         .sort()
