@@ -31,7 +31,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var base = "172.18.24.192"
+var base = "192.168.2.3"
 
 var onlyMeasure = flag.Bool("only-measure", false, "The script will not be executed and the measurement will be done on an existing file")
 
@@ -39,7 +39,12 @@ func main() {
 	flag.Parse()
 
 	si := NewStatIngester()
-	si.Listen("file-name.stats", "3300")
+	scanner, err := NewUDPScanner("3300")
+	if err != nil {
+		log.Fatal("can't startup udp scanner")
+	}
+
+	go si.IngestStats("file-name.stats", scanner)
 
 	var hosts []string
 	for p := 3000; p < 3010; p++ {
