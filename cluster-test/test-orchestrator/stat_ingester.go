@@ -135,25 +135,25 @@ func (si *StatIngester) IngestStats(file string, s Scanner) error {
 // that are recorded between two labels can be used to measure the effect of
 // the command associated with the first label.
 func (si *StatIngester) InsertLabel(label, cmd string) {
-	fmt.Fprintf(si.file, "label:%s|cmd: %s\n", label, cmd))
+	fmt.Fprintf(si.file, "label:%s|cmd: %s\n", label, cmd)
 }
 
 // handleStat handles a single stat to determine cluster-stability.
-func (si *StatIngester) handleStat(buf []byte) error {
+func (si *StatIngester) handleStat(str string) error {
 	si.Lock()
 	defer si.Unlock()
 
 	// check if changes were disseminated
-	changes, ok := getBetween(buf, []byte("changes.disseminate:"), []byte("|"))
+	changes, ok := getBetween(str, "changes.disseminate:", "|")
 	if !ok {
 		return nil
 	}
 	empty := changes == "0"
 
 	// lookup hostport
-	hostport, ok := getBetween(buf, []byte("ringpop."), []byte("."))
+	hostport, ok := getBetween(str, "ringpop.", ".")
 	if !ok {
-		msg := fmt.Sprintf("no hostport found in stat \"%s\"", string(buf))
+		msg := fmt.Sprintf("no hostport found in stat \"%s\"", str)
 		return errors.New(msg)
 	}
 
@@ -167,21 +167,17 @@ func (si *StatIngester) handleStat(buf []byte) error {
 
 // getBetween get a substring from the input buffer between before and after.
 // The function returns whether this was a success.
-func getBetween(buf, before, after string) (string, bool) {
-	start := strins.Index(str, before)
+func getBetween(str, before, after string) (string, bool) {
+	start := strings.Index(str, before)
 	if start == -1 {
 		return "", false
 	}
+	start += len(before)
 
-	end := strings.Index(str[start+len(before):], after)
+	end := strings.Index(str[start:], after)
 	if end == -1 {
 		return "", false
 	}
 
-	return str[start+len(before) : end], true
-}
-
-type UDPScanner struct {
-	buf  []byte
-	text string
+	return str[start : start+end], true
 }

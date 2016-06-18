@@ -1,40 +1,53 @@
 package main
 
 import (
-	"log"
 	"net"
+
+	"github.com/pkg/errors"
 )
 
-func NewUDPScanner(port string) *UDPScanner {
+type UDPScanner struct {
+	buf   []byte
+	text  string
+	err   error
+	sConn *net.UDPConn
+}
+
+func NewUDPScanner(port string) (*UDPScanner, error) {
 	// setup udp connection
 	sAddr, err := net.ResolveUDPAddr("udp", ":"+port)
 	if err != nil {
-		return err
+		return nil, errors.Wrap(err, "udp scanner")
 	}
 
 	sConn, err := net.ListenUDP("udp", sAddr)
 	if err != nil {
-		return err
+		return nil, errors.Wrap(err, "udp scanner")
 	}
 
 	return &UDPScanner{
-		buf: make([]byte, 1024),
-	}
+		buf:   make([]byte, 1024),
+		sConn: sConn,
+	}, nil
 }
 
 func (s *UDPScanner) Scan() bool {
 	// read a single stat
-	_, err := sConn.Read(buf)
+	n, err := s.sConn.Read(s.buf)
 	if err != nil {
-		log.Fatalln(err)
+		s.err = errors.Wrap(err, "udp scan")
 		return false
 	}
 
-	text := string(buf)
+	s.text = string(s.buf[0:n])
 
 	return true
 }
 
 func (s *UDPScanner) Text() string {
 	return s.text
+}
+
+func (s *UDPScanner) Err() error {
+	return s.err
 }
