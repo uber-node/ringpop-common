@@ -6,6 +6,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+// UDPScanner listens to a port for udp messages and converts them so that they
+// can be read through the Scanner interface.
 type UDPScanner struct {
 	buf   []byte
 	text  string
@@ -13,6 +15,8 @@ type UDPScanner struct {
 	sConn *net.UDPConn
 }
 
+// NewUDPScanner starts listening on the specified port and returns a new
+// UDPScanner.
 func NewUDPScanner(port string) (*UDPScanner, error) {
 	// setup udp connection
 	sAddr, err := net.ResolveUDPAddr("udp", ":"+port)
@@ -31,6 +35,7 @@ func NewUDPScanner(port string) (*UDPScanner, error) {
 	}, nil
 }
 
+// Scans the next line, and returns whether there is one.
 func (s *UDPScanner) Scan() bool {
 	// read a single stat
 	n, err := s.sConn.Read(s.buf)
@@ -44,10 +49,12 @@ func (s *UDPScanner) Scan() bool {
 	return true
 }
 
+// Returns the scanned line.
 func (s *UDPScanner) Text() string {
 	return s.text
 }
 
+// Returns whether an error occured during scanning.
 func (s *UDPScanner) Err() error {
 	return s.err
 }
