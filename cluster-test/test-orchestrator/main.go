@@ -38,13 +38,19 @@ var onlyMeasure = flag.Bool("only-measure", false, "The script will not be execu
 func main() {
 	flag.Parse()
 
-	si := NewStatIngester()
+	// open output file
+	f, err := os.Create("file-name.stats")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	si := NewStatIngester(f)
 	scanner, err := NewUDPScanner("3300")
 	if err != nil {
 		log.Fatal("can't startup udp scanner")
 	}
 
-	go si.IngestStats("file-name.stats", scanner)
+	go si.IngestStats(scanner)
 
 	var hosts []string
 	for p := 3000; p < 3010; p++ {

@@ -27,8 +27,8 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -41,8 +41,8 @@ import (
 // cluster reaches a stable state. It also writes the stream into a file for
 // later analysis.
 type StatIngester struct {
-	// The file where the stats are written to.
-	file *os.File
+	// The where the stats are written to.
+	writer io.Writer
 
 	// Protects emptyNodes and wasUnstable
 	sync.Mutex
@@ -62,9 +62,10 @@ type StatIngester struct {
 }
 
 // NewStatIngester creates a new StatIngester
-func NewStatIngester() *StatIngester {
+func NewStatIngester(w io.Writer) *StatIngester {
 	return &StatIngester{
 		emptyNodes: make(map[string]bool),
+		writer:     w,
 	}
 }
 
@@ -102,26 +103,17 @@ func (si *StatIngester) IsClusterStable(hosts []string) bool {
 
 // IngestStats starts listening on the specified port for ringpop stats. The
 // stats are analyzed to determine cluster-stability and written to a file.
-func (si *StatIngester) IngestStats(file string, s Scanner) error {
-	// open output file
-	f, err := os.Create(file)
-	if err != nil {
-		return errors.Wrap(err, "handle stats")
-	}
-	si.file = f
-
-	// listen to and handle stats that come through the udp connection
+func (si *StatIngester) IngestStats(s Scanner) error {
 	for s.Scan() {
-
 		// handle stat for cluster stability analysis
-		err = si.handleStat(s.Text())
+		err := si.handleStat(s.Text())
 		if err != nil {
 			err = errors.Wrap(err, "stat ingestion")
 			log.Fatalf(err.Error())
 		}
 
 		// write stat to file
-		_, err := fmt.Fprintln(si.file, s.Text())
+		_, err = fmt.Fprintln(si.writer, s.Text())
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -135,7 +127,7 @@ func (si *StatIngester) IngestStats(file string, s Scanner) error {
 // that are recorded between two labels can be used to measure the effect of
 // the command associated with the first label.
 func (si *StatIngester) InsertLabel(label, cmd string) {
-	fmt.Fprintf(si.file, "label:%s|cmd: %s\n", label, cmd)
+	fmt.Fprintf(si.writer, "label:%s|cmd: %s\n", label, cmd)
 }
 
 // handleStat handles a single stat to determine cluster-stability.
