@@ -4,11 +4,10 @@ Virtual Cluster
 
 Usage:
     vc new <network> <host/count>...
-    vc prepare [--skip-install] [--verbose] [--dry-run] <inventory_file>
+    vc prepare [--skip-install] [--verbose] [--dry-run] <inventory_file> <binary_path>
     vc reset [--verbose] [--dry-run] <inventory_file>
-    vc runtestpop [--verbose] [--dry-run] <inventory_file> <binary_path>
     vc run [--verbose] [--dry-run] <inventory_file> <cmd>
-    vc killservers [--verbose] [--dry-run] <inventory_file>
+    vc apply [--verbose] [--dry-run] <inventory_file>
     vc -h | --help
 
 
@@ -30,9 +29,12 @@ import clustershaper.cmd
 
 
 verbose, dryrun = False, False
+VC_BINARY = '/tmp/vc_binary'
+RINGPOP_HOSTS = '/tmp/hosts.json'
 
 
-def session_new(hostcounts, network):
+def new(hostcounts, network):
+    network = network.decode('ascii')
     hosts = {}
     for hc in hostcounts:
         if '/' not in hc:
@@ -58,11 +60,12 @@ def session_new(hostcounts, network):
             vhosts.append({
                 'namespace': 'ns%s' % i,
                 'device': 'vc_tap%s' % i,
-                'iface': '%s/%s' % (next(network_iter), pref),
+                'iface': '%s/%s' % (str(next(network_iter)), pref),
+                'running': True,
             })
         hostsession['bridge'] = {
             'device': 'vc_br0',
-            'iface': '%s/%s' % (network.broadcast_address - hostindex, pref),
+            'iface': '%s/%s' % (str(network.broadcast_address - hostindex), pref),
         }
     hosts = sorted(session)
     if len(hosts)> 1:
@@ -128,7 +131,7 @@ install_template = """
 apt-get update
 apt-get -y install openvswitch-switch
 """
-def prepare(inventory_file, skipinstall=False, verbose=False, dryrun=False):
+def prepare(inventory_file, binary_path, skipinstall=False, verbose=False, dryrun=False):
     session = read_session(inventory_file)
     t = jinja2.Template(prepare_template)
     for host, host_config in sorted(session.items()):
@@ -141,6 +144,8 @@ def prepare(inventory_file, skipinstall=False, verbose=False, dryrun=False):
             script = install_template + script
         client = clustershaper.cmd.Client(host, verbose=verbose, dryrun=dryrun)
         client.run_script(script)
+        client.copy(binary_path, VC_BINARY)
+        client.run('chmod +x %s' % VC_BINARY)
 
 
 reset_template = """
@@ -149,7 +154,7 @@ ovs-vsctl del-br {{bridge.device}}
 ip netns delete {{host.namespace}}
 {% endfor %}
 """
-def network_reset(inventory_file, verbose=False, dryrun=False):
+def reset(inventory_file, verbose=False, dryrun=False):
     session = read_session(inventory_file)
     t = jinja2.Template(reset_template)
     for host, host_config in sorted(session.items()):
@@ -159,39 +164,37 @@ def network_reset(inventory_file, verbose=False, dryrun=False):
         )
         client = clustershaper.cmd.Client(host, verbose=verbose, dryrun=dryrun)
         client.run_script(script)
+        client.run('rm -f %s' % VC_BINARY)
+        client.run('rm -f %s' % RINGPOP_HOSTS)
 
 
-run_template = """
-echo '{{json_hosts}}' > {{remote_path}}_hosts.json
-{% for hi in hostindexes %}
-(ip netns exec cs_{{hi.index}} {{remote_path}} -hosts {{remote_path}}_hosts.json --listen {{hi.host}}:3000 > out{{hi.index}}.log 2> err{{hi.index}}.log < /dev/null &)
-{% endfor %}
-"""
-def runtestpop(inventory_file, binary_path, verbose, dryrun):
-    binary_md5 = hashlib.md5(open(binary_path,'rb').read()).hexdigest()
-    remote_path = '/tmp/%s' % binary_md5
+def apply_(inventory_file, verbose, dryrun):
     session = read_session(inventory_file)
-    ips = []
+    hosts_file = []
     for _, host_config in sorted(session.items()):
         for vhost in host_config['vhosts']:
+            if not vhost['running']:
+                continue
             iface = ipaddress.IPv4Interface(vhost['iface'])
-            ips.append('%s:3000' % iface.ip)
-    json_ips = json.dumps(ips)
+            hosts_file.append('%s:3000' % iface.ip)
+    hosts_file = json.dumps(hosts_file)
     for host, host_config in sorted(session.items()):
         client = clustershaper.cmd.Client(host, verbose=verbose, dryrun=dryrun)
-        client.run("echo '%s' > /tmp/hosts.json" % json_ips)
-        client.copy(binary_path, remote_path)
-        client.run('chmod +x %s' % remote_path)
+        client.run("echo '%s' > /tmp/hosts.json" % hosts_file)
         for vhost in host_config['vhosts']:
-            ip = ipaddress.IPv4Interface(vhost['iface'])
-            ipport = '%s:3000' % ip.ip
-            cmd = clustershaper.cmd.spawn_cmd(
-                '%s -hosts /tmp/hosts.json --listen %s:3000' %
-                (remote_path, ip.ip),
-                '/tmp/%s.out' % ip.ip,
-                '/tmp/%s.err' % ip.ip,
-            )
-            pid = client.run('ip netns exec %s %s' % (vhost['namespace'], cmd))
+            running_pid = client.run('ip netns pids %s' % vhost['namespace'])
+            if running_pid and not vhost['running']:
+                client.run('kill %s' % running_pid)
+            elif not running_pid and vhost['running']:
+                ip = ipaddress.IPv4Interface(vhost['iface'])
+                ipport = '%s:3000' % ip.ip
+                cmd = clustershaper.cmd.spawn_cmd(
+                    '%s -hosts /tmp/hosts.json --listen %s:3000' %
+                    (VC_BINARY, ip.ip),
+                    '/tmp/%s.out' % ip.ip,
+                    '/tmp/%s.err' % ip.ip,
+                )
+                pid = client.run('ip netns exec %s %s' % (vhost['namespace'], cmd))
 
 
 def run(inventory_file, cmd, verbose=verbose, dryrun=dryrun):
@@ -202,31 +205,20 @@ def run(inventory_file, cmd, verbose=verbose, dryrun=dryrun):
             client.run('ip netns exec %s %s' % (vhost['namespace'], cmd))
 
 
-def killservers(inventory_file, verbose=verbose, dryrun=dryrun):
-    session = read_session(inventory_file)
-    for host, host_config in sorted(session.items()):
-        client = clustershaper.cmd.Client(host, verbose=verbose, dryrun=dryrun)
-        for vhost in host_config['vhosts']:
-            cmd = 'kill `ip netns exec %s lsof -Pni | grep LISTEN | cut -f2 -d\ `' % vhost['namespace']
-            client.run(cmd)
-
-
 def run_main():
     import docopt
     args = docopt.docopt(__doc__, version='0.1')
 
     if args['new']:
-        session_new(args['<host/count>'], args['<network>'])
+        new(args['<host/count>'], args['<network>'])
     if args['prepare']:
-        prepare(args['<inventory_file>'], args['--skip-install'], args['--verbose'], args['--dry-run'])
+        prepare(args['<inventory_file>'], args['<binary_path>'], args['--skip-install'], args['--verbose'], args['--dry-run'])
     if args['reset']:
-        network_reset(args['<inventory_file>'], args['--verbose'], args['--dry-run'])
-    if args['runtestpop']:
-        runtestpop(args['<inventory_file>'], args['<binary_path>'], args['--verbose'], args['--dry-run'])
+        reset(args['<inventory_file>'], args['--verbose'], args['--dry-run'])
+    if args['apply']:
+        apply_(args['<inventory_file>'], args['--verbose'], args['--dry-run'])
     if args['run']:
         run(args['<inventory_file>'], args['<cmd>'], args['--verbose'], args['--dry-run'])
-    if args['killservers']:
-        killservers(args['<inventory_file>'], args['--verbose'], args['--dry-run'])
 
 
 def main():
@@ -235,6 +227,9 @@ def main():
     except Exception as e:
         print(e, file=sys.stderr)
         sys.exit(1)
+
+
+main = run_main
 
 
 if __name__ == '__main__':

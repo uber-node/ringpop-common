@@ -20,8 +20,6 @@ setup(
         'paramiko',
         'docopt',
         'pyyaml',
+        'py2-ipaddress',
     ],
-    extras_requires={
-        ':python_version=="2.7"': ["py2-ipaddress"],
-    }
 )
