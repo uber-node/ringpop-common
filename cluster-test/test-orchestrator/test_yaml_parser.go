@@ -21,7 +21,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -79,6 +78,11 @@ func parseScenarios(bts []byte) []*Scenario {
 func extractScenarios(runs *testYaml) []*Scenario {
 	var result []*Scenario
 	for _, scenarioData := range runs.Scenarios {
+		for _, vari := range scenarioData.Runs[0] {
+			if vari[0] != '<' || vari[len(vari)-1] != '>' {
+				panic(fmt.Sprintf("variable '%s' not of the from <var>", vari))
+			}
+		}
 		// We start at i=1 because the first entry of the runs declares the
 		// variables names. e.g. [<N>, <A>, <B>].
 		for i := 1; i < len(scenarioData.Runs); i++ {
@@ -122,7 +126,7 @@ func extractScenario(data *scenarioYaml, runIx int) *Scenario {
 	for i := range data.Measure {
 		measureStrs[i] = replace(data.Measure[i], varsData, runData)
 	}
-	measure := parseMeasure(measureStrs)
+	measure := parseMeasurements(measureStrs)
 
 	return &Scenario{
 		Name:    name,
@@ -166,19 +170,19 @@ func parseScript(labels, cmdStrs []string) []*Command {
 
 func parseCommand(label, cmdString string) *Command {
 	defer wrapPanicf("in parse command '%s: %s'", label, cmdString)
-	split := split(cmdString)
-	if len(split) == 0 {
+	fields := strings.Fields(cmdString)
+	if len(fields) == 0 {
 		panic("empty command")
 	}
 
 	return &Command{
 		Label: label,
-		Cmd:   split[0],
-		Args:  split[1:],
+		Cmd:   fields[0],
+		Args:  fields[1:],
 	}
 }
 
-func parseMeasure(msData []string) []*Measurement {
+func parseMeasurements(msData []string) []*Measurement {
 	var ms []*Measurement
 	for _, mData := range msData {
 		ms = append(ms, parseMeasurement(mData))
@@ -189,36 +193,36 @@ func parseMeasure(msData []string) []*Measurement {
 func parseMeasurement(str string) *Measurement {
 	defer wrapPanicf("in parse measure '%s'", str)
 
-	split := split(str)
-	var measurementArgs = split
-
-	if len(split) < 3 {
+	fields := strings.Fields(str)
+	if len(fields) < 3 {
 		panic("contains too few fields")
 	}
 
-	// search for assertion
+	measurementArgs := fields[3:]
+
+	// search for optional assertion
 	var assertion *Assertion
-	for i, s := range split {
+	for i, s := range measurementArgs {
 		if s == "is" || s == "in" {
-			interval := strings.Join(split[i+1:], "")
-			assertion = parseAssertion(split[i], interval)
-			measurementArgs = split[3:i]
+			interval := strings.Join(measurementArgs[i+1:], "")
+			assertion = parseAssertion(s, interval)
+			measurementArgs = measurementArgs[:i]
 		}
 	}
 
 	return &Measurement{
-		Start:     split[0],
-		End:       split[1],
-		Quantity:  split[2],
+		Start:     fields[0],
+		End:       fields[1],
+		Quantity:  fields[2],
 		Args:      measurementArgs,
 		Assertion: assertion,
 	}
 }
 
-func parseAssertion(typStr string, arg string) *Assertion {
-	defer wrapPanicf("in parse assertion '%s %s'", typStr, arg)
+func parseAssertion(typeStr string, arg string) *Assertion {
+	defer wrapPanicf("in parse assertion '%s %s'", typeStr, arg)
 
-	switch typStr {
+	switch typeStr {
 	case "is":
 		typ := AssertionTypeIs
 		v := parseValue(arg)
@@ -264,7 +268,7 @@ func parseRange(rng string) (v1, v2 Value) {
 func parseValue(str string) Value {
 	defer wrapPanicf("in parse value '%s", str)
 
-	// First check if the input is a numer or expression.
+	// First check if the input is a number or expression.
 	v, err := Eval(str)
 	if err == nil {
 		return v
@@ -278,24 +282,6 @@ func parseValue(str string) Value {
 	}
 
 	panic("value is not a number duration or expression")
-}
-
-// split splits a whitespace separted string
-func split(str string) []string {
-	defer wrapPanicf("in split '%s'", str)
-
-	scanner := bufio.NewScanner(strings.NewReader(str))
-	scanner.Split(bufio.ScanWords)
-
-	var wrds []string
-	for scanner.Scan() {
-		wrds = append(wrds, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
-		panic(err)
-	}
-
-	return wrds
 }
 
 // replace finds occurrences of varsData and replaces them by the respective
