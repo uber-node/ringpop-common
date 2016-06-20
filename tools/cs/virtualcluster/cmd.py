@@ -22,7 +22,7 @@ class LocalClient:
         output = None
         for cmd in cmds:
             if self.sudo:
-                cmd = 'sudo -- %s' % cmd
+                cmd = 'sudo -n -- %s' % cmd
             if self.verbose:
                 print('%s$ %s' % (self.hostname, cmd))
             if not self.dryrun:
@@ -72,7 +72,7 @@ class SSHClient:
         output = None
         for cmd in cmds:
             if self.sudo:
-                cmd = 'sudo -- %s' % cmd
+                cmd = 'sudo -n -- %s' % cmd
             if self.verbose:
                 print('%s$ %s' % (self.hostname, cmd))
             if not self.dryrun:
