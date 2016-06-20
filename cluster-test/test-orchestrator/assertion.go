@@ -48,7 +48,7 @@ const (
 	// AssertionTypeIs is the type that is used for exact comparisons
 	AssertionTypeIs AssertionType = "is"
 
-	// AssertionTypeIn is the type that is used to check a value is containded
+	// AssertionTypeIn is the type that is used to check a value is contained
 	// by an interval.
 	AssertionTypeIn AssertionType = "in"
 )
