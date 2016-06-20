@@ -69,9 +69,10 @@ func main() {
 	sesh["host1"] = h1
 
 	// GET SCENARIOS
-	scns, err := parseScenarios([]byte(scenariosYaml))
+	scns, err := parse([]byte(scenariosYaml))
 	if err != nil {
-		log.Fatalf(err.Error())
+		fmt.Println(err)
+		log.Fatal()
 	}
 
 	if !*onlyMeasure {
@@ -114,7 +115,7 @@ scenarios:
     desc: partition a cluster of size <N> in a <SPLIT> split.
 
     script:
-    - t0: kill 1
+    - t0: kill 1, t2
     - t1: wait-for-stable
 
     measure:
