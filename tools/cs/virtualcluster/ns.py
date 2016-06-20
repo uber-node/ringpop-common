@@ -24,11 +24,11 @@ import sys
 import jinja2
 import yaml
 
-import clustershaper.cmd
+import virtualcluster.cmd
 
 
 def get_pid_to_port(ports):
-    client = clustershaper.cmd.Client('localhost')
+    client = virtualcluster.cmd.Client('localhost')
     csv_ports = ','.join(map(str, ports))
     to_run = 'lsof -Pni4TCP:%s -sTCP:LISTEN -Fpn' % csv_ports
     output = client.run(to_run)
@@ -50,7 +50,7 @@ def get_pid_to_port(ports):
 
 def build_graph(ports):
     pid_to_port = get_pid_to_port(ports)
-    client = clustershaper.cmd.Client('localhost')
+    client = virtualcluster.cmd.Client('localhost')
     csv_ports = ','.join(map(str, ports))
     to_run = 'lsof -Pni4TCP:%s -sTCP:ESTABLISHED -Fpn' % csv_ports
     output = client.run(to_run)
@@ -125,7 +125,7 @@ def per_connection(condition, port_groups, verbose=False, dryrun=False):
         condition=condition,
         port_pairs=port_pairs
     )
-    client = clustershaper.cmd.Client('localhost', verbose=verbose, dryrun=dryrun)
+    client = virtualcluster.cmd.Client('localhost', verbose=verbose, dryrun=dryrun)
     client.run_script(script)
 
 
@@ -147,7 +147,7 @@ def per_host(condition, host_groups, heal=False, verbose=False, dryrun=False):
         raise ValueError('Hosts are repeated')
     if heal:
         for host in all_hosts:
-            client = clustershaper.cmd.Client(host, verbose=verbose, dryrun=dryrun)
+            client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun)
             client.run('tc qdisc del dev eth0 root')
         return
     hosts = {}
@@ -159,7 +159,7 @@ def per_host(condition, host_groups, heal=False, verbose=False, dryrun=False):
             hosts.setdefault(h2, []).append(h1_ip)
     t = jinja2.Template(per_host_template)
     for host, other_hosts in hosts.items():
-        client = clustershaper.cmd.Client(host, verbose=verbose, dryrun=dryrun)
+        client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun)
         script = t.render(
             condition=condition,
             other_hosts=other_hosts,

@@ -25,7 +25,7 @@ import yaml
 import socket
 import sys
 
-import clustershaper.cmd
+import virtualcluster.cmd
 
 
 verbose, dryrun = False, False
@@ -131,8 +131,7 @@ install_template = """
 apt-get update
 apt-get -y install openvswitch-switch
 """
-def prepare(inventory_file, binary_path, skipinstall=False, verbose=False, dryrun=False):
-    session = read_session(inventory_file)
+def prepare(session, binary_path, skipinstall=False, verbose=False, dryrun=False):
     t = jinja2.Template(prepare_template)
     for host, host_config in sorted(session.items()):
         script = t.render(
@@ -142,7 +141,7 @@ def prepare(inventory_file, binary_path, skipinstall=False, verbose=False, dryru
         )
         if not skipinstall:
             script = install_template + script
-        client = clustershaper.cmd.Client(host, verbose=verbose, dryrun=dryrun)
+        client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun)
         client.run_script(script)
         client.copy(binary_path, VC_BINARY)
         client.run('chmod +x %s' % VC_BINARY)
@@ -154,33 +153,38 @@ ovs-vsctl del-br {{bridge.device}}
 ip netns delete {{host.namespace}}
 {% endfor %}
 """
-def reset(inventory_file, verbose=False, dryrun=False):
-    session = read_session(inventory_file)
+def reset(session, verbose=False, dryrun=False):
+    for host, host_config in sorted(session.items()):
+        for vhost in host_config['vhosts']:
+            vhost['running'] = False
+    # kill all running processes
+    apply_(session, verbose, dryrun, update_hosts=False)
     t = jinja2.Template(reset_template)
     for host, host_config in sorted(session.items()):
         script = t.render(
             vhosts=host_config['vhosts'],
             bridge=host_config['bridge'],
         )
-        client = clustershaper.cmd.Client(host, verbose=verbose, dryrun=dryrun)
+        client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun)
         client.run_script(script)
         client.run('rm -f %s' % VC_BINARY)
         client.run('rm -f %s' % RINGPOP_HOSTS)
 
 
-def apply_(inventory_file, verbose, dryrun):
-    session = read_session(inventory_file)
-    hosts_file = []
-    for _, host_config in sorted(session.items()):
-        for vhost in host_config['vhosts']:
-            if not vhost['running']:
-                continue
-            iface = ipaddress.IPv4Interface(vhost['iface'])
-            hosts_file.append('%s:3000' % iface.ip)
-    hosts_file = json.dumps(hosts_file)
+def apply_(session, verbose, dryrun, update_hosts=True):
+    if update_hosts:
+        hosts_file = []
+        for _, host_config in sorted(session.items()):
+            for vhost in host_config['vhosts']:
+                if not vhost['running']:
+                    continue
+                iface = ipaddress.IPv4Interface(vhost['iface'])
+                hosts_file.append('%s:3000' % iface.ip)
+        hosts_file = json.dumps(hosts_file)
     for host, host_config in sorted(session.items()):
-        client = clustershaper.cmd.Client(host, verbose=verbose, dryrun=dryrun)
-        client.run("echo '%s' > /tmp/hosts.json" % hosts_file)
+        client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun)
+        if update_hosts:
+            client.run("echo '%s' > /tmp/hosts.json" % hosts_file)
         for vhost in host_config['vhosts']:
             running_pid = client.run('ip netns pids %s' % vhost['namespace'])
             if running_pid and not vhost['running']:
@@ -188,7 +192,7 @@ def apply_(inventory_file, verbose, dryrun):
             elif not running_pid and vhost['running']:
                 ip = ipaddress.IPv4Interface(vhost['iface'])
                 ipport = '%s:3000' % ip.ip
-                cmd = clustershaper.cmd.spawn_cmd(
+                cmd = virtualcluster.cmd.spawn_cmd(
                     '%s -hosts /tmp/hosts.json --listen %s:3000' %
                     (VC_BINARY, ip.ip),
                     '/tmp/%s.out' % ip.ip,
@@ -197,10 +201,9 @@ def apply_(inventory_file, verbose, dryrun):
                 pid = client.run('ip netns exec %s %s' % (vhost['namespace'], cmd))
 
 
-def run(inventory_file, cmd, verbose=verbose, dryrun=dryrun):
-    session = read_session(inventory_file)
+def run(session, cmd, verbose=verbose, dryrun=dryrun):
     for host, host_config in sorted(session.items()):
-        client = clustershaper.cmd.Client(host, verbose=verbose, dryrun=dryrun)
+        client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun)
         for vhost in host_config['vhosts']:
             client.run('ip netns exec %s %s' % (vhost['namespace'], cmd))
 
@@ -211,14 +214,16 @@ def run_main():
 
     if args['new']:
         new(args['<host/count>'], args['<network>'])
-    if args['prepare']:
-        prepare(args['<inventory_file>'], args['<binary_path>'], args['--skip-install'], args['--verbose'], args['--dry-run'])
-    if args['reset']:
-        reset(args['<inventory_file>'], args['--verbose'], args['--dry-run'])
-    if args['apply']:
-        apply_(args['<inventory_file>'], args['--verbose'], args['--dry-run'])
-    if args['run']:
-        run(args['<inventory_file>'], args['<cmd>'], args['--verbose'], args['--dry-run'])
+    else:
+        session = read_session(args['<inventory_file>'])
+        if args['prepare']:
+            prepare(session, args['<binary_path>'], args['--skip-install'], args['--verbose'], args['--dry-run'])
+        if args['reset']:
+            reset(session, args['--verbose'], args['--dry-run'])
+        if args['apply']:
+            apply_(session, args['--verbose'], args['--dry-run'])
+        if args['run']:
+            run(session, args['<cmd>'], args['--verbose'], args['--dry-run'])
 
 
 def main():

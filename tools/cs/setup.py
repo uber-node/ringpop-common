@@ -3,7 +3,7 @@ from setuptools import setup
 from setuptools import find_packages
 
 setup(
-    name='clustershaper',
+    name='virtualcluster',
     version='0.0.1',
     description="A set of tools for traffic shaping",
     author_email='sever@uber.com',
@@ -11,8 +11,8 @@ setup(
     packages=find_packages(),
     entry_points = {
         'console_scripts': [
-            'vc=clustershaper.vc:main',
-            'ns=clustershaper.ns:main'
+            'vc=virtualcluster.vc:main',
+            'ns=virtualcluster.ns:main'
         ],
     },
     install_requires=[
@@ -20,6 +20,9 @@ setup(
         'paramiko',
         'docopt',
         'pyyaml',
-        'py2-ipaddress',
     ],
+    extras_require={
+        ':python_version == "2.7"': ['py2-ipaddress'],
+    }
+
 )
