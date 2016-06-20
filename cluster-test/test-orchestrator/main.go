@@ -34,9 +34,20 @@ import (
 var base = "172.18.24.198"
 
 var onlyMeasure = flag.Bool("only-measure", false, "The script will not be executed and the measurement will be done on an existing file")
+var vcBin = flag.String("vc", "vc", "Path to virtual-cluster binary")
 
 func main() {
 	flag.Parse()
+
+	// MAKE TMP SESSION
+	sesh, err := NewSession(*vcBin, nil)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(sesh["localhost"].VHosts[0])
+
+	sesh.Prepare()
+	return
 
 	// open output file
 	f, err := os.Create("file-name.stats")
@@ -57,16 +68,14 @@ func main() {
 		hosts = append(hosts, fmt.Sprintf("%s:%d", base, p))
 	}
 
-	// MAKE TMP SESSION
-	sesh := Session(make(map[interface{}]SessionHost))
-	h1 := SessionHost{}
-	for _, host := range hosts {
-		h1.VHosts = append(h1.VHosts, &SessionVHost{
-			Iface: host,
-		})
+	// h1 := SessionHost{}
+	// for _, host := range hosts {
+	// 	h1.VHosts = append(h1.VHosts, &SessionVHost{
+	// 		Iface: host,
+	// 	})
 
-	}
-	sesh["host1"] = h1
+	// }
+	// sesh["host1"] = h1
 
 	// GET SCENARIOS
 	scns, err := parse([]byte(scenariosYaml))

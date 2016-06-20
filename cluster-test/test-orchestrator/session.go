@@ -21,52 +21,43 @@
 package main
 
 import (
-	"errors"
+	"os"
 	"os/exec"
 	"strings"
 
 	"gopkg.in/yaml.v2"
 )
 
-// A Session is a structure that is used to communicate with the
-// cluster-manager. It is used to bootstrap, start and stop testpop nodes.
-type Session map[interface{}]SessionHost
-
-//TODO(wieger): collaps into one struct when we can generate from yaml.
-type SessionHost struct {
-	Bridge SessionBridge
-	VHosts []*SessionVHost
-}
-
-type SessionBridge struct {
-	Device string
-	Iface  string
-	Peers  []struct {
+// A Session is a structure that is used to communicate with virtual-cluster.
+// It is used to bootstrap, start and stop testpop nodes.
+type Session map[interface{}]struct {
+	Bridge struct {
 		Device string
-		Host   string
+		Iface  string
+		Peers  []struct {
+			Device string
+			Host   string
+		}
+	}
+
+	VHosts []*struct {
+		Device    string
+		Iface     string
+		Namespace string
+		Running   bool
 	}
 }
 
-type SessionVHost struct {
-	Device    string
-	Iface     string
-	Namespace string
-	Target    string
-}
-
-// NewSession queries the cluster-manager program for a new session object.
-func NewSession(cfg *configYaml) (Session, error) {
-	// seshBts, err := exec.Command("cs", "create", "10.10.0.0/8", "h1/40", "h2/40", "h3/40").Output()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	//TODO(wieger): Config to Session
-
-	seshBts := []byte(seshStr)
+// NewSession queries virtual-cluster program for a new session object.
+func NewSession(vcBin string, cfg *configYaml) (Session, error) {
+	//TODO(wieger): Config to args for vc new
+	seshBts, err := exec.Command(vcBin, "new", "10.10.0.0/16", "localhost/40").Output()
+	if err != nil {
+		return nil, err
+	}
 
 	var s Session
-	err := yaml.Unmarshal(seshBts, &s)
+	err = yaml.Unmarshal(seshBts, &s)
 	if err != nil {
 		return nil, err
 	}
@@ -74,72 +65,44 @@ func NewSession(cfg *configYaml) (Session, error) {
 	return s, nil
 }
 
-// TODO(wieger): remove this
-var seshStr = `
-host1:
-  bridge:
-    device: vc_br0
-    iface: 10.0.255.254/16
-    peers:
-    - {device: cv_vxlan0, host: t1}
-  vhosts:
-  - {device: vc_tap0, iface: 10.0.0.1/16, namespace: ns0, target: stopped}
-  - {device: vc_tap1, iface: 10.0.0.2/16, namespace: ns1, target: stopped}
-  - {device: vc_tap2, iface: 10.0.0.3/16, namespace: ns2, target: stopped}
-  - {device: vc_tap3, iface: 10.0.0.4/16, namespace: ns3, target: stopped}
-host2:
-  bridge:
-    device: vc_br0
-    iface: 10.0.255.253/16
-    peers:
-    - {device: cv_vxlan0, host: commitverse.org}
-  vhosts:
-  - {device: vc_tap0, iface: 10.0.0.5/16, namespace: ns0, target: stopped}
-  - {device: vc_tap1, iface: 10.0.0.6/16, namespace: ns1, target: stopped}
-  - {device: vc_tap2, iface: 10.0.0.7/16, namespace: ns2, target: stopped}
-  - {device: vc_tap3, iface: 10.0.0.8/16, namespace: ns3, target: stopped}
-`
-
-// Prepare communicates to the cluster-manager that it needs to prepare the
+// Prepare communicates to virtual-cluster that it needs to prepare the
 // cluster that is described in the Session.
 func (s Session) Prepare() error {
-	cmd := exec.Command("cs", "prepare", "./testpop")
+	cmd := exec.Command(*vcBin, "prepare", "--verbose", "--sudo", "./testpop")
 	cmd.Start()
-	s.writeToStdin(cmd)
+	cmd.Stdout = os.Stdout
+	s.writeToCmdStdin(cmd)
 	return cmd.Wait()
 }
 
-// Apply communicates to the cluster-manager that it needs to apply the given
+// Apply communicates to virtual-cluster that it needs to apply the given
 // Session. This is usually done after the Session object is mutated by
 // starting or stopping nodes.
 func (s Session) Apply() error {
-	cmd := exec.Command("cs", "apply")
+	cmd := exec.Command(*vcBin, "apply")
 	cmd.Start()
-	s.writeToStdin(cmd)
+	s.writeToCmdStdin(cmd)
 	return cmd.Wait()
 }
 
-// writeToStdin writes the Session as yaml to the stdin of the command that
-// runs the cluster-manager.
-func (s Session) writeToStdin(cmd *exec.Cmd) error {
+// writeToCmdStdin writes the Session as yaml to the stdin of the command that
+// runs virtual-cluster.
+func (s Session) writeToCmdStdin(cmd *exec.Cmd) error {
 	in, err := yaml.Marshal(s)
 	if err != nil {
 		return err
 	}
-	w, err := cmd.StdinPipe()
+	wc, err := cmd.StdinPipe()
 	if err != nil {
 		return err
 	}
 
-	n, err := w.Write(in)
+	_, err = wc.Write(in)
 	if err != nil {
 		return err
 	}
-	if n != len(in) {
-		return errors.New("not written full Session to apply command")
-	}
 
-	return w.Close()
+	return wc.Close()
 }
 
 // StartedHosts returns a list of hosts that have target: "started".
@@ -161,7 +124,7 @@ func (s Session) StartedHosts() []string {
 func (s Session) StartAll() {
 	for _, host := range s {
 		for _, vh := range host.VHosts {
-			vh.Target = "started"
+			vh.Running = true
 		}
 	}
 }
@@ -170,7 +133,7 @@ func (s Session) StartAll() {
 func (s Session) StopAll() {
 	for _, host := range s {
 		for _, vh := range host.VHosts {
-			vh.Target = "stopped"
+			vh.Running = false
 		}
 	}
 }
@@ -179,10 +142,11 @@ func (s Session) StopAll() {
 func (s Session) Start(n int) bool {
 	for _, host := range s {
 		for _, vh := range host.VHosts {
-			if vh.Target == "started" {
+			if vh.Running {
 				continue
 			}
-			vh.Target = "started"
+			vh.Running = true
+
 			n--
 			if n == 0 {
 				return true
@@ -196,10 +160,11 @@ func (s Session) Start(n int) bool {
 func (s Session) Stop(n int) bool {
 	for _, host := range s {
 		for _, vh := range host.VHosts {
-			if vh.Target == "stopped" {
+			if !vh.Running {
 				continue
 			}
-			vh.Target = "stopped"
+			vh.Running = false
+
 			n--
 			if n == 0 {
 				return true
