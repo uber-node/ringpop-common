@@ -34,7 +34,6 @@ RINGPOP_HOSTS = '/tmp/hosts.json'
 
 
 def new(hostcounts, network):
-    network = network.decode('ascii')
     hosts = {}
     for hc in hostcounts:
         if '/' not in hc:

@@ -22,7 +22,7 @@ setup(
         'pyyaml',
     ],
     extras_require={
-        ':python_version == "2.7"': ['py2-ipaddress'],
+        ':python_version < "3"': ['py2-ipaddress'],
     }
 
 )
