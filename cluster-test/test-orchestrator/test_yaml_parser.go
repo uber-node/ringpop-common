@@ -80,7 +80,7 @@ func extractScenarios(runs *testYaml) []*Scenario {
 	for _, scenarioData := range runs.Scenarios {
 		for _, vari := range scenarioData.Runs[0] {
 			if vari[0] != '<' || vari[len(vari)-1] != '>' {
-				panic(fmt.Sprintf("variable '%s' not of the from <var>", vari))
+				panic(fmt.Sprintf("variable '%s' not of the form <var>", vari))
 			}
 		}
 		// We start at i=1 because the first entry of the runs declares the
