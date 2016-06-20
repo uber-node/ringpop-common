@@ -146,7 +146,7 @@ func extractScript(script []map[string]string, varsData, runData []string) (labe
 			// script:
 			// - t0: command1
 			// - t1: command2
-			panic("command should contain exactly one entry")
+			panic(fmt.Sprintf("command should contain exactly one entry, has %v", cmdData))
 		}
 
 		for label, cmd := range cmdData {
