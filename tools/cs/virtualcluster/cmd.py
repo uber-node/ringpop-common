@@ -6,21 +6,23 @@ import subprocess
 import paramiko
 
 
-def Client(hostname, verbose=False, dryrun=False):
+def Client(hostname, verbose=False, dryrun=False, sudo=False):
     ip = socket.gethostbyname(hostname)
     if ipaddress.IPv4Address(ip).is_loopback:
-        return LocalClient(hostname, verbose=verbose, dryrun=dryrun)
-    return SSHClient(hostname, verbose=verbose, dryrun=dryrun)
+        return LocalClient(hostname, verbose=verbose, dryrun=dryrun, sudo=sudo)
+    return SSHClient(hostname, verbose=verbose, dryrun=dryrun, sudo=sudo)
 
 
 class LocalClient:
-    def __init__(self, hostname, verbose=False, dryrun=False):
+    def __init__(self, hostname, verbose=False, dryrun=False, sudo=False):
         self.hostname = hostname
-        self.verbose, self.dryrun = verbose, dryrun
+        self.verbose, self.dryrun, self.sudo = verbose, dryrun, sudo
 
     def run(self, *cmds):
         output = None
         for cmd in cmds:
+            if self.sudo:
+                cmd = 'sudo -- %s' % cmd
             if self.verbose:
                 print('%s$ %s' % (self.hostname, cmd))
             if not self.dryrun:
@@ -39,9 +41,9 @@ class LocalClient:
 
 
 class SSHClient:
-    def __init__(self, hostname, verbose=False, dryrun=False):
+    def __init__(self, hostname, verbose=False, dryrun=False, sudo=False):
         self.hostname = hostname
-        self.verbose, self.dryrun = verbose, dryrun
+        self.verbose, self.dryrun, self.sudo = verbose, dryrun, sudo
         if dryrun:
             return
         self.client = paramiko.SSHClient()
@@ -69,6 +71,8 @@ class SSHClient:
     def run(self, *cmds):
         output = None
         for cmd in cmds:
+            if self.sudo:
+                cmd = 'sudo -- %s' % cmd
             if self.verbose:
                 print('%s$ %s' % (self.hostname, cmd))
             if not self.dryrun:

@@ -4,14 +4,15 @@ Virtual Cluster
 
 Usage:
     vc new <network> <host/count>...
-    vc prepare [--skip-install] [--verbose] [--dry-run] <inventory_file> <binary_path>
-    vc reset [--verbose] [--dry-run] <inventory_file>
-    vc run [--verbose] [--dry-run] <inventory_file> <cmd>
-    vc apply [--verbose] [--dry-run] <inventory_file>
+    vc prepare [--skip-install] [--verbose] [--dry-run] [--sudo] <inventory_file> <binary_path>
+    vc reset [--verbose] [--dry-run] [--sudo] <inventory_file>
+    vc run [--verbose] [--dry-run] [--sudo] <inventory_file> <cmd>
+    vc apply [--verbose] [--dry-run] [--sudo] <inventory_file>
     vc -h | --help
 
 
 Options:
+    --sudo              Prepend sudo to all commands
     --verbose           Print SSH commands and output
     --dry-run           Don't run any SSH commands
 """
@@ -28,7 +29,6 @@ import sys
 import virtualcluster.cmd
 
 
-verbose, dryrun = False, False
 VC_BINARY = '/tmp/vc_binary'
 RINGPOP_HOSTS = '/tmp/hosts.json'
 
@@ -131,7 +131,7 @@ install_template = """
 apt-get update
 apt-get -y install openvswitch-switch
 """
-def prepare(session, binary_path, skipinstall=False, verbose=False, dryrun=False):
+def prepare(session, binary_path, skipinstall=False, verbose=False, dryrun=False, sudo=False):
     t = jinja2.Template(prepare_template)
     for host, host_config in sorted(session.items()):
         script = t.render(
@@ -141,7 +141,7 @@ def prepare(session, binary_path, skipinstall=False, verbose=False, dryrun=False
         )
         if not skipinstall:
             script = install_template + script
-        client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun)
+        client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun, sudo=sudo)
         client.run_script(script)
         client.copy(binary_path, VC_BINARY)
         client.run('chmod +x %s' % VC_BINARY)
@@ -153,25 +153,25 @@ ovs-vsctl del-br {{bridge.device}}
 ip netns delete {{host.namespace}}
 {% endfor %}
 """
-def reset(session, verbose=False, dryrun=False):
+def reset(session, verbose=False, dryrun=False, sudo=False):
     for host, host_config in sorted(session.items()):
         for vhost in host_config['vhosts']:
             vhost['running'] = False
     # kill all running processes
-    apply_(session, verbose, dryrun, update_hosts=False)
+    apply_(session, verbose, dryrun, sudo, update_hosts=False)
     t = jinja2.Template(reset_template)
     for host, host_config in sorted(session.items()):
         script = t.render(
             vhosts=host_config['vhosts'],
             bridge=host_config['bridge'],
         )
-        client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun)
+        client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun, sudo=sudo)
         client.run_script(script)
         client.run('rm -f %s' % VC_BINARY)
         client.run('rm -f %s' % RINGPOP_HOSTS)
 
 
-def apply_(session, verbose, dryrun, update_hosts=True):
+def apply_(session, verbose=False, dryrun=False, sudo=False, update_hosts=True):
     if update_hosts:
         hosts_file = []
         for _, host_config in sorted(session.items()):
@@ -182,7 +182,7 @@ def apply_(session, verbose, dryrun, update_hosts=True):
                 hosts_file.append('%s:3000' % iface.ip)
         hosts_file = json.dumps(hosts_file)
     for host, host_config in sorted(session.items()):
-        client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun)
+        client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun, sudo=sudo)
         if update_hosts:
             client.run("echo '%s' > /tmp/hosts.json" % hosts_file)
         for vhost in host_config['vhosts']:
@@ -201,9 +201,9 @@ def apply_(session, verbose, dryrun, update_hosts=True):
                 pid = client.run('ip netns exec %s %s' % (vhost['namespace'], cmd))
 
 
-def run(session, cmd, verbose=verbose, dryrun=dryrun):
+def run(session, cmd, verbose=False, dryrun=False, sudo=False):
     for host, host_config in sorted(session.items()):
-        client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun)
+        client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun, sudo=sudo)
         for vhost in host_config['vhosts']:
             client.run('ip netns exec %s %s' % (vhost['namespace'], cmd))
 
@@ -217,13 +217,13 @@ def run_main():
     else:
         session = read_session(args['<inventory_file>'])
         if args['prepare']:
-            prepare(session, args['<binary_path>'], args['--skip-install'], args['--verbose'], args['--dry-run'])
+            prepare(session, args['<binary_path>'], args['--skip-install'], args['--verbose'], args['--dry-run'], args['--sudo'])
         if args['reset']:
-            reset(session, args['--verbose'], args['--dry-run'])
+            reset(session, args['--verbose'], args['--dry-run'], args['--sudo'])
         if args['apply']:
-            apply_(session, args['--verbose'], args['--dry-run'])
+            apply_(session, args['--verbose'], args['--dry-run'], args['--sudo'])
         if args['run']:
-            run(session, args['<cmd>'], args['--verbose'], args['--dry-run'])
+            run(session, args['<cmd>'], args['--verbose'], args['--dry-run'], args['--sudo'])
 
 
 def main():
