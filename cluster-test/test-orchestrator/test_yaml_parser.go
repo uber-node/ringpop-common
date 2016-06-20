@@ -79,6 +79,8 @@ func parseScenarios(bts []byte) []*Scenario {
 func extractScenarios(runs *testYaml) []*Scenario {
 	var result []*Scenario
 	for _, scenarioData := range runs.Scenarios {
+		// We start at i=1 because the first entry of the runs declares the
+		// variables names. e.g. [<N>, <A>, <B>].
 		for i := 1; i < len(scenarioData.Runs); i++ {
 			s := extractScenario(scenarioData, i)
 			result = append(result, s)
@@ -116,9 +118,9 @@ func extractScenario(data *scenarioYaml, runIx int) *Scenario {
 	script := parseScript(labels, cmds)
 
 	// extract Measure
-	var measureStrs []string
-	for _, measureStr := range data.Measure {
-		measureStrs = append(measureStrs, replace(measureStr, varsData, runData))
+	measureStrs := make([]string, len(data.Measure))
+	for i := range data.Measure {
+		measureStrs[i] = replace(data.Measure[i], varsData, runData)
 	}
 	measure := parseMeasure(measureStrs)
 
@@ -134,8 +136,13 @@ func extractScenario(data *scenarioYaml, runIx int) *Scenario {
 func extractScript(script []map[string]string, varsData, runData []string) (labels, cmds []string) {
 	for _, cmdData := range script {
 		if len(cmdData) != 1 {
-			msg := fmt.Sprintf("\"%v\" is not a valid command, should contain exactly one entry", cmdData)
-			panic(msg)
+			// We are asserting that commands are one line only to comply with
+			// the yaml that looks like:
+			//
+			// script:
+			// - t0: command1
+			// - t1: command2
+			panic("command should contain exactly one entry")
 		}
 
 		for label, cmd := range cmdData {
@@ -300,6 +307,10 @@ func replace(str string, varsData []string, runData []string) string {
 	return str
 }
 
+// wrapPanicf recovers from a panic and then starts to panic with a message
+// that adds to the message of the previous panic. This function should always
+// be defered because of the recover and is commonly at the start of a
+// function.
 func wrapPanicf(format string, args ...interface{}) {
 	if r := recover(); r != nil {
 		msg := fmt.Sprintf(format, args...)
