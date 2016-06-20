@@ -4,10 +4,10 @@ Virtual Cluster
 
 Usage:
     vc new <network> <host/count>...
-    vc prepare [--skip-install] [--verbose] [--dry-run] [--sudo] <inventory_file> <binary_path>
-    vc reset [--verbose] [--dry-run] [--sudo] <inventory_file>
-    vc run [--verbose] [--dry-run] [--sudo] <inventory_file> <cmd>
-    vc apply [--verbose] [--dry-run] [--sudo] <inventory_file>
+    vc prepare [--skip-install] [--verbose] [--dry-run] [--sudo] <binary_path> [<inventory_path>]
+    vc reset [--verbose] [--dry-run] [--sudo] [<inventory_path>]
+    vc run [--verbose] [--dry-run] [--sudo] <cmd> [<inventory_path>]
+    vc apply [--verbose] [--dry-run] [--sudo] [<inventory_path>]
     vc -h | --help
 
 
@@ -86,16 +86,15 @@ def new(hostcounts, network):
     print(yaml.dump(session))
 
 
-def read_session(inventory_file):
+def read_session(inv_file):
     try:
-        with open(inventory_file) as f:
-            session = yaml.load(f.read())
-            for host in session.values():
-                for peer in host['bridge'].get('peers', []):
-                    peer['ip'] = socket.gethostbyname(peer['host'])
-                    if ipaddress.IPv4Address(peer['ip']).is_loopback:
-                        peer['ip'] = get_ip_address()
-            return session
+        session = yaml.load(inv_file.read())
+        for host in session.values():
+            for peer in host['bridge'].get('peers', []):
+                peer['ip'] = socket.gethostbyname(peer['host'])
+                if ipaddress.IPv4Address(peer['ip']).is_loopback:
+                    peer['ip'] = get_ip_address()
+        return session
     except Exception as e:
         raise ValueError(str(e))
 
@@ -187,7 +186,7 @@ def apply_(session, verbose=False, dryrun=False, sudo=False, update_hosts=True):
             client.run("echo '%s' > /tmp/hosts.json" % hosts_file)
         for vhost in host_config['vhosts']:
             # running_pid = client.run('ip netns pids %s' % vhost['namespace'])
-            running_pid = client.run('find -L /proc/[1-9]*/ns/net -samefile /run/netns/%s | cut -d/ -f3' % vhost['namespace'])
+            running_pid = client.run('find -L /proc/[1-9]*/ns/net -samefile /run/netns/%s 2>/dev/null | cut -d/ -f3' % vhost['namespace'])
             if running_pid and not vhost['running']:
                 client.run('kill %s' % running_pid)
             elif not running_pid and vhost['running']:
@@ -216,7 +215,11 @@ def run_main():
     if args['new']:
         new(args['<host/count>'], args['<network>'])
     else:
-        session = read_session(args['<inventory_file>'])
+        inv_path = args.get('<inventory_path>')
+        inv_file = sys.stdin
+        if inv_path:
+            inv_file = open(inv_path)
+        session = read_session(inv_file)
         if args['prepare']:
             prepare(session, args['<binary_path>'], args['--skip-install'], args['--verbose'], args['--dry-run'], args['--sudo'])
         if args['reset']:
