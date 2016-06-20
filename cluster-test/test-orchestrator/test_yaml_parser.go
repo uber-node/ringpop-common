@@ -138,6 +138,8 @@ func extractScenario(data *scenarioYaml, runIx int) *Scenario {
 }
 
 func extractScript(script []map[string]string, varsData, runData []string) (labels, cmds []string) {
+	labels = make([]string, 0, len(script))
+	cmds = make([]string, 0, len(script))
 	for _, cmdData := range script {
 		if len(cmdData) != 1 {
 			// We are asserting that commands are one line only to comply with
@@ -146,7 +148,7 @@ func extractScript(script []map[string]string, varsData, runData []string) (labe
 			// script:
 			// - t0: command1
 			// - t1: command2
-			panic(fmt.Sprintf("command should contain exactly one entry, has %v", cmdData))
+			panic(fmt.Sprintf("command '%v' should contain exactly one entry", cmdData))
 		}
 
 		for label, cmd := range cmdData {
