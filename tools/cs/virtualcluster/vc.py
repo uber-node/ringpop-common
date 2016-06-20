@@ -186,7 +186,8 @@ def apply_(session, verbose=False, dryrun=False, sudo=False, update_hosts=True):
         if update_hosts:
             client.run("echo '%s' > /tmp/hosts.json" % hosts_file)
         for vhost in host_config['vhosts']:
-            running_pid = client.run('ip netns pids %s' % vhost['namespace'])
+            # running_pid = client.run('ip netns pids %s' % vhost['namespace'])
+            running_pid = client.run('find -L /proc/[1-9]*/ns/net -samefile /run/netns/%s | cut -d/ -f3' % vhost['namespace'])
             if running_pid and not vhost['running']:
                 client.run('kill %s' % running_pid)
             elif not running_pid and vhost['running']:
