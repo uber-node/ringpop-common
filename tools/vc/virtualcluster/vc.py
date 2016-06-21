@@ -4,17 +4,18 @@ Virtual Cluster
 
 Usage:
     vc new <network> <host/count>...
-    vc prepare [--skip-install] [--verbose] [--dry-run] [--sudo] <binary_path> [<inventory_path>]
-    vc reset [--verbose] [--dry-run] [--sudo] [<inventory_path>]
-    vc run [--verbose] [--dry-run] [--sudo] <cmd> [<inventory_path>]
-    vc apply [--verbose] [--dry-run] [--sudo] [<inventory_path>]
+    vc prepare [-ksvd -i <file>] [--] <binary_path>
+    vc run [-svd -i <file>] [--] <cmd>...
+    vc apply [-svd -i <file>] [-- <extra_args>...]
+    vc reset [-svd -i <file>]
     vc -h | --help
 
-
 Options:
-    --sudo              Prepend sudo to all commands
-    --verbose           Print SSH commands and output
-    --dry-run           Don't run any SSH commands
+    -i <file>, --inventory <file>  Path to the inventory file
+    -s, --sudo                     Prepend sudo to all commands
+    -v, --verbose                  Print SSH commands and output
+    -d, --dry-run                  Don't run any SSH commands
+    -k, --skip-install             Skip installing dependencies
 """
 from __future__ import print_function
 
@@ -156,7 +157,7 @@ def reset(session, verbose=False, dryrun=False, sudo=False):
         for vhost in host_config['vhosts']:
             vhost['running'] = False
     # kill all running processes
-    apply_(session, verbose, dryrun, sudo, update_hosts=False)
+    apply_(session, verbose, dryrun, sudo, [], update_hosts=False)
     t = jinja2.Template(reset_template)
     for host, host_config in sorted(session.items()):
         script = t.render(
@@ -169,7 +170,7 @@ def reset(session, verbose=False, dryrun=False, sudo=False):
         client.run('rm -f %s' % RINGPOP_HOSTS)
 
 
-def apply_(session, verbose=False, dryrun=False, sudo=False, update_hosts=True):
+def apply_(session, verbose=False, dryrun=False, sudo=False, extra_args=[], update_hosts=True):
     if update_hosts:
         hosts_file = []
         for _, host_config in sorted(session.items()):
@@ -192,8 +193,8 @@ def apply_(session, verbose=False, dryrun=False, sudo=False, update_hosts=True):
                 ip = ipaddress.IPv4Interface(vhost['iface'])
                 ipport = '%s:3000' % ip.ip
                 cmd = virtualcluster.cmd.spawn_cmd(
-                    '%s -hosts /tmp/hosts.json --listen %s:3000' %
-                    (VC_BINARY, ip.ip),
+                    '%s -hosts /tmp/hosts.json --listen %s:3000 %s' %
+                    (VC_BINARY, ip.ip, ' '.join(extra_args)),
                     '/tmp/%s.out' % ip.ip,
                     '/tmp/%s.err' % ip.ip,
                 )
@@ -201,6 +202,7 @@ def apply_(session, verbose=False, dryrun=False, sudo=False, update_hosts=True):
 
 
 def run(session, cmd, verbose=False, dryrun=False, sudo=False):
+    cmd = ' '.join(cmd)
     for host, host_config in sorted(session.items()):
         client = virtualcluster.cmd.Client(host, verbose=verbose, dryrun=dryrun, sudo=sudo)
         for vhost in host_config['vhosts']:
@@ -214,7 +216,7 @@ def run_main():
     if args['new']:
         new(args['<host/count>'], args['<network>'])
     else:
-        inv_path = args.get('<inventory_path>')
+        inv_path = args.get('--inventory')
         inv_file = sys.stdin
         if inv_path:
             inv_file = open(inv_path)
@@ -224,7 +226,7 @@ def run_main():
         if args['reset']:
             reset(session, args['--verbose'], args['--dry-run'], args['--sudo'])
         if args['apply']:
-            apply_(session, args['--verbose'], args['--dry-run'], args['--sudo'])
+            apply_(session, args['--verbose'], args['--dry-run'], args['--sudo'], args['<extra_args>'])
         if args['run']:
             run(session, args['<cmd>'], args['--verbose'], args['--dry-run'], args['--sudo'])
 
