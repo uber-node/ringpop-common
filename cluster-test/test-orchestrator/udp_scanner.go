@@ -58,3 +58,7 @@ func (s *UDPScanner) Text() string {
 func (s *UDPScanner) Err() error {
 	return s.err
 }
+
+func (s *UDPScanner) Close() error {
+	return s.sConn.Close()
+}

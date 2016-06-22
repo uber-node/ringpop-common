@@ -105,15 +105,17 @@ func (si *StatIngester) IsClusterStable(hosts []string) bool {
 // stats are analyzed to determine cluster-stability and written to a file.
 func (si *StatIngester) IngestStats(s Scanner) error {
 	for s.Scan() {
+		withTime := fmt.Sprintf("%s|%s", time.Now().UTC().Format(time.RFC3339Nano), s.Text())
+
 		// handle stat for cluster stability analysis
-		err := si.handleStat(s.Text())
+		err := si.handleStat(withTime)
 		if err != nil {
 			err = errors.Wrap(err, "stat ingestion")
 			log.Fatalf(err.Error())
 		}
 
 		// write stat to file
-		_, err = fmt.Fprintln(si.writer, s.Text())
+		_, err = fmt.Fprintln(si.writer, withTime)
 		if err != nil {
 			log.Fatalln(err)
 		}

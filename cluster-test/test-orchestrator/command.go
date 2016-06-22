@@ -22,7 +22,9 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 )
 
 var ringpopPort = "3000"
@@ -49,4 +51,88 @@ type Command struct {
 // String converts a Command to a string.
 func (cmd Command) String() string {
 	return fmt.Sprintf("%s %s", cmd.Cmd, strings.Join(cmd.Args, " "))
+}
+
+func (cmd Command) Run(sesh *Session) {
+	switch cmd.Cmd {
+	case "kill":
+		//TODO(wieger): bounds check
+		n, err := strconv.Atoi(cmd.Args[0])
+		fatalWhen(err)
+		sesh.Stop(n)
+		sesh.Apply()
+	case "start":
+		//TODO(wieger): bounds check
+		n, err := strconv.Atoi(cmd.Args[0])
+		fatalWhen(err)
+		sesh.Start(n)
+		sesh.Apply()
+	case "rolling-restart":
+		//TODO(wieger): bounds check
+		bsize, err := strconv.Atoi(cmd.Args[0])
+		fatalWhen(err)
+
+		T, err := time.ParseDuration(cmd.Args[1])
+		fatalWhen(err)
+
+		var running []int
+		ix := 0
+		for _, h := range sesh.Object {
+			for _, vh := range h.VHosts {
+				if vh.Running {
+					running = append(running, ix)
+				}
+				ix++
+			}
+		}
+
+		for len(running) > 0 {
+			size := bsize
+			if size > len(running) {
+				size = len(running)
+			}
+			batch := running[:size]
+			running = running[size:]
+
+			for _, ix := range batch {
+				StopAt(sesh, ix)
+			}
+			sesh.Apply()
+			time.Sleep(T)
+
+			for _, ix := range batch {
+				StartAt(sesh, ix)
+			}
+			sesh.Apply()
+		}
+	case "sleep":
+		//TODO(wieger): bounds check
+		T, err := time.ParseDuration(cmd.Args[0])
+		fatalWhen(err)
+		time.Sleep(T)
+	}
+}
+
+func StopAt(sesh *Session, ix int) {
+	for _, h := range sesh.Object {
+		for _, vh := range h.VHosts {
+			if ix == 0 {
+				vh.Running = false
+				return
+			}
+			ix--
+		}
+	}
+}
+
+func StartAt(sesh *Session, ix int) {
+	for _, h := range sesh.Object {
+		for _, vh := range h.VHosts {
+			if ix == 0 {
+				vh.Running = true
+				return
+			}
+			ix--
+		}
+	}
 }

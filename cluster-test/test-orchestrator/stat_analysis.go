@@ -26,6 +26,7 @@ package main
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,8 +46,12 @@ func CountAnalysis(s Scanner, stat string) (int, error) {
 	count := 0
 	for s.Scan() {
 		// TODO fetch actual count from stat line (don't just count number of lines)
-		if ok, err := regexp.MatchString(stat, s.Text()); ok && err == nil {
-			count++
+		line := s.Text()
+		if ok, err := regexp.MatchString(stat, line); ok && err == nil {
+			num := line[strings.LastIndex(line, ":")+1 : len(line)-2]
+			c, err := strconv.Atoi(num)
+			fatalWhen(err)
+			count += c
 		}
 	}
 	if s.Err() != nil {
