@@ -36,6 +36,7 @@ var base = "172.18.24.198"
 var onlyMeasure = flag.Bool("only-measure", false, "The script will not be executed and the measurement will be done on an existing file")
 var testFile = flag.String("test-file", "", "The yaml file that describes the tests that will be executed")
 var vcBin = flag.String("vc", "./vc", "Path to virtual-cluster binary")
+var prepare = flag.Bool("prepare", false, "Prepare the virtual cluster")
 
 func main() {
 	flag.Parse()
@@ -96,7 +97,9 @@ func initCluster() *Session {
 	fatalWhen(err)
 
 	// TODO(wieger): uncomment
-	// sesh.Prepare()
+	if *prepare {
+		sesh.Prepare()
+	}
 
 	return sesh
 }
