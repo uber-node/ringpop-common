@@ -10,7 +10,6 @@ import (
 func ExampleSectionScanner() {
 	s := bufio.NewScanner(strings.NewReader(stats))
 	scanner, _ := NewSectionScanner(s, "t0", "t1")
-
 	for scanner.Scan() {
 		fmt.Println(scanner.Text())
 	}
@@ -18,9 +17,45 @@ func ExampleSectionScanner() {
 	// Output:
 	// 2016-06-15T16:11:08.246816444Z|ringpop.172_18_24_220_3000.protocol.frequency:200.833341|ms
 	// 2016-06-15T16:11:08.246954825Z|ringpop.172_18_24_220_3000.protocol.delay:200|ms
-	// 2016-06-15T16:11:08.247013319Z|ringpop.172_18_24_220_3000.changes.disseminate:0|g
+	// 2016-06-15T16:11:08.247013319Z|ringpop.172_18_24_220_3000.changes.disseminate:3|g
 	// 2016-06-15T16:11:08.247032205Z|ringpop.172_18_24_220_3000.ping.send:1|c
 	// 2016-06-15T16:11:08.247344365Z|ringpop.172_18_24_220_3008.ping.recv:1|c
+}
+
+func ExampleSectionScannerStart() {
+	s := bufio.NewScanner(strings.NewReader(stats))
+	scanner, _ := NewSectionScanner(s, "..", "t1")
+	for scanner.Scan() {
+		fmt.Println(scanner.Text())
+	}
+
+	// Output:
+	// 2016-06-15T16:11:08.198146603Z|ringpop.172_18_24_220_3007.protocol.delay:200|ms
+	// 2016-06-15T16:11:08.198191045Z|ringpop.172_18_24_220_3007.changes.disseminate:0|g
+	// 2016-06-15T16:11:08.198212784Z|ringpop.172_18_24_220_3007.ping.send:1|c
+	// 2016-06-15T16:11:08.198622397Z|ringpop.172_18_24_220_3000.ping.recv:1|c
+	// 2016-06-15T16:11:08.198694026Z|ringpop.172_18_24_220_3000.changes.disseminate:4|g
+	// 2016-06-15T16:11:08.19884693Z|ringpop.172_18_24_220_3007.ping:0.593162|ms
+	// label:t0|cmd: kill 1
+	// 2016-06-15T16:11:08.246816444Z|ringpop.172_18_24_220_3000.protocol.frequency:200.833341|ms
+	// 2016-06-15T16:11:08.246954825Z|ringpop.172_18_24_220_3000.protocol.delay:200|ms
+	// 2016-06-15T16:11:08.247013319Z|ringpop.172_18_24_220_3000.changes.disseminate:3|g
+	// 2016-06-15T16:11:08.247032205Z|ringpop.172_18_24_220_3000.ping.send:1|c
+	// 2016-06-15T16:11:08.247344365Z|ringpop.172_18_24_220_3008.ping.recv:1|c
+}
+
+func ExampleSectionScannerEnd() {
+	s := bufio.NewScanner(strings.NewReader(stats))
+	scanner, _ := NewSectionScanner(s, "t1", "..")
+	for scanner.Scan() {
+		fmt.Println(scanner.Text())
+	}
+
+	// Output:
+	// 2016-06-15T16:11:08.247388872Z|ringpop.172_18_24_220_3008.changes.disseminate:0|g
+	// 2016-06-15T16:11:08.247506122Z|ringpop.172_18_24_220_3000.ping:0.447996|ms
+	// 2016-06-15T16:11:08.25451275Z|ringpop.172_18_24_220_3003.protocol.frequency:203.362966|ms
+	// 2016-06-15T16:11:08.254576313Z|ringpop.172_18_24_220_3003.protocol.delay:200|ms
 }
 
 func ExampleCountAnalysis() {
@@ -31,7 +66,7 @@ func ExampleCountAnalysis() {
 	fmt.Println(c1, c2)
 
 	// Output:
-	// 2 4
+	// 2 7
 }
 
 var stats = `
@@ -39,12 +74,12 @@ var stats = `
 2016-06-15T16:11:08.198191045Z|ringpop.172_18_24_220_3007.changes.disseminate:0|g
 2016-06-15T16:11:08.198212784Z|ringpop.172_18_24_220_3007.ping.send:1|c
 2016-06-15T16:11:08.198622397Z|ringpop.172_18_24_220_3000.ping.recv:1|c
-2016-06-15T16:11:08.198694026Z|ringpop.172_18_24_220_3000.changes.disseminate:0|g
+2016-06-15T16:11:08.198694026Z|ringpop.172_18_24_220_3000.changes.disseminate:4|g
 2016-06-15T16:11:08.19884693Z|ringpop.172_18_24_220_3007.ping:0.593162|ms
 label:t0|cmd: kill 1
 2016-06-15T16:11:08.246816444Z|ringpop.172_18_24_220_3000.protocol.frequency:200.833341|ms
 2016-06-15T16:11:08.246954825Z|ringpop.172_18_24_220_3000.protocol.delay:200|ms
-2016-06-15T16:11:08.247013319Z|ringpop.172_18_24_220_3000.changes.disseminate:0|g
+2016-06-15T16:11:08.247013319Z|ringpop.172_18_24_220_3000.changes.disseminate:3|g
 2016-06-15T16:11:08.247032205Z|ringpop.172_18_24_220_3000.ping.send:1|c
 2016-06-15T16:11:08.247344365Z|ringpop.172_18_24_220_3008.ping.recv:1|c
 label:t1|cmd: wait-for-stable

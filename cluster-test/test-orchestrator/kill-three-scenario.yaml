@@ -1,0 +1,29 @@
+scenarios:
+    - name: kill and revive
+      size: <N>
+      desc: kill and revive <K> nodes of a <N>-node cluster
+
+      script:
+      - t0: kill <K>              # waits for alive to suspect
+      - t1: wait-for-convergence  # waits for suspect to faulty
+      - t2: start <K>
+
+      measure:
+      - t0 t1 convtime in (200ms,2s)
+      - t0 t1 count membership-set.suspect is <K>*(<N>-<K>)
+      - t0 t1 count ping-req.send in (1,100)
+
+      - t1 t2 convtime in (200ms,1s)
+      - t1 t2 count membership-set.faulty is <K>*(<N>-<K>)
+
+      - t2 .. convtime in (200ms,3s)
+      - t2 .. count membership-set.alive is <K>*<N> + (<N>-<K>)*<K>
+
+      - t0 .. count full-sync is 0
+      - t0 .. count server.removed is <K>*(<N>-<K>)
+      - t0 .. count server.added is <K>*(<N>-<K>) + <N>*<K>
+
+      runs:
+      - [<N>, <K>]
+      - [30, 3]
+

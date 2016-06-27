@@ -69,47 +69,58 @@ func (cmd Command) Run(sesh *Session) {
 		sesh.Apply()
 	case "rolling-restart":
 		//TODO(wieger): bounds check
-		bsize, err := strconv.Atoi(cmd.Args[0])
+		batchSize, err := strconv.Atoi(cmd.Args[0])
 		fatalWhen(err)
 
 		T, err := time.ParseDuration(cmd.Args[1])
 		fatalWhen(err)
 
-		var running []int
-		ix := 0
-		for _, h := range sesh.Object {
-			for _, vh := range h.VHosts {
-				if vh.Running {
-					running = append(running, ix)
-				}
-				ix++
-			}
-		}
+		RollingRestart(sesh, batchSize, T)
 
-		for len(running) > 0 {
-			size := bsize
-			if size > len(running) {
-				size = len(running)
-			}
-			batch := running[:size]
-			running = running[size:]
+	case "network-drop":
+		// pcnt := Args[len(Args)-1]
+		//TODO(wieger): bounds check
+		// pcnt, groups := validateNetworkDropArgs(Args)
+		// NetworkDrop(pct, groups)
 
-			for _, ix := range batch {
-				StopAt(sesh, ix)
-			}
-			sesh.Apply()
-			time.Sleep(T)
-
-			for _, ix := range batch {
-				StartAt(sesh, ix)
-			}
-			sesh.Apply()
-		}
 	case "sleep":
 		//TODO(wieger): bounds check
 		T, err := time.ParseDuration(cmd.Args[0])
 		fatalWhen(err)
 		time.Sleep(T)
+	}
+}
+
+func RollingRestart(sesh *Session, batchSize int, T time.Duration) {
+	var running []int
+	ix := 0
+	for _, h := range sesh.Object {
+		for _, vh := range h.VHosts {
+			if vh.Running {
+				running = append(running, ix)
+			}
+			ix++
+		}
+	}
+
+	for len(running) > 0 {
+		size := batchSize
+		if size > len(running) {
+			size = len(running)
+		}
+		batch := running[:size]
+		running = running[size:]
+
+		for _, ix := range batch {
+			StopAt(sesh, ix)
+		}
+		sesh.Apply()
+		time.Sleep(T)
+
+		for _, ix := range batch {
+			StartAt(sesh, ix)
+		}
+		sesh.Apply()
 	}
 }
 

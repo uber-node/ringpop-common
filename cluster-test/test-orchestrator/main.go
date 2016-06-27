@@ -24,6 +24,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -33,12 +34,19 @@ import (
 var base = "172.18.24.198"
 
 var onlyMeasure = flag.Bool("only-measure", false, "The script will not be executed and the measurement will be done on an existing file")
+var testFile = flag.String("test-file", "", "The yaml file that describes the tests that will be executed")
 var vcBin = flag.String("vc", "./vc", "Path to virtual-cluster binary")
 
 func main() {
 	flag.Parse()
 
-	scns, err := parse([]byte(scenariosYaml))
+	if *testFile == "" {
+		log.Fatal("must declare test-file")
+	}
+	scenariosYaml, err := ioutil.ReadFile(*testFile)
+	fatalWhen(err)
+
+	scns, err := parse(scenariosYaml)
 	fatalWhen(err)
 
 	if *onlyMeasure {
@@ -147,9 +155,21 @@ func (s *Scenario) MeasureAndReport(file string) bool {
 			log.Fatalf(err.Error())
 		}
 
-		results[i] = fmt.Sprintf("|%8v | %-37v|", r, m)
+		green := "\033[0;32m"
+		red := "\033[0;31m"
+		nocol := "\033[0m"
 
+		color := green
 		err = m.Assertion.Assert(r)
+		if err != nil {
+			color = red
+		}
+		if m.Assertion == nil {
+			color = nocol
+		}
+
+		results[i] = fmt.Sprintf("|%s%8v%s | %-37v|", color, r, nocol, m)
+
 		if err != nil {
 			results[i] += fmt.Sprintf(" %v", err)
 			success = false
@@ -182,15 +202,24 @@ func (s *Scenario) MeasureAndReport(file string) bool {
 		if i > -1 {
 			cmd = s.Script[i].String()
 		}
-		fmt.Printf("|%8s | %-37s|\n", fmt.Sprintf("%s %s", start, end), cmd)
-		fmt.Println("|---------+--------------------------------------|")
+
+		fmt.Printf("|\033[0;36m%8s\033[0m | %-37s|\n", fmt.Sprintf("%s %s", start, end), cmd)
 
 		hasOne := false
+		for _, m := range s.Measure {
+			if m.Start == start && m.End == end {
+				hasOne = true
+			}
+		}
+
+		if hasOne {
+			fmt.Println("|---------+--------------------------------------|")
+		}
+
 		for i, m := range s.Measure {
 			if m.Start == start && m.End == end {
 				fmt.Println(results[i])
 				printed[i] = struct{}{}
-				hasOne = true
 			}
 		}
 
@@ -212,128 +241,10 @@ func (s *Scenario) MeasureAndReport(file string) bool {
 			continue
 		}
 
-		fmt.Printf("|%8s | %-37s|\n%s\n", m.Start+" "+m.End, "", results[i])
+		fmt.Printf("|\033[0;36m%8s\033[0m | %-37s|\n%s\n", m.Start+" "+m.End, "", results[i])
 		fmt.Println(("+---------+--------------------------------------+"))
 	}
 	fmt.Println()
 
 	return success
 }
-
-var scenariosYaml = `
-config:
-  network: 10.0.0.0/16
-  hosts:
-    appdocker22-sjc1:
-      capacity: 400
-    appdocker19-sjc1:
-      capacity: 400
-    appdocker325-sjc1:
-      capacity: 400
-    appdocker641-sjc1:
-      capacity: 400
-
-scenarios:
-
-    # Scenario 1
-    - name: bootstrap
-      size: <N>
-      desc: startup <N> nodes at the same time and wait for bootstrap
-
-      script:
-      # on the start of every script the nodes will be bootstrapped,
-      # therefore, we can leave the script empty  for this scenario.
-
-      measure:
-      # Use ".. .." to indicate from start to end simulation
-      - .. .. convtime in (1s,10s)
-      - .. .. checksums is 1
-      - .. .. count full-sync is 0
-      - .. .. count membership-set.alive
-
-      runs:
-      - [<N>]
-      - [10 ]
-      - [20 ]
-      - [30 ]
-
-    # Scenario 2
-    - name: kill one node
-      size: <N>
-      desc: Kill one node in a cluster of <N> nodes.
-
-      script:
-      - t0: kill 1
-      - t1: wait-for-stable
-      - t2: start 1
-
-      measure:
-      - t0 t1 convtime in (0s,3s)
-      - t0 t1 checksums is 1
-      - t0 t1 count membership-set.suspect is <N>-1
-
-      - t1 t2 convtime in (0s,3s)
-      - t1 t2 checksums is 1
-      - t1 t2 count membership-set.faulty is <N>-1
-
-      - t2 .. convtime in (0s,6s)
-      - t2 .. checksums is 1
-      - t2 .. count membership-set.alive is <N> + <N>-1
-
-      - .. .. count full-sync is 0
-
-      runs:
-      - [<N>]
-      - [10 ]
-      - [20 ]
-      - [30 ]
-
-
-    # Scenario 3
-    - name: kill and revive
-      size: <N>
-      desc: kill and revive <P> nodes of a <N>-node cluster
-
-      script:
-      - t0: kill <P>     # waits for alive to suspect or faulty
-      - t1: sleep 10s     # waits 5 seconds to be sure that all nodes are faulty
-      - t2: start <P>
-
-      measure:
-      - t0 t2 count ping-req.send in (1,123)
-      - t0 t2 count membership-set.suspect is <P>*(<N>-<P>)
-      - t0 t2 count membership-set.faulty is <P>*(<N>-<P>)
-      - t0 t2 convtime in (0s,10s)
-
-      - t2 .. convtime in (200ms,3s)
-      - t2 .. count membership-set.alive is <P>*<N> + (<N>-<P>)*<P>
-
-      - t0 .. count full-sync is 0
-      - t0 .. count ring.changed is 0
-
-      runs:
-      - [<N>, <P>]
-      - [30, 3] #10%
-      - [30, 10] #30%
-      - [30, 15] #50%
-
-
-    # Scenario 4
-    - name: rolling restart
-      size: <N>
-      desc: Do a rolling restart in a cluster <N> nodes.
-
-      script:
-      - t0: rolling-restart <B> <T>
-
-      measure:
-      - t0 .. count server.removed is <FAULTIES>
-      - t0 .. count membership-set.faulty is <FAULTIES>
-      - t0 .. checksums is 1
-
-      runs:
-      - [<N>, <B>, <T>, <FAULTIES>]
-      - [ 10,   2,  3s, 0]
-      - [ 10,   2,  6s, 90]
-
-`
