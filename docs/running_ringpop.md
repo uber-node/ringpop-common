@@ -49,6 +49,10 @@ identity in the stat path, e.g. `ringpop.10_30_8_26_20600.*`; the dots
 and colon are replaced by underscores. The table below lists all stats
 that Ringpop emits:
 
+*Note: if you are reading this page from ringpop.readthedocs.org, the table
+below is probably broken, and we [can't do anything about it yet][1]. For a
+properly-formatted table, please see [this page on github][2].*
+
 |Node.js Path|Description|Type
 |----|----|----
 |changes.apply|Number of changes applied per membership update|gauge
@@ -135,3 +139,6 @@ Content coming soon...
 
 ## Troubleshooting
 Content coming soon...
+
+[1]: https://github.com/rtfd/recommonmark/issues/3
+[2]: https://github.com/uber/ringpop-common/blob/master/docs/running_ringpop.md#monitoring
