@@ -128,7 +128,7 @@ properly-formatted table, please see [this page on github][2].*
 |requestProxy.retry.succeeded|Forwarded request succeeded after retries|count
 |requestProxy.send.error|Forwarded request failed|count
 |requestProxy.send.success|Forwarded request was successful|count
-|ring.change|Hash ring keyspace changed|gauge
+|ring.change|Hash ring keyspace changed|counter
 |ring.checksum-computed|Hash ring checksum was computed|count
 |ring.server-added|Node (and its points) added to hash ring|count
 |ring.server-removed|Node (and its points) removed from hash ring|count
