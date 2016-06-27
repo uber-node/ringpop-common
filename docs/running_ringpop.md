@@ -97,6 +97,7 @@ properly-formatted table, please see [this page on github][2].*
 |membership-update.leave|A member was updated in the leave state|count
 |membership-update.suspect|A member was updated to be suspect|count
 |membership-update.unknown|A member was updated in the unknown state|count
+|membership.checksum-periodic|Current membership checksum|gauge
 |membership.checksum-computed|Membership checksum was computed|count
 |not-ready.ping|Ping received before Ringpop was ready|count
 |not-ready.ping-req|Ping-req received before Ringpop was ready|count
@@ -131,6 +132,7 @@ properly-formatted table, please see [this page on github][2].*
 |requestProxy.send.success|Forwarded request was successful|count
 |ring.change|Hash ring keyspace changed|counter
 |ring.checksum-computed|Hash ring checksum was computed|count
+|ring.checksum-periodic|Current ring checksum|gauge
 |ring.server-added|Node (and its points) added to hash ring|count
 |ring.server-removed|Node (and its points) removed from hash ring|count
 |updates|Number of membership updates applied|timer
