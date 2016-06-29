@@ -76,7 +76,7 @@ func NewSession(vcBin string, cfg *configYaml) (*Session, error) {
 func (s *Session) Prepare() error {
 	s.Reset()
 
-	cmd := exec.Command(s.vcBin, "prepare", "--verbose", "--sudo", "/home/uber/gocode/src/github.com/uber/ringpop-go/scripts/testpop/testpop")
+	cmd := exec.Command(s.vcBin, "prepare", "--verbose", "--sudo", "./testpop")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	s.writeToCmdStdin(cmd)

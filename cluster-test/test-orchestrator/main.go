@@ -69,11 +69,13 @@ func main() {
 }
 
 func run(s *Scenario, sesh *Session, si *StatIngester) {
-	fmt.Println("BOOTSTRAP")
+
+	fmt.Println("NAME:", s.Name)
+	fmt.Println("DESC:", s.Desc)
+	fmt.Println("-", "bootstrap")
 	bootstrap(s, sesh, si)
-	fmt.Println("SCRIPT")
 	for _, cmd := range s.Script {
-		fmt.Println(cmd.String())
+		fmt.Println("-", cmd.String())
 		si.InsertLabel(cmd.Label, cmd.String())
 		cmd.Run(sesh)
 		if cmd.Cmd != "sleep" {
@@ -184,8 +186,7 @@ func (s *Scenario) MeasureAndReport(file string) bool {
 	// printed contains measurements that are already printed
 	printed := make(map[int]struct{})
 
-	fmt.Println("NAME:", s.Name)
-	fmt.Println("DESC:", s.Desc)
+	fmt.Println("Measurements")
 	for i := -1; i < len(s.Script); i++ {
 		if len(s.Script) == 0 && i == 0 {
 			break
@@ -225,19 +226,14 @@ func (s *Scenario) MeasureAndReport(file string) bool {
 				printed[i] = struct{}{}
 			}
 		}
-
-		if hasOne {
-			fmt.Println("+---------+--------------------------------------+")
-			fmt.Println()
-		}
-
 	}
+	fmt.Println(("+---------+--------------------------------------+"))
 
 	// Print all measurements that have not yet been printed.
 	if len(printed) < len(s.Measure) {
 		fmt.Println()
 		fmt.Println("Extra Measurements")
-		fmt.Println(("+---------+--------------------------------------+"))
+		fmt.Println("+---------+--------------------------------------+")
 	}
 	for i, m := range s.Measure {
 		if _, ok := printed[i]; ok {
