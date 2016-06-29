@@ -130,10 +130,12 @@ def per_connection(condition, port_groups, verbose=False, dryrun=False):
 
 
 per_host_template = """
-sudo tc qdisc add dev {{device}} root handle 1: prio
-sudo tc qdisc add dev {{device}} parent 1:1 handle 2: netem {{condition}}
+sudo tc qdisc add dev {{device}} root handle 1: htb
+sudo tc class add dev {{device}} parent 1: classid 1:1 htb rate 1000Mbps
+sudo tc class add dev {{device}} parent 1:1 classid 1:11 htb rate 1000Mbps
+sudo tc qdisc add dev {{device}} parent 1:11 handle 10: netem {{condition}}
 {% for h in other_hosts %}
-sudo tc filter add dev {{device}} protocol ip prio 1 u32 match ip dst {{h}} flowid 2:1
+sudo tc filter add dev {{device}} protocol ip prio 1 u32 match ip dst {{h}} flowid 1:11
 {% endfor %}
 """
 def per_host(condition, host_groups, heal=False, verbose=False, dryrun=False):
