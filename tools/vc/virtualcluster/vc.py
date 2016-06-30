@@ -34,6 +34,14 @@ VC_BINARY = '/tmp/vc_binary'
 RINGPOP_HOSTS = '/tmp/hosts.json'
 
 
+def to_unicode(s):
+    py3_bytes = sys.version_info >= (3,) and isinstance(s, bytes)
+    py2_str = sys.version_info < (3,) and isinstance(s, str)
+    if py3_bytes or py2_str:
+        s = s.decode('ascii')
+    return s
+
+
 def new(hostcounts, network):
     hosts = {}
     for hc in hostcounts:
@@ -44,6 +52,7 @@ def new(hostcounts, network):
             raise ValueError('Invalid count %r' % hc)
         count = int(count)
         hosts[host] = hosts.get(host, 0) + count
+    network = to_unicode(network)
     network = ipaddress.ip_network(network, strict=True)
     # 1 ip for each hc and len(hosts) ips for bridges
     if network.num_addresses < len(hosts) + sum(hosts.values()):
