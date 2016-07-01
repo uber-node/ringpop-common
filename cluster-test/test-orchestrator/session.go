@@ -77,7 +77,6 @@ func (s *Session) Prepare() error {
 	s.Reset()
 
 	cmd := exec.Command(s.vcBin, "prepare", "--verbose", "--sudo", "./testpop")
-	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	s.writeToCmdStdin(cmd)
 	return cmd.Run()
@@ -85,7 +84,6 @@ func (s *Session) Prepare() error {
 
 func (s *Session) Reset() error {
 	cmd := exec.Command(s.vcBin, "reset", "--verbose", "--sudo")
-	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	s.writeToCmdStdin(cmd)
 	return cmd.Run()
@@ -96,7 +94,6 @@ func (s *Session) Reset() error {
 // starting or stopping nodes.
 func (s *Session) Apply() error {
 	cmd := exec.Command(s.vcBin, "apply", "--sudo", "--", "--stats-udp", "10.10.255.254:3300")
-	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	s.writeToCmdStdin(cmd)
 	return cmd.Run()
