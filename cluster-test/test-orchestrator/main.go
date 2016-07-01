@@ -59,7 +59,7 @@ func main() {
 
 	sesh := initCluster()
 
-	_ = os.Mkdir("stats", 0700)
+	_ = os.Mkdir("stats", 0777)
 	for i, scn := range scns {
 		si, scanner := initIngester(fmt.Sprintf("stats/%s-%d.stats", scn.Name, i))
 		run(scn, sesh, si)
