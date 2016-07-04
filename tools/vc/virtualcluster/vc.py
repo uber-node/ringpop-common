@@ -129,14 +129,14 @@ def indexes_as_list(indexes):
 prep_template = """
 sudo -n -- ovs-vsctl add-br vc_bridge
 sudo -n -- ip link set dev vc_bridge mtu 1446
-for i in `seq 1 {{ips_per_host}}`; do
-    sudo -n -- ip netns add vc_ns$i
-    sudo -n -- ip netns exec vc_ns$i ip link set dev lo up
-    sudo -n -- ovs-vsctl add-port vc_bridge vc_port$i -- set Interface vc_port$i type=internal
-    sudo -n -- ip link set vc_port$i netns vc_ns$i
-    sudo -n -- ip netns exec vc_ns$i ip link set dev vc_port$i up
-    sudo -n -- ip netns exec vc_ns$i ip addr add {{ip_prefix}}.$i/{{network_size}} dev vc_port$i
-    sudo -n -- ip netns exec vc_ns$i ip link set dev vc_port$i mtu 1446
+for I in `seq 1 {{ips_per_host}}`; do
+    sudo -n -- ip netns add vc_ns$I
+    sudo -n -- ip netns exec vc_ns$I ip link set dev lo up
+    sudo -n -- ovs-vsctl add-port vc_bridge vc_port$I -- set Interface vc_port$I type=internal
+    sudo -n -- ip link set vc_port$I netns vc_ns$I
+    sudo -n -- ip netns exec vc_ns$I ip link set dev vc_port$I up
+    sudo -n -- ip netns exec vc_ns$I ip addr add {{ip_prefix}}.$I/{{network_size}} dev vc_port$I
+    sudo -n -- ip netns exec vc_ns$I ip link set dev vc_port$I mtu 1446
 done
 {% for peer in peers %}
 sudo -n -- ovs-vsctl add-port vc_bridge vc_peer{{loop.index}} -- set interface vc_peer{{loop.index}} type=vxlan options:remote_ip={{peer}}
@@ -165,10 +165,11 @@ def prep(make_client, network, hosts, ips, skip_install=False):
         ip_address += 256
 
 
-reset_script = """
-for ns in `ip netns | grep -P "vc_ns\d+"`; do
-    (ip netns exec $ns pkill --nslist=net --ns=$BASHPID)
-    sudo -n -- ip netns del $ns
+reset_script = r"""
+for NS in `ip netns | grep -P "vc_ns\d+"`; do
+    export ENS=$NS
+    sudo -En -- bash -c 'ip netns exec $ENS pkill --nslist=net --ns=$BASHPID'
+    sudo -n -- ip netns del $NS
 done
 sudo -n -- ovs-vsctl del-br vc_bridge
 """
@@ -179,8 +180,8 @@ def reset(make_client, hosts):
 
 
 run_template = """
-for ns in `comm -12 <(ip netns list | sort) <(echo vc_ns{{indexlist}} | xargs -n 1 echo | sort) | sort -V`; do
-    sudo -n -- ip netns exec $ns {{cmd}}
+for NS in `comm -12 <(ip netns list | sort) <(echo vc_ns{{indexlist}} | xargs -n 1 echo | sort) | sort -V`; do
+    sudo -n -- ip netns exec $NS {{cmd}}
 done
 """
 def runns(make_client, hostgroups, cmd):
@@ -195,8 +196,8 @@ def runns(make_client, hostgroups, cmd):
 
 
 ips_template = """
-for ns in `comm -12 <(ip netns list | sort) <(echo vc_ns{{indexlist}} | xargs -n 1 echo | sort) | sort -V`; do
-    ip netns exec $ns ip -o -4 addr show | grep vc_port | awk '{print $4}' | cut -d/ -f1
+for NS in `comm -12 <(ip netns list | sort) <(echo vc_ns{{indexlist}} | xargs -n 1 echo | sort) | sort -V`; do
+    sudo -n -- ip netns exec $NS ip -o -4 addr show | grep vc_port | awk '{print $4}' | cut -d/ -f1
 done
 """
 hosts_template = """
@@ -204,15 +205,17 @@ echo '{{hosts}}' > {{binpath}}.hosts.json
 chmod +x {{binpath}}
 """
 exe_template = """
-for ns in `comm -23 <(ip netns list | grep -P "vc_ns\d+" | sort) <(echo vc_ns{{indexlist}} | xargs -n 1 echo | sort) | sort -V`; do
-    (ip netns exec $ns pkill -f --nslist=net --ns=$BASHPID {{procname}})
+for NS in `comm -23 <(ip netns list | grep -P "vc_ns\d+" | sort) <(echo vc_ns{{indexlist}} | xargs -n 1 echo | sort) | sort -V`; do
+    export ENS=$NS
+    sudo -En -- bash -c 'ip netns exec $ENS pkill -f --nslist=net --ns=$BASHPID {{procname}}'
 done
 IP_PREFIX=`ip -o -4 addr show | grep vc_bridge | awk '{print $4}' | cut -d\. -f1,2,3`
-for ns in `comm -12 <(ip netns list | sort) <(echo vc_ns{{indexlist}} | xargs -n 1 echo | sort) | sort -V`; do
-    (ip netns exec $ns pgrep -f --nslist=net --ns=$BASHPID {{procname}} > /dev/null)
+for NS in `comm -12 <(ip netns list | sort) <(echo vc_ns{{indexlist}} | xargs -n 1 echo | sort) | sort -V`; do
+    export ENS=$NS
+    sudo -En -- bash -c 'ip netns exec $ENS pgrep -f --nslist=net --ns=$BASHPID {{procname}}'
     if [ $? -ne 0 ]; then
-        IP=$IP_PREFIX.`echo $ns | cut -c6-`
-        ip netns exec $ns nohup {{binpath}} {{args}} -hosts {{binpath}}.hosts.json --listen $IP:3000 > /tmp/$IP.out 2> /tmp/$IP.err < /dev/null &
+        IP=$IP_PREFIX.`echo $NS | cut -c6-`
+        sudo -n -- ip netns exec $NS nohup {{binpath}} {{args}} -hosts {{binpath}}.hosts.json --listen $IP:3000 > /tmp/$IP.out 2> /tmp/$IP.err < /dev/null &
     fi
 done
 """
