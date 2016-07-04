@@ -126,7 +126,7 @@ def per_connection(condition, port_groups, verbose=False, dryrun=False):
         port_pairs=port_pairs
     )
     client = virtualcluster.cmd.Client('localhost', verbose=verbose, dryrun=dryrun)
-    client.run_script(script)
+    client.run(script)
 
 
 per_host_template = """
@@ -163,7 +163,7 @@ def per_host(condition, host_groups, heal=False, verbose=False, dryrun=False):
             other_hosts=other_hosts,
             device='eth0'
         )
-        client.run_script(script)
+        client.run(script)
 
 
 def run_main():
