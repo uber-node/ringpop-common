@@ -35,7 +35,7 @@ class LocalClient:
             p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             err = p.stderr.read().decode('unicode_escape')
             if err:
-                raise ValueError(err)
+                print(err)
             output = p.stdout.read().decode('unicode_escape')
             p.wait()
         return output
@@ -94,7 +94,7 @@ class SSHClient:
             _, o, e = self.client.exec_command(cmd)
             err = e.read().decode('unicode_escape')
             if err:
-                raise ValueError(err)
+                print(err)
             output = o.read().decode('unicode_escape')
         return output
 

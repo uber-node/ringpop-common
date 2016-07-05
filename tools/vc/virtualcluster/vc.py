@@ -142,6 +142,7 @@ done
 sudo -n -- ovs-vsctl add-port vc_bridge vc_peer{{loop.index}} -- set interface vc_peer{{loop.index}} type=vxlan options:remote_ip={{peer}}
 {% endfor %}
 sudo -n -- ip addr add {{ip_prefix}}.254/{{network_size}} dev vc_bridge
+sudo -n -- ovs-vsctl set bridge vc_bridge stp_enable=true
 sudo -n -- ip link set vc_bridge up
 """
 def prep(make_client, network, hosts, ips, skip_install=False):
@@ -160,15 +161,14 @@ def prep(make_client, network, hosts, ips, skip_install=False):
             peers=host_ips - set([get_net_ip(host)])
         )
         if not skip_install:
-            client.run('apt-get update && apt-get -y install openvswitch-switch')
+            client.run('sudo -n -- apt-get update && apt-get -y install openvswitch-switch')
         client.run(script)
         ip_address += 256
 
 
 reset_script = r"""
 for NS in `ip netns | grep -P "vc_ns\d+"`; do
-    export ENS=$NS
-    sudo -En -- bash -c 'ip netns exec $ENS pkill --nslist=net --ns=$BASHPID'
+    ENS=$NS sudo -En -- bash -c 'ip netns exec $ENS pkill --nslist=net --ns=$BASHPID'
     sudo -n -- ip netns del $NS
 done
 sudo -n -- ovs-vsctl del-br vc_bridge
@@ -206,13 +206,11 @@ chmod +x {{binpath}}
 """
 exe_template = """
 for NS in `comm -23 <(ip netns list | grep -P "vc_ns\d+" | sort) <(echo vc_ns{{indexlist}} | xargs -n 1 echo | sort) | sort -V`; do
-    export ENS=$NS
-    sudo -En -- bash -c 'ip netns exec $ENS pkill -f --nslist=net --ns=$BASHPID {{procname}}'
+    ENS=$NS sudo -En -- bash -c 'ip netns exec $ENS pkill -f --nslist=net --ns=$BASHPID {{procname}}'
 done
 IP_PREFIX=`ip -o -4 addr show | grep vc_bridge | awk '{print $4}' | cut -d\. -f1,2,3`
 for NS in `comm -12 <(ip netns list | sort) <(echo vc_ns{{indexlist}} | xargs -n 1 echo | sort) | sort -V`; do
-    export ENS=$NS
-    sudo -En -- bash -c 'ip netns exec $ENS pgrep -f --nslist=net --ns=$BASHPID {{procname}}'
+    ENS=$NS sudo -En -- bash -c 'ip netns exec $ENS pgrep -f --nslist=net --ns=$BASHPID {{procname}}'
     if [ $? -ne 0 ]; then
         IP=$IP_PREFIX.`echo $NS | cut -c6-`
         sudo -n -- ip netns exec $NS nohup {{binpath}} {{args}} -hosts {{binpath}}.hosts.json --listen $IP:3000 > /tmp/$IP.out 2> /tmp/$IP.err < /dev/null &
