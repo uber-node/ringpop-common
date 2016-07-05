@@ -34,12 +34,8 @@ import (
 
 // testYaml is used to unmarshal test declared in the yaml files.
 type testYaml struct {
-	Config    configYaml
+	Cluster   []*VHost
 	Scenarios []*scenarioYaml
-}
-
-type configYaml struct {
-	// TODO(wieger): define
 }
 
 // scenarioYaml captures the information of a scenario.

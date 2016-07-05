@@ -53,20 +53,24 @@ func (cmd Command) String() string {
 	return fmt.Sprintf("%s %s", cmd.Cmd, strings.Join(cmd.Args, " "))
 }
 
-func (cmd Command) Run(sesh *Session) {
+func (cmd Command) Run(vc *VCClient) {
 	switch cmd.Cmd {
 	case "kill":
 		//TODO(wieger): bounds check
-		n, err := strconv.Atoi(cmd.Args[0])
-		fatalWhen(err)
-		sesh.Stop(n)
-		sesh.Apply()
+		ixs := groupsToIndices(cmd.Args)
+		for _, ix := range ixs {
+			vc.Running[ix] = false
+		}
+		vc.Exe()
+
 	case "start":
 		//TODO(wieger): bounds check
-		n, err := strconv.Atoi(cmd.Args[0])
-		fatalWhen(err)
-		sesh.Start(n)
-		sesh.Apply()
+		ixs := groupsToIndices(cmd.Args)
+		for _, ix := range ixs {
+			vc.Running[ix] = true
+		}
+		vc.Exe()
+
 	case "rolling-restart":
 		//TODO(wieger): bounds check
 		batchSize, err := strconv.Atoi(cmd.Args[0])
@@ -75,7 +79,7 @@ func (cmd Command) Run(sesh *Session) {
 		T, err := time.ParseDuration(cmd.Args[1])
 		fatalWhen(err)
 
-		RollingRestart(sesh, batchSize, T)
+		rollingRestart(vc, batchSize, T)
 
 	case "network-drop":
 		// pcnt := Args[len(Args)-1]
@@ -91,59 +95,64 @@ func (cmd Command) Run(sesh *Session) {
 	}
 }
 
-func RollingRestart(sesh *Session, batchSize int, T time.Duration) {
-	var running []int
-	ix := 0
-	for _, h := range sesh.Object {
-		for _, vh := range h.VHosts {
-			if vh.Running {
-				running = append(running, ix)
-			}
-			ix++
-		}
+func rollingRestart(vc *VCClient, batchSize int, T time.Duration) {
+	var rng []int
+	for i := range vc.Running {
+		rng = append(rng, i)
 	}
 
-	for len(running) > 0 {
-		size := batchSize
-		if size > len(running) {
-			size = len(running)
+	var batches [][]int
+	for i := 0; i < len(vc.Running); i += batchSize {
+		j := len(vc.Running) + batchSize
+		if j > len(vc.Running) {
+			j = len(vc.Running)
 		}
-		batch := running[:size]
-		running = running[size:]
+		batches = append(batches, rng[i:j])
+	}
 
+	for _, batch := range batches {
 		for _, ix := range batch {
-			StopAt(sesh, ix)
+			vc.Running[ix] = false
 		}
-		sesh.Apply()
+		vc.Exe()
+
+		// simulate startup time of T
 		time.Sleep(T)
 
 		for _, ix := range batch {
-			StartAt(sesh, ix)
+			vc.Running[ix] = true
 		}
-		sesh.Apply()
+		vc.Exe()
 	}
 }
 
-func StopAt(sesh *Session, ix int) {
-	for _, h := range sesh.Object {
-		for _, vh := range h.VHosts {
-			if ix == 0 {
-				vh.Running = false
-				return
-			}
-			ix--
+func groupsToIndices(groups []string) []int {
+	var result []int
+	ix := 0
+	for _, g := range groups {
+		size, ignore := toGroupSize(g)
+		if ignore {
+			ix += size
+			continue
 		}
+
+		for k := 0; k < size; k++ {
+			result = append(result, ix+k)
+		}
+		ix += size
 	}
+
+	return result
 }
 
-func StartAt(sesh *Session, ix int) {
-	for _, h := range sesh.Object {
-		for _, vh := range h.VHosts {
-			if ix == 0 {
-				vh.Running = true
-				return
-			}
-			ix--
-		}
+func toGroupSize(g string) (int, bool) {
+	ignore := strings.HasPrefix(g, ".")
+	if ignore {
+		g = g[1:]
 	}
+	n, ok := strconv.Atoi(g)
+	if ok != nil {
+		//TODO(wieger): error handling
+	}
+	return n, ignore
 }

@@ -61,7 +61,7 @@ scenarios:
 
       script:
       - t0: kill <P>     # waits for alive to suspect or faulty
-      - t1: sleep 10s     # waits 5 seconds to be sure that all nodes are faulty
+      - t1: sleep 30s     # waits 5 seconds to be sure that all nodes are faulty
       - t2: start <P>
 
       measure:

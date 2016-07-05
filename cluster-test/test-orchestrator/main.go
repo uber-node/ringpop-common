@@ -57,53 +57,58 @@ func main() {
 		return
 	}
 
-	sesh := initCluster()
+	vc := initCluster()
 
 	_ = os.Mkdir("stats", 0777)
 	for i, scn := range scns {
 		si, scanner := initIngester(fmt.Sprintf("stats/%s-%d.stats", scn.Name, i))
-		run(scn, sesh, si)
+		run(scn, vc, si)
 		scanner.Close()
 		scn.MeasureAndReport(fmt.Sprintf("stats/%s-%d.stats", scn.Name, i))
 	}
 }
 
-func run(s *Scenario, sesh *Session, si *StatIngester) {
+func run(s *Scenario, vc *VCClient, si *StatIngester) {
 
 	fmt.Println("NAME:", s.Name)
 	fmt.Println("DESC:", s.Desc)
 	fmt.Println("-", "bootstrap")
-	bootstrap(s, sesh, si)
+	bootstrap(s, vc, si)
 	for _, cmd := range s.Script {
 		fmt.Println("-", cmd.String())
 		si.InsertLabel(cmd.Label, cmd.String())
-		cmd.Run(sesh)
+		cmd.Run(vc)
 		if cmd.Cmd != "sleep" {
-			si.WaitForStable(sesh.StartedHosts())
+			si.WaitForStable(vc.StartedHosts())
 		}
 	}
 	fmt.Println()
 }
 
-func bootstrap(s *Scenario, sesh *Session, si *StatIngester) {
-	sesh.StopAll()
-	sesh.Apply()
-	sesh.Start(s.Size)
-	// TODO(wieger): check size
-	sesh.Apply()
-	si.WaitForStable(sesh.StartedHosts())
+func bootstrap(s *Scenario, vc *VCClient, si *StatIngester) {
+	//TODO(wieger) size check
+	vc.Running = make([]bool, s.Size)
+	vc.Exe()
+
+	for i := range vc.Running {
+		vc.Running[i] = true
+	}
+	vc.Exe()
+
+	si.WaitForStable(vc.StartedHosts())
 }
 
-func initCluster() *Session {
-	sesh, err := NewSession(*vcBin, nil)
-	fatalWhen(err)
+func initCluster() *VCClient {
+	vc := NewVCClient(*vcBin, "./testpop", []*VHost{{"146.185.179.50", 10}, {"146.185.159.202", 10}, {"146.185.176.109", 10}})
+	// vc := NewVCClient(*vcBin, "./testpop", []*VHost{ /*{"localhost", 40},*/ {"wieger1", 20}, {"wieger2", 20}})
 
-	// TODO(wieger): uncomment
+	// TODO(wieger): error handling
 	if *prepare {
-		sesh.Prepare()
+		vc.Reset()
+		vc.Prep()
 	}
 
-	return sesh
+	return vc
 }
 
 func initIngester(file string) (*StatIngester, *UDPScanner) {
