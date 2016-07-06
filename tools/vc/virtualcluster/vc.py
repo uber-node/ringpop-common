@@ -161,7 +161,8 @@ def prep(make_client, network, hosts, ips, skip_install=False):
             peers=host_ips - set([get_net_ip(host)])
         )
         if not skip_install:
-            client.run('sudo -n -- apt-get update && apt-get -y install openvswitch-switch')
+            client.run('sudo -n -- apt-get update')
+            client.run('sudo -n -- apt-get -y install openvswitch-switch')
         client.run(script)
         ip_address += 256
 
