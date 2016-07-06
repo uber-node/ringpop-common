@@ -32,7 +32,7 @@ class LocalClient:
                 print('\t%s' % line)
         output = None
         if not self.dryrun or (self.dryrun and not side_effects):
-            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable='/bin/bash')
             err = p.stderr.read().decode('unicode_escape')
             if err:
                 print(err)
