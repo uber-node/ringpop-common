@@ -170,7 +170,7 @@ def prep(make_client, network, hosts, ips, skip_install=False):
 reset_script = r"""
 for NS in `ip netns | grep -P "vc_ns\d+"`; do
     export NS
-    sudo -En -- bash -c 'find -L /proc/[1-9]*/ns/net -samefile /run/netns/$NS | cut -d/ -f3 | xargs kill -9'
+    sudo -En -- bash -c 'find -L /proc/[1-9]*/ns/net -samefile /run/netns/$NS | cut -d/ -f3 | xargs kill -s 9 2>/dev/null'
     sudo -n -- ip netns del $NS
 done
 sudo -n -- ovs-vsctl del-br vc_bridge
@@ -209,7 +209,7 @@ chmod +x {{binpath}}
 exe_template = """
 for NS in `comm -23 <(ip netns list | grep -P "vc_ns\d+" | sort) <(echo vc_ns{{indexlist}} | xargs -n 1 echo | sort) | sort -V`; do
     export NS
-    sudo -En -- bash -c 'comm -12 <(pgrep -f {{procname}}) <(find -L /proc/[1-9]*/ns/net -samefile /run/netns/$NS | cut -d/ -f3) | xargs kill -9'
+    sudo -En -- bash -c 'comm -12 <(pgrep -f {{procname}}) <(find -L /proc/[1-9]*/ns/net -samefile /run/netns/$NS | cut -d/ -f3) | xargs kill -s 9 2>/dev/null'
 done
 IP_PREFIX=`ip -o -4 addr show | grep vc_bridge | awk '{print $4}' | cut -d\. -f1,2,3`
 for NS in `comm -12 <(ip netns list | sort) <(echo vc_ns{{indexlist}} | xargs -n 1 echo | sort) | sort -V`; do
