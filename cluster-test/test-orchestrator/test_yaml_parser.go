@@ -34,7 +34,7 @@ import (
 
 // testYaml is used to unmarshal test declared in the yaml files.
 type testYaml struct {
-	Cluster   []*VHost
+	Hosts     []*Host
 	Scenarios []*scenarioYaml
 }
 
@@ -49,7 +49,7 @@ type scenarioYaml struct {
 	Runs    [][]string
 }
 
-func parse(bts []byte) (scns []*Scenario, err error) {
+func parse(bts []byte) (hosts []*Host, scns []*Scenario, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			scns = nil
@@ -57,17 +57,15 @@ func parse(bts []byte) (scns []*Scenario, err error) {
 		}
 	}()
 
-	return parseScenarios(bts), nil
-}
-
-func parseScenarios(bts []byte) []*Scenario {
 	testYaml := &testYaml{}
-	err := yaml.Unmarshal([]byte(bts), testYaml)
+	err = yaml.Unmarshal([]byte(bts), testYaml)
 	if err != nil {
-		panic("failed to unmarshal scenario yaml")
+		panic("failed to unmarshal test yaml: " + err.Error())
 	}
 
-	return extractScenarios(testYaml)
+	hosts = testYaml.Hosts
+	scns = extractScenarios(testYaml)
+	return hosts, scns, nil
 }
 
 // extractScenarios returns a scenario for every element in the runs list.

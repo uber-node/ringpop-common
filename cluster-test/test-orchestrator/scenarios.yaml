@@ -1,3 +1,11 @@
+hosts:
+  - name: 146.185.179.50
+    cap: 10
+  - name: 146.185.159.202
+    cap: 10
+  - name: 146.185.176.109
+    cap: 10
+
 scenarios:
 
     # Scenario 1
@@ -11,7 +19,7 @@ scenarios:
 
       measure:
       # Use ".. .." to indicate from start to end simulation
-      - .. .. convtime in (200ms,10s)
+      - .. .. convtime in (200ms,20s)
       - .. .. checksums is 1
       - .. .. count full-sync is 0
       - .. .. count membership-set.alive

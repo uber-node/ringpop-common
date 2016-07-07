@@ -11,21 +11,21 @@ import (
 
 type VCClient struct {
 	Running     []bool
-	VHosts      []*VHost
+	Hosts       []*Host
 	TestpopPath string
 	VCPath      string
 }
 
-type VHost struct {
+type Host struct {
 	Name string
 	Cap  int
 }
 
-func NewVCClient(vcPath, testpopPath string, vhosts []*VHost) *VCClient {
+func NewVCClient(vcPath, testpopPath string, hosts []*Host) *VCClient {
 	return &VCClient{
 		VCPath:      vcPath,
 		TestpopPath: testpopPath,
-		VHosts:      vhosts,
+		Hosts:       hosts,
 	}
 }
 
@@ -39,8 +39,8 @@ func (vc *VCClient) StopRunning(ix int) {
 
 func (vc *VCClient) Reset() error {
 	args := []string{"reset" /*TODO(wieger):, "-i", "250"*/}
-	for _, vh := range vc.VHosts {
-		args = append(args, "-H"+vh.Name)
+	for _, host := range vc.Hosts {
+		args = append(args, "-H"+host.Name)
 	}
 
 	// fmt.Println("CMD:", vc.VCPath, args)
@@ -51,8 +51,8 @@ func (vc *VCClient) Reset() error {
 
 func (vc *VCClient) Prep() error {
 	args := []string{"prep" /*TODO(wieger):, "-i", "250"*/}
-	for _, vh := range vc.VHosts {
-		args = append(args, "-H"+vh.Name)
+	for _, host := range vc.Hosts {
+		args = append(args, "-H"+host.Name)
 	}
 
 	// fmt.Println("CMD:", vc.VCPath, args)
@@ -63,11 +63,11 @@ func (vc *VCClient) Prep() error {
 
 func (vc *VCClient) Exe() error {
 	args := []string{"exe"}
-	for _, vh := range vc.VHosts {
-		args = append(args, "-H"+vh.Name)
+	for _, host := range vc.Hosts {
+		args = append(args, "-H"+host.Name)
 	}
 
-	groups, err := runningGroups(vc.VHosts, vc.Running)
+	groups, err := runningGroups(vc.Hosts, vc.Running)
 	if err != nil {
 		return errors.Wrap(err, "in exe")
 	}
@@ -99,7 +99,7 @@ func (vc *VCClient) StartedHosts() []string {
 
 		result = append(result, fmt.Sprintf("10.10.%d.%d:3000", i, j+1))
 		j++
-		if j == vc.VHosts[i].Cap {
+		if j == vc.Hosts[i].Cap {
 			j = 0
 			i++
 		}
@@ -108,7 +108,7 @@ func (vc *VCClient) StartedHosts() []string {
 	return result
 }
 
-func runningGroups(vhosts []*VHost, running []bool) ([]string, error) {
+func runningGroups(hosts []*Host, running []bool) ([]string, error) {
 	// group by consecutive running nodes storing their start and end indices.
 	var groupStart, groupEnd []int
 	for i := range running {
@@ -131,7 +131,7 @@ func runningGroups(vhosts []*VHost, running []bool) ([]string, error) {
 		start := groupStart[i]
 		size := groupEnd[i] - groupStart[i]
 
-		slices, err := hostSlices(vhosts, start, size)
+		slices, err := hostSlices(hosts, start, size)
 		if err != nil {
 			//TODO(wieger)
 		}
@@ -141,35 +141,35 @@ func runningGroups(vhosts []*VHost, running []bool) ([]string, error) {
 	return result, nil
 }
 
-// func virtualClusterGroup(vhosts []*VHost, skip int, groupSize int) (string, error) {
-// 	group, err := getHostSlices(vhosts, skip, groupSize)
+// func virtualClusterGroup(hosts []*Host, skip int, groupSize int) (string, error) {
+// 	group, err := getHostSlices(hosts, skip, groupSize)
 // 	if err != nil {
 // 		return "", err
 // 	}
 // 	return fmt.Sprintf("-g%s", group), nil
 // }
 
-func hostSlices(vhosts []*VHost, skip int, groupSize int) ([]string, error) {
-	if len(vhosts) == 0 {
+func hostSlices(hosts []*Host, skip int, groupSize int) ([]string, error) {
+	if len(hosts) == 0 {
 		return nil, errors.New("session out of capacity")
 	}
 
-	if vhosts[0].Cap <= skip {
-		return hostSlices(vhosts[1:], skip-vhosts[0].Cap, groupSize)
+	if hosts[0].Cap <= skip {
+		return hostSlices(hosts[1:], skip-hosts[0].Cap, groupSize)
 	}
 
 	startIx := skip
 	endIx := skip + groupSize
-	if endIx > vhosts[0].Cap {
-		endIx = vhosts[0].Cap
+	if endIx > hosts[0].Cap {
+		endIx = hosts[0].Cap
 	}
 
-	slice := fmt.Sprintf("%s[%d:%d]", vhosts[0].Name, startIx, endIx)
+	slice := fmt.Sprintf("%s[%d:%d]", hosts[0].Name, startIx, endIx)
 	if groupSize <= endIx-startIx {
 		return []string{slice}, nil
 	}
 
-	rest, err := hostSlices(vhosts[1:], 0, groupSize-(endIx-startIx))
+	rest, err := hostSlices(hosts[1:], 0, groupSize-(endIx-startIx))
 	if err != nil {
 		return nil, err
 	}

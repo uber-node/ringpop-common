@@ -47,7 +47,7 @@ func main() {
 	scenariosYaml, err := ioutil.ReadFile(*testFile)
 	fatalWhen(err)
 
-	scns, err := parse(scenariosYaml)
+	hosts, scns, err := parse(scenariosYaml)
 	fatalWhen(err)
 
 	if *onlyMeasure {
@@ -57,7 +57,7 @@ func main() {
 		return
 	}
 
-	vc := initCluster()
+	vc := initCluster(hosts)
 
 	_ = os.Mkdir("stats", 0777)
 	for i, scn := range scns {
@@ -98,14 +98,13 @@ func bootstrap(s *Scenario, vc *VCClient, si *StatIngester) {
 	si.WaitForStable(vc.StartedHosts())
 }
 
-func initCluster() *VCClient {
-	vc := NewVCClient(*vcBin, "./testpop", []*VHost{{"146.185.179.50", 10}, {"146.185.159.202", 10}, {"146.185.176.109", 10}})
-	// vc := NewVCClient(*vcBin, "./testpop", []*VHost{ /*{"localhost", 40},*/ {"wieger1", 20}, {"wieger2", 20}})
+func initCluster(hosts []*Host) *VCClient {
+	vc := NewVCClient(*vcBin, "./testpop", hosts)
 
 	// TODO(wieger): error handling
 	if *prepare {
-		vc.Reset()
-		vc.Prep()
+		_ = vc.Reset()
+		_ = vc.Prep()
 	}
 
 	return vc
