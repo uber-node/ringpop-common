@@ -76,9 +76,9 @@ func (vc *VCClient) Exe() error {
 		args = append(args, strings.Join(groups, ","))
 	}
 
-	args = append(args, "--", vc.TestpopPath, "--stats-udp=10.10.1.254:3300")
+	args = append(args, "--", vc.TestpopPath, "--stats-udp=10.10.0.254:3300")
 
-	// fmt.Println("CMD:", vc.VCPath, args)
+	fmt.Println("CMD:", vc.VCPath, args)
 	cmd := exec.Command(vc.VCPath, args...)
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
@@ -88,20 +88,22 @@ func (vc *VCClient) SwitchBinaries(path string) {
 	vc.TestpopPath = path
 }
 
-func (vc *VCClient) StartedHosts() []string {
+func startedHosts(hosts []*Host, running []bool) []string {
 	var result []string
 
 	i, j := 0, 0
-	for _, running := range vc.Running {
-		if !running {
-			continue
+	for _, r := range running {
+		if r {
+			result = append(result, fmt.Sprintf("10.10.%d.%d:3000", i, j+1))
 		}
 
-		result = append(result, fmt.Sprintf("10.10.%d.%d:3000", i, j+1))
 		j++
-		if j == vc.Hosts[i].Cap {
+		for j == hosts[i].Cap {
 			j = 0
 			i++
+			if i == len(hosts) {
+				return result
+			}
 		}
 	}
 

@@ -96,19 +96,7 @@ func (cmd Command) Run(vc *VCClient) {
 }
 
 func rollingRestart(vc *VCClient, batchSize int, T time.Duration) {
-	var rng []int
-	for i := range vc.Running {
-		rng = append(rng, i)
-	}
-
-	var batches [][]int
-	for i := 0; i < len(vc.Running); i += batchSize {
-		j := len(vc.Running) + batchSize
-		if j > len(vc.Running) {
-			j = len(vc.Running)
-		}
-		batches = append(batches, rng[i:j])
-	}
+	batches := getBatches(len(vc.Running), batchSize)
 
 	for _, batch := range batches {
 		for _, ix := range batch {
@@ -124,6 +112,23 @@ func rollingRestart(vc *VCClient, batchSize int, T time.Duration) {
 		}
 		vc.Exe()
 	}
+}
+
+func getBatches(n int, size int) [][]int {
+	var rng []int
+	for i := 0; i < n; i++ {
+		rng = append(rng, i)
+	}
+
+	var batches [][]int
+	for i := 0; i < n; i += size {
+		j := i + size
+		if j > n {
+			j = n
+		}
+		batches = append(batches, rng[i:j])
+	}
+	return batches
 }
 
 func groupsToIndices(groups []string) []int {

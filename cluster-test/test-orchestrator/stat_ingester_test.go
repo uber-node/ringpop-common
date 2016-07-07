@@ -36,11 +36,13 @@ func ExampleWaitForStable() {
 	si := NewStatIngester(nopWriter{})
 	scanner := bufio.NewScanner(strings.NewReader(stats2))
 	si.IngestStats(scanner)
-	si.WaitForStable(
+	err := si.WaitForStable(
 		[]string{"172.18.24.220:3000", "172.18.24.220:3001"},
 	)
+	fmt.Println(err)
 
 	// Output:
+	// <nil>
 }
 
 var stats2 = `

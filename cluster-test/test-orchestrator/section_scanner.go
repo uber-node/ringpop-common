@@ -27,7 +27,7 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -82,7 +82,7 @@ func NewSectionScanner(scanner Scanner, start, end string) (*SectionScanner, err
 		}
 	}
 
-	return nil, errors.New("section start not found, " + s.Start)
+	return nil, fmt.Errorf("section start %s not found", s.Start)
 }
 
 // Scan progresses performs one scan on the wrapped Scanner. Returns whether

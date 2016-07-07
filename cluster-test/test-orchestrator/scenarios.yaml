@@ -1,110 +1,99 @@
 hosts:
-  - name: 146.185.179.50
-    cap: 10
   - name: 146.185.159.202
     cap: 10
   - name: 146.185.176.109
+    cap: 10
+  - name: 146.185.179.50
     cap: 10
 
 scenarios:
 
     # Scenario 1
-    - name: bootstrap
-      size: <N>
-      desc: startup <N> nodes at the same time and wait for bootstrap
+    # - name: bootstrap
+    #   size: <N>
+    #   desc: startup <N> nodes at the same time and wait for bootstrap
+    #   script:
+    #   # on the start of every script the nodes will be bootstrapped,
+    #   # therefore, we can leave the script empty  for this scenario.
+    #   measure:
+    #   # Use ".. .." to indicate from start to end simulation
+    #   - .. .. convtime in (200ms,20s)
+    #   - .. .. checksums is 1
+    #   - .. .. count full-sync is 0
+    #   - .. .. count membership-set.alive
+    #   runs:
+    #   - [<N>]
+    #   - [10 ]
+    #   - [20 ]
+    #   - [30 ]
 
-      script:
-      # on the start of every script the nodes will be bootstrapped,
-      # therefore, we can leave the script empty  for this scenario.
+    # # Scenario 2
+    # - name: kill one node
+    #   size: <N>
+    #   desc: Kill one node in a cluster of <N> nodes.
+    #   script:
+    #   - t0: kill 1
+    #   - t1: wait-for-stable
+    #   - t2: start 1
+    #   measure:
+    #   - t0 t1 convtime in (200ms,3s)
+    #   - t0 t1 checksums is 1
+    #   - t0 t1 count membership-set.suspect is <N>-1
 
-      measure:
-      # Use ".. .." to indicate from start to end simulation
-      - .. .. convtime in (200ms,20s)
-      - .. .. checksums is 1
-      - .. .. count full-sync is 0
-      - .. .. count membership-set.alive
+    #   - t1 t2 convtime in (200ms,3s)
+    #   - t1 t2 checksums is 1
+    #   - t1 t2 count membership-set.faulty is <N>-1
 
-      runs:
-      - [<N>]
-      - [10 ]
-      - [20 ]
-      - [30 ]
+    #   - t2 .. convtime in (200ms,6s)
+    #   - t2 .. checksums is 1
+    #   - t2 .. count membership-set.alive is <N> + <N>-1
 
-    # Scenario 2
-    - name: kill one node
-      size: <N>
-      desc: Kill one node in a cluster of <N> nodes.
-
-      script:
-      - t0: kill 1
-      - t1: wait-for-stable
-      - t2: start 1
-
-      measure:
-      - t0 t1 convtime in (200ms,3s)
-      - t0 t1 checksums is 1
-      - t0 t1 count membership-set.suspect is <N>-1
-
-      - t1 t2 convtime in (200ms,3s)
-      - t1 t2 checksums is 1
-      - t1 t2 count membership-set.faulty is <N>-1
-
-      - t2 .. convtime in (200ms,6s)
-      - t2 .. checksums is 1
-      - t2 .. count membership-set.alive is <N> + <N>-1
-
-      - .. .. count full-sync is 0
-
-      runs:
-      - [<N>]
-      - [10 ]
-      - [20 ]
-      - [30 ]
+    #   - .. .. count full-sync is 0
+    #   runs:
+    #   - [<N>]
+    #   - [10 ]
+    #   - [20 ]
+    #   - [30 ]
 
 
-    # Scenario 3
-    - name: kill and revive
-      size: <N>
-      desc: kill and revive <P> nodes of a <N>-node cluster
+    # # Scenario 3
+    # - name: kill and revive
+    #   size: <N>
+    #   desc: kill and revive <P> nodes of a <N>-node cluster
+    #   script:
+    #   - t0: kill <P>  # waits for alive to suspect or faulty
+    #   - t1: sleep 10s # waits 10 seconds to be sure that all nodes are faulty
+    #   - t2: start <P>
+    #   measure:
+    #   - t0 t2 count ping-req.send in (1,123)
+    #   - t0 t2 count membership-set.suspect is <P>*(<N>-<P>)
+    #   - t0 t2 count membership-set.faulty is <P>*(<N>-<P>)
+    #   - t0 t2 convtime in (200ms,10s)
 
-      script:
-      - t0: kill <P>     # waits for alive to suspect or faulty
-      - t1: sleep 30s     # waits 5 seconds to be sure that all nodes are faulty
-      - t2: start <P>
+    #   - t2 .. convtime in (200ms,3s)
+    #   - t2 .. count membership-set.alive is <P>*<N> + (<N>-<P>)*<P>
 
-      measure:
-      - t0 t2 count ping-req.send in (1,123)
-      - t0 t2 count membership-set.suspect is <P>*(<N>-<P>)
-      - t0 t2 count membership-set.faulty is <P>*(<N>-<P>)
-      - t0 t2 convtime in (200ms,10s)
-
-      - t2 .. convtime in (200ms,3s)
-      - t2 .. count membership-set.alive is <P>*<N> + (<N>-<P>)*<P>
-
-      - t0 .. count full-sync is 0
-      - t0 .. count ring.changed is 0
-
-      runs:
-      - [<N>, <P>]
-      - [30, 3] #10%
-      - [30, 10] #30%
-      - [30, 15] #50%
+    #   - t0 .. count full-sync is 0
+    #   - t0 .. count server.removed is <P>*(<N>-<P>)
+    #   - t0 .. count server.added is <P>*<N> + (<N>-<P>)*<P>
+    #   runs:
+    #   - [<N>, <P>]
+    #   - [30, 3] #10%
+    #   - [30, 10] #30%
+    #   - [30, 15] #50%
 
 
     # Scenario 4
     - name: rolling restart
       size: <N>
       desc: Do a rolling restart in a cluster <N> nodes.
-
       script:
       - t0: rolling-restart <B> <T>
-
       measure:
       - t0 .. count server.removed is <FAULTIES>
       - t0 .. count membership-set.faulty is <FAULTIES>
       - t0 .. checksums is 1
-
       runs:
       - [<N>, <B>, <T>, <FAULTIES>]
-      - [ 10,   2,  3s, 0]
+      - [ 10,   2,  0s, 0]
       - [ 10,   2,  6s, 90]

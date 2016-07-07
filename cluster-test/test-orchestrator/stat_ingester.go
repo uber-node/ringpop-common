@@ -59,6 +59,8 @@ type StatIngester struct {
 	// failure condition we throw at the cluster has taken effect before we
 	// move onto the next failure condition.
 	wasUnstable bool
+
+	statsReceived int
 }
 
 // NewStatIngester creates a new StatIngester
@@ -72,16 +74,29 @@ func NewStatIngester(w io.Writer) *StatIngester {
 // WaitForStable blocks and waits until the cluster has reached a stable state.
 // waits for the cluster to first become unstable if it isn't already, and then
 // blocks until the cluster has reached a stable state again.
-func (si *StatIngester) WaitForStable(hosts []string) {
+func (si *StatIngester) WaitForStable(hosts []string) error {
 	// wait for cluster to become unstable
+	t := time.Now()
 	for !si.wasUnstable {
 		time.Sleep(200 * time.Millisecond)
+		if time.Since(t) > time.Second*15 {
+			return fmt.Errorf(
+				"didn't become unstable after 15 seconds;%d stats received; emptyNodes %v",
+				si.statsReceived, si.emptyNodes)
+		}
 	}
 	// wait for cluster to become stable
+	t = time.Now()
 	for !si.IsClusterStable(hosts) {
 		time.Sleep(200 * time.Millisecond)
+		if time.Since(t) > time.Second*30 {
+			return fmt.Errorf(
+				"didn't become stable after 30 seconds;%d stats received; emptyNodes %v",
+				si.statsReceived, si.emptyNodes)
+		}
 	}
-	si.wasUnstable = false
+
+	return nil
 }
 
 // IsClusterStable indicates, judging from the processed stats, whether the
@@ -105,6 +120,7 @@ func (si *StatIngester) IsClusterStable(hosts []string) bool {
 // stats are analyzed to determine cluster-stability and written to a file.
 func (si *StatIngester) IngestStats(s Scanner) error {
 	for s.Scan() {
+		si.statsReceived++
 		withTime := fmt.Sprintf("%s|%s", time.Now().UTC().Format(time.RFC3339Nano), s.Text())
 
 		// handle stat for cluster stability analysis
@@ -147,8 +163,7 @@ func (si *StatIngester) handleStat(str string) error {
 	// lookup hostport
 	hostport, ok := getBetween(str, "ringpop.", ".")
 	if !ok {
-		msg := fmt.Sprintf("no hostport found in stat \"%s\"", str)
-		return errors.New(msg)
+		return fmt.Errorf("no hostport found in stat \"%s\"", str)
 	}
 
 	if !empty {

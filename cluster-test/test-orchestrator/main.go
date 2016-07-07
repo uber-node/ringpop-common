@@ -39,6 +39,8 @@ var vcBin = flag.String("vc", "./vc", "Path to virtual-cluster binary")
 var prepare = flag.Bool("prepare", false, "Prepare the virtual cluster")
 
 func main() {
+	failed := false
+
 	flag.Parse()
 
 	if *testFile == "" {
@@ -62,30 +64,51 @@ func main() {
 	_ = os.Mkdir("stats", 0777)
 	for i, scn := range scns {
 		si, scanner := initIngester(fmt.Sprintf("stats/%s-%d.stats", scn.Name, i))
-		run(scn, vc, si)
+		err := run(scn, vc, si)
 		scanner.Close()
-		scn.MeasureAndReport(fmt.Sprintf("stats/%s-%d.stats", scn.Name, i))
+		if err != nil {
+			fmt.Println(err)
+			failed = true
+		}
+
+		ok := scn.MeasureAndReport(fmt.Sprintf("stats/%s-%d.stats", scn.Name, i))
+		if !ok {
+			failed = true
+		}
+	}
+
+	if failed {
+		os.Exit(1)
 	}
 }
 
-func run(s *Scenario, vc *VCClient, si *StatIngester) {
-
+func run(s *Scenario, vc *VCClient, si *StatIngester) error {
 	fmt.Println("NAME:", s.Name)
 	fmt.Println("DESC:", s.Desc)
+	fmt.Println("SIZE:", s.Size)
+
 	fmt.Println("-", "bootstrap")
-	bootstrap(s, vc, si)
+	err := bootstrap(s, vc, si)
+	if err != nil {
+		return err
+	}
+
 	for _, cmd := range s.Script {
 		fmt.Println("-", cmd.String())
 		si.InsertLabel(cmd.Label, cmd.String())
 		cmd.Run(vc)
 		if cmd.Cmd != "sleep" {
-			si.WaitForStable(vc.StartedHosts())
+			err := si.WaitForStable(startedHosts(vc.Hosts, vc.Running))
+			if err != nil {
+				return errors.Wrapf(err, "in run cmd %s", cmd.Cmd)
+			}
 		}
 	}
 	fmt.Println()
+	return nil
 }
 
-func bootstrap(s *Scenario, vc *VCClient, si *StatIngester) {
+func bootstrap(s *Scenario, vc *VCClient, si *StatIngester) error {
 	//TODO(wieger) size check
 	vc.Running = make([]bool, s.Size)
 	vc.Exe()
@@ -95,7 +118,11 @@ func bootstrap(s *Scenario, vc *VCClient, si *StatIngester) {
 	}
 	vc.Exe()
 
-	si.WaitForStable(vc.StartedHosts())
+	err := si.WaitForStable(startedHosts(vc.Hosts, vc.Running))
+	if err != nil {
+		return errors.Wrap(err, "in bootstrap")
+	}
+	return nil
 }
 
 func initCluster(hosts []*Host) *VCClient {
@@ -131,16 +158,6 @@ func fatalWhen(err error) {
 	}
 }
 
-// tickcluster spins up a tickcluster in the background.
-// func tickcluster() *exec.Cmd {
-// 	return exec.Command(
-// 		"/Users/wiegersteggerda/code/ringpop-common/tools/tick-cluster.js",
-// 		"/Users/wiegersteggerda/go/src/github.com/uber/ringpop-go/scripts/testpop/testpop",
-// 		"-n", "10",
-// 		"--stats-udp=127.0.0.1:3300",
-// 	)
-// }
-
 // MeasureAndReport runs the measurements of the scenario on a file containing
 // the stats that the cluster has emitted. The results are reported to the
 // stdout. The function returns whether all the assertions in the measurements
@@ -161,7 +178,8 @@ func (s *Scenario) MeasureAndReport(file string) bool {
 		r, err := m.Measure(scanner)
 		if err != nil {
 			err := errors.Wrapf(err, "failed to measure %s on scenario %s", m, s.Name)
-			log.Fatalf(err.Error())
+			fmt.Println(err)
+			return false
 		}
 
 		green := "\033[0;32m"
