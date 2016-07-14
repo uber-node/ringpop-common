@@ -203,21 +203,21 @@ for NS in `comm -12 <(ip netns list | sort) <(echo vc_ns{{indexlist}} | xargs -n
 done
 """
 hosts_template = """
-echo '{{hosts}}' > {{binpath}}.hosts.json
+echo '{{hosts}}' > /tmp/vchosts.json
 chmod +x {{binpath}}
 """
 exe_template = """
 for NS in `comm -23 <(ip netns list | grep -P "vc_ns\d+" | sort) <(echo vc_ns{{indexlist}} | xargs -n 1 echo | sort) | sort -V`; do
     export NS
-    sudo -En -- bash -c 'comm -12 <(pgrep -f {{procname}}) <(find -L /proc/[1-9]*/ns/net -samefile /run/netns/$NS | cut -d/ -f3) | xargs kill -s 9 2>/dev/null'
+    sudo -En -- bash -c 'find -L /proc/[1-9]*/ns/net -samefile /run/netns/$NS | cut -d/ -f3 | xargs kill -s 9 2>/dev/null'
 done
 IP_PREFIX=`ip -o -4 addr show | grep vc_bridge | awk '{print $4}' | cut -d\. -f1,2,3`
 for NS in `comm -12 <(ip netns list | sort) <(echo vc_ns{{indexlist}} | xargs -n 1 echo | sort) | sort -V`; do
     export NS
-    MATCHES=$(sudo -En -- bash -c 'comm -12 <(pgrep -f {{procname}}) <(find -L /proc/[1-9]*/ns/net -samefile /run/netns/$NS | cut -d/ -f3) | wc -l')
+    MATCHES=$(sudo -En -- bash -c 'find -L /proc/[1-9]*/ns/net -samefile /run/netns/$NS | wc -l')
     if [ $MATCHES -eq 0 ]; then
         IP=$IP_PREFIX.`echo $NS | cut -c6-`
-        sudo -n -- ip netns exec $NS nohup {{binpath}} {{args}} -hosts {{binpath}}.hosts.json --listen $IP:3000 > /tmp/$IP.out 2> /tmp/$IP.err < /dev/null &
+        sudo -n -- ip netns exec $NS nohup {{binpath}} {{args}} -hosts /tmp/vchosts.json --listen $IP:3000 > /tmp/$IP.out 2> /tmp/$IP.err < /dev/null &
     fi
 done
 """
