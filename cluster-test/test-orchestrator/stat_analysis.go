@@ -63,14 +63,14 @@ func CountAnalysis(s Scanner, stat string) (int, error) {
 
 // ChecksumsAnalysis counts the number of unique checksums among nodes after
 // scanning all the stats in the scanner.
-func ChecksumsAnalysis(s Scanner) (int, error) {
+func ChecksumsAnalysis(s Scanner, containsRing bool) (int, error) {
 	m := make(map[string]string)
 	for s.Scan() {
 		line := s.Text()
 		ix := strings.Index(line, membershipChecksumPath)
 
-		// filter out everything that is not a membership checksum
-		if ix == -1 || strings.Contains(line, "ring.checksum") {
+		// filter out everything that is not a membership/ring checksum
+		if ix == -1 || containsRing != strings.Contains(line, "ring.checksum") {
 			continue
 		}
 
@@ -93,6 +93,7 @@ func ChecksumsAnalysis(s Scanner) (int, error) {
 		return 0, errors.Wrap(s.Err(), "checksums analysis\n")
 	}
 
+	fmt.Println(m)
 	return uniq(m), nil
 }
 

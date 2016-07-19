@@ -78,7 +78,7 @@ func (vc *VCClient) Exe() error {
 
 	args = append(args, "--", vc.TestpopPath, "--stats-udp=10.10.0.254:3300")
 
-	fmt.Println("CMD:", vc.VCPath, args)
+	// fmt.Println("CMD:", vc.VCPath, args)
 	cmd := exec.Command(vc.VCPath, args...)
 	cmd.Stderr = os.Stderr
 	return cmd.Run()

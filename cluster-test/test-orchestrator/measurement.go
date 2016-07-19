@@ -80,7 +80,13 @@ func (m *Measurement) Measure(s Scanner) (Value, error) {
 		}
 		return convtime, nil
 	case "checksums":
-		csums, err := ChecksumsAnalysis(s)
+		csums, err := ChecksumsAnalysis(s, false)
+		if err != nil {
+			return nil, errors.Wrapf(err, "measure %s\n", m)
+		}
+		return float64(csums), nil
+	case "ring-checksums":
+		csums, err := ChecksumsAnalysis(s, true)
 		if err != nil {
 			return nil, errors.Wrapf(err, "measure %s\n", m)
 		}

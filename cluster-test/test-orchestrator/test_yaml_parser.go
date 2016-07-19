@@ -21,13 +21,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
 
 	"gopkg.in/yaml.v2"
 )
@@ -72,6 +71,10 @@ func parse(bts []byte) (hosts []*Host, scns []*Scenario, err error) {
 func extractScenarios(runs *testYaml) []*Scenario {
 	var result []*Scenario
 	for _, scenarioData := range runs.Scenarios {
+		if len(scenarioData.Runs) == 0 {
+			extractScenario(scenarioData, 0)
+			continue
+		}
 		for _, vari := range scenarioData.Runs[0] {
 			if vari[0] != '<' || vari[len(vari)-1] != '>' {
 				panic(fmt.Sprintf("variable '%s' not of the form <var>", vari))
@@ -90,8 +93,13 @@ func extractScenarios(runs *testYaml) []*Scenario {
 
 // extractScenario returns a scenario given the index of a specific run.
 func extractScenario(data *scenarioYaml, runIx int) *Scenario {
-	varsData := data.Runs[0]
-	runData := data.Runs[runIx]
+
+	varsData := []string(nil)
+	runData := []string(nil)
+	if runIx != 0 {
+		varsData = data.Runs[0]
+		runData = data.Runs[runIx]
+	}
 	defer wrapPanicf("Failed to parse scenario '%s'", data.Name)
 	defer wrapPanicf("in run %d, [%v] = [%v]", runIx, strings.Join(varsData, ", "), strings.Join(runData, ", "))
 

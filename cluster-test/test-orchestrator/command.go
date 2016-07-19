@@ -81,6 +81,10 @@ func (cmd Command) Run(vc *VCClient) {
 
 		rollingRestart(vc, batchSize, T)
 
+	case "load-binary":
+		binary := cmd.Args[0]
+		vc.SwitchBinaries(binary)
+
 	case "network-drop":
 		// pcnt := Args[len(Args)-1]
 		//TODO(wieger): bounds check
