@@ -142,7 +142,10 @@ test2('ringpop should deterministically pick labels on conflict', getClusterSize
             // these might or might not be accepted depending on the rules to be
             // determined for deterministically picking 1 pair of labels
             dsl.changeStatus(t, tc, 0, 1, {
-                subjectIncNoDelta: +1,
+                // this time it should not increment the incarnation number as
+                // it needs to be gossiped with the same version to see which of
+                // the two states wins.
+                subjectIncNoDelta: 0,
                 status: 'alive',
                 labels: labels2,
             }),
@@ -156,7 +159,7 @@ test2('ringpop should deterministically pick labels on conflict', getClusterSize
                     // copy the winning labels into the placeholder object since
                     // it needs to be passed to the validator function below on
                     // test construction time.
-                    _.extend(winningLabels, memberStatus.labels,{winning:true});
+                    _.extend(winningLabels, memberStatus.labels);
 
                     // to prevent the assertion happening in assert membership
                     // we return true to indicate the 'test' passed.
@@ -173,7 +176,7 @@ test2('ringpop should deterministically pick labels on conflict', getClusterSize
 
             // first send the second pair
             dsl.changeStatus(t, tc, 0, 1, {
-                subjectIncNoDelta: +2,
+                subjectIncNoDelta: +1,
                 status: 'alive',
                 labels: labels2,
             }),
@@ -188,7 +191,7 @@ test2('ringpop should deterministically pick labels on conflict', getClusterSize
 
             // sending the first pair
             dsl.changeStatus(t, tc, 0, 1, {
-                subjectIncNoDelta: +2,
+                subjectIncNoDelta: 0,
                 status: 'alive',
                 labels: labels1,
             }),

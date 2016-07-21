@@ -31,21 +31,32 @@ function generateChecksumString(members) {
         })
         .map(function (member) {
             var address = member.address || (member.host + ':' + member.port);
-            var labelsStr = ''
+
+            var labelChecksum = 0;
 
             if (member.labels) {
-                var keys = Object.keys(member.labels);
-                keys.sort();
-
-                keys.forEach(function (key) {
-                    labelsStr += '-' + key + '-' + member.labels[key];
+                Object.keys(member.labels).forEach(function (key) {
+                    var labelStr = '/' + key + '/' + member.labels[key];
+                    labelChecksum ^= farmhash.fingerprint32(labelStr);
                 });
             }
 
-            return address +
-                    member.status +
-                    member.incarnationNumber +
-                    labelsStr
+            // concat all parts of the checksum string
+            var checksumString = '';
+            checksumString += address;
+            checksumString += member.status;
+            checksumString += member.incarnationNumber;
+
+            if (labelChecksum != 0) {
+                // we only add the label checksum to the string when it is not 0
+                // This guarantees that the change is backwards compatible and
+                // ringpop with label support can correctly synchronize with a
+                // version that has no labels as long as there are no labels set
+                // on ringpop.
+                checksumString += '#labels' + labelChecksum;
+            }
+
+            return checksumString;
         })
         .value()
         .sort()
