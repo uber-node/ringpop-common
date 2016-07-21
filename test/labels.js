@@ -288,6 +288,25 @@ function testLabelOverrideOnStatusChange(firstStatus, secondStatus) {
     );
 };
 
+test2('ringpop doesn\'t reincarnate if it hears the wrong labels that are not preferred', getClusterSizes(2), 20000,
+    prepareCluster(function(t, tc, n) { return [
+        // do not disable node
+        dsl.sendPing(t, tc, 0, {
+            sourceIx: 0,
+            subjectIx: 'sut',
+            status: 'alive',
+            // the hash for these labels is 1613250528 which is higher than 0
+            // since it will not be preferred ringpop will ignore the gossip
+            labels: {
+                "hello": "world"
+            }
+        }),
+        dsl.waitForPingResponse(t, tc, 0, 1, true),
+        // check if piggyback update has no effect on incarnation number
+        dsl.assertStats(t, tc, n+1, 0, 0),
+    ];})
+);
+
 test2('ringpop reincarnates if it hears the wrong labels', getClusterSizes(2), 20000,
     prepareCluster(function(t, tc, n) { return [
         // do not disable node
@@ -304,7 +323,8 @@ test2('ringpop reincarnates if it hears the wrong labels', getClusterSizes(2), 2
             }
         }),
         dsl.waitForPingResponse(t, tc, 0, 1, true),
-        // check if piggyback update has no effect on incarnation number
+        // validate that the piggybacked ping cause the incarnation number to
+        // have increased.
         dsl.assertBumpedIncarnationNumber(t, tc),
         dsl.assertStats(t, tc, n+1, 0, 0),
     ];})
