@@ -288,6 +288,28 @@ function testLabelOverrideOnStatusChange(firstStatus, secondStatus) {
     );
 };
 
+test2('ringpop reincarnates if it hears the wrong labels', getClusterSizes(2), 20000,
+    prepareCluster(function(t, tc, n) { return [
+        // do not disable node
+        dsl.sendPing(t, tc, 0, {
+            sourceIx: 0,
+            subjectIx: 'sut',
+            status: 'alive',
+            // the hash for these labels is -1494888142 which is lower than 0
+            // this causes the node to prefere this set of labels over his own,
+            // which will trigger a reincarnation.
+            labels: {
+                "hello": "world",
+                "foo":   "bar"
+            }
+        }),
+        dsl.waitForPingResponse(t, tc, 0, 1, true),
+        // check if piggyback update has no effect on incarnation number
+        dsl.assertBumpedIncarnationNumber(t, tc),
+        dsl.assertStats(t, tc, n+1, 0, 0),
+    ];})
+);
+
 // begin with alive node
 testLabelOverrideOnStatusChange('alive', 'suspect');
 testLabelOverrideOnStatusChange('alive', 'faulty');
