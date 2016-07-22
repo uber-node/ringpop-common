@@ -93,7 +93,6 @@ func ChecksumsAnalysis(s Scanner, containsRing bool) (int, error) {
 		return 0, errors.Wrap(s.Err(), "checksums analysis\n")
 	}
 
-	fmt.Println(m)
 	return uniq(m), nil
 }
 
