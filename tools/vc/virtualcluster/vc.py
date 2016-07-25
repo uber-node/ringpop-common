@@ -217,7 +217,7 @@ for NS in `comm -12 <(ip netns list | sort) <(echo vc_ns{{indexlist}} | xargs -n
     MATCHES=$(sudo -En -- bash -c 'find -L /proc/[1-9]*/ns/net -samefile /run/netns/$NS | wc -l')
     if [ $MATCHES -eq 0 ]; then
         IP=$IP_PREFIX.`echo $NS | cut -c6-`
-        sudo -n -- ip netns exec $NS nohup {{binpath}} {{args}} -hosts /tmp/vchosts.json --listen $IP:3000 > /tmp/$IP.out 2> /tmp/$IP.err < /dev/null &
+        sudo -n -- ip netns exec $NS nohup {{binpath}} {{args}} --hosts /tmp/vchosts.json --listen $IP:3000 > /tmp/$IP.out 2> /tmp/$IP.err < /dev/null &
     fi
 done
 """
