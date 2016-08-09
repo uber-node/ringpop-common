@@ -313,6 +313,11 @@ function onData(char) {
                 state = 'readnum';
                 process.stdout.write('kill count: ');
                 break;
+            case 'm':
+                func = terminateProc;
+                state = 'readnum';
+                process.stdout.write('terminate count: ');
+                break;
             case 'K':
                 reviveProcs();
                 break;
@@ -493,6 +498,19 @@ function killAllProcs() {
     }
 }
 
+function terminateProc(count) {
+    var processesToKill = _.chain(procs)
+        .filter(function (proc) { return !proc.killed && !proc.suspended; })
+        .sampleSize(+count)
+        .value();
+
+    _.each(processesToKill, function kill(proc) {
+        logMsg(proc.port, color.green('pid ' + proc.pid) + color.red(' randomly selected for termination'));
+        process.kill(proc.proc.pid, 'SIGTERM');
+        proc.killed = Date.now();
+    });
+}
+
 function startCluster() {
     procs = []; // note module scope
     for (var i = 0; i < procsToStart ; i++) {
@@ -527,7 +545,7 @@ function main() {
         stdin.resume();
         stdin.setEncoding('utf8');
         stdin.on('data', onData);
-        logMsg('init', color.red('d: debug flags, g: stop gossip, G: start gossip, j: join, k: kill, K: revive all, l: sleep, p: protocol stats, q: quit, s: cluster stats, t: tick'));
+        logMsg('init', color.red('d: debug flags, g: stop gossip, G: start gossip, j: join, k: kill, m: terminate, K: revive all, l: sleep, p: protocol stats, q: quit, s: cluster stats, t: tick'));
     } catch (e) {
         logMsg('init', 'Unable to open stdin; interactive commands disabled');
     }
@@ -541,6 +559,7 @@ function displayMenu(logFn) {
     logFn('\th\t\tHelp menu');
     logFn('\tj\t\tJoin nodes');
     logFn('\tk <count>\tKill processes');
+    logFn('\tm <count>\Terminae processes');
     logFn('\tK\t\tRevive suspended or killed processes');
     logFn('\tl <count>\tSuspend processes');
     logFn('\tp\t\tPrint out protocol stats');
