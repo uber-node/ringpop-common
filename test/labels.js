@@ -295,10 +295,11 @@ test2('ringpop doesn\'t reincarnate if it hears the wrong labels that are not pr
             sourceIx: 0,
             subjectIx: 'sut',
             status: 'alive',
-            // the hash for these labels is 1613250528 which is higher than 0
+            // the hash for these labels is -1494888142 which is lower than 0
             // since it will not be preferred ringpop will ignore the gossip
             labels: {
-                "hello": "world"
+                "hello": "world",
+                "foo":   "bar"
             }
         }),
         dsl.waitForPingResponse(t, tc, 0, 1, true),
@@ -314,12 +315,11 @@ test2('ringpop reincarnates if it hears the wrong labels', getClusterSizes(2), 2
             sourceIx: 0,
             subjectIx: 'sut',
             status: 'alive',
-            // the hash for these labels is -1494888142 which is lower than 0
+            // the hash for these labels is 1613250528 which is higher than 0
             // this causes the node to prefere this set of labels over his own,
             // which will trigger a reincarnation.
             labels: {
-                "hello": "world",
-                "foo":   "bar"
+                "hello": "world"
             }
         }),
         dsl.waitForPingResponse(t, tc, 0, 1, true),
