@@ -295,11 +295,11 @@ test2('ringpop doesn\'t reincarnate if it hears the wrong labels that are not pr
             sourceIx: 0,
             subjectIx: 'sut',
             status: 'alive',
-            // the hash for these labels is -1494888142 which is lower than 0
+            // the hash for these labels is -1017766696 which is lower than 0
             // since it will not be preferred ringpop will ignore the gossip
             labels: {
                 "hello": "world",
-                "foo":   "bar"
+                "foo":   "baz"
             }
         }),
         dsl.waitForPingResponse(t, tc, 0, 1, true),

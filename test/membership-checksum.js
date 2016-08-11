@@ -36,7 +36,7 @@ function generateChecksumString(members) {
 
             if (member.labels) {
                 Object.keys(member.labels).forEach(function (key) {
-                    var labelStr = '/' + key + '/' + member.labels[key];
+                    var labelStr = key + '=' + member.labels[key];
                     labelChecksum ^= farmhash.fingerprint32(labelStr);
                 });
             }
