@@ -36,8 +36,23 @@ function generateChecksumString(members) {
 
             if (member.labels) {
                 Object.keys(member.labels).forEach(function (key) {
-                    var labelStr = key + '=' + member.labels[key];
-                    labelChecksum ^= farmhash.fingerprint32(labelStr);
+                    var keyBuffer = new Buffer(key);
+                    var valueBuffer = new Buffer(member.labels[key]);
+
+                    var keyLength = new Buffer(4)
+                    keyLength.writeInt32BE(keyBuffer.length, 0)
+
+                    var valueLength = new Buffer(4)
+                    valueLength.writeInt32BE(valueBuffer.length, 0)
+
+                    var labelBuffer = Buffer.concat([
+                        keyLength,
+                        keyBuffer,
+                        valueLength,
+                        valueBuffer
+                    ]);
+
+                    labelChecksum ^= farmhash.fingerprint32(labelBuffer);
                 });
             }
 
