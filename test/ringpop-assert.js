@@ -705,6 +705,21 @@ function enableNode(t, tc, ix, incarnationNumber) {
     return f;
 }
 
+function stopGossip(t, tc) {
+    return [
+        callEndpoint(t, tc, '/admin/gossip/stop'),
+        validateEventBody(t, tc, {
+            type: events.Types.AdminGossipStop,
+            direction: 'response'
+        }, "Wait for AdminGossipStop response", function(response) {
+            return true;
+        }),
+        wait(10), // racecondition if a ping was inbound during stopping
+
+        consumePings(t, tc)
+    ]
+}
+
 function createValidateEvent(t, tc) {
     var Validator = jsonschema.Validator;
     var validator = new Validator();
@@ -916,6 +931,17 @@ function piggyback(tc, opts) {
     return update;
 }
 
+function waitForGracefulShutdown(t, tc) {
+    return function gracefulShutdown(list, cb) {
+        tc.sutProc.on('exit', function onExit(code, signal) {
+            t.equal(code, 0, 'exit code is 0');
+            t.equal(signal, null, 'process exited itself');
+            cb(list);
+        });
+
+        tc.sutProc.kill('SIGTERM');
+    }
+}
 
 module.exports = {
     validate: validate,
@@ -951,6 +977,8 @@ module.exports = {
     disableAllNodes: disableAllNodes,
     disableAllNodesPing: disableAllNodesPing,
     enableNode: enableNode,
+    stopGossip: stopGossip,
+    waitForGracefulShutdown: waitForGracefulShutdown,
 
     changeStatus: changeStatus,
     sendPings: sendPings,

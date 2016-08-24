@@ -303,7 +303,7 @@ TestCoordinator.prototype.shutdown = function shutdown() {
     if(this.adminChannel.topChannel.destroyed === false) {
         this.adminChannel.topChannel.close();
     }
-    this.sutProc.kill();
+    this.sutProc.kill('SIGKILL');
     this.fakeNodes.forEach(function shutdownNode(node) {
         node.shutdown();
     });
