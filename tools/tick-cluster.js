@@ -505,9 +505,17 @@ function terminateProc(count) {
         .value();
 
     _.each(processesToKill, function kill(proc) {
-        logMsg(proc.port, color.green('pid ' + proc.pid) + color.red(' randomly selected for termination'));
-        process.kill(proc.proc.pid, 'SIGTERM');
-        proc.killed = Date.now();
+        logMsg(proc.port, color.green('pid ' + proc.pid) + color.red(' randomly selected for termination'));        
+        var hardKillTimer = setTimeout(function(){
+            logMsg(proc.port, color.green('pid ' + proc.pid) + color.red(' didn\'t terminate in 5 seconds. Hard killing...'));
+            proc.proc.kill('SIGKILL');                        
+        }, 5000);
+        proc.proc.once('exit', function(){            
+            clearTimeout(hardKillTimer);
+            logMsg(proc.port, color.green('pid ' + proc.pid) + color.green(' terminated.'));
+            proc.killed = Date.now();
+        });    
+        proc.proc.kill('SIGTERM');            
     });
 }
 
