@@ -567,9 +567,9 @@ function displayMenu(logFn) {
     logFn('\th\t\tHelp menu');
     logFn('\tj\t\tJoin nodes');
     logFn('\tk <count>\tKill processes');
-    logFn('\tm <count>\tTerminate processes');
     logFn('\tK\t\tRevive suspended or killed processes');
     logFn('\tl <count>\tSuspend processes');
+    logFn('\tm <count>\tTerminate processes');
     logFn('\tp\t\tPrint out protocol stats');
     logFn('\tq\t\tQuit');
     logFn('\ts\t\tPrint out stats');
