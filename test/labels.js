@@ -246,48 +246,6 @@ test2('different labels should be accepted on a higher incarnation number', getC
     })
 );
 
-// since nodes might miss updates on changes they should always accept labels if
-// the status updates, even if these labels differ from the labels that were
-// previously known to the node.
-function testLabelOverrideOnStatusChange(firstStatus, secondStatus) {
-    test2('different labels should be accepted on a state override from ' + firstStatus + ' to ' + secondStatus , getClusterSizes(2), 20000,
-        prepareCluster(function(t, tc, n) {
-
-            // two pairs of labels
-            var labels1 = { "hello": "world" };
-            var labels2 = { "hello": "goodbey" };
-
-            return [
-                // feed the sut with the first pair of labels
-                dsl.changeStatus(t, tc, 0, 1, {
-                    subjectIncNoDelta: +1,
-                    status: firstStatus,
-                    labels: labels1,
-                }),
-                dsl.waitForPingResponse(t, tc, 0, 0, true),
-
-                // assert that the first pair is accepted
-                dsl.assertMembership(t, tc, {
-                    1: { labels: labels1 }
-                }),
-
-                // feed the sut with the second pair of labels
-                dsl.changeStatus(t, tc, 0, 1, {
-                    subjectIncNoDelta: +1,
-                    status: secondStatus,
-                    labels: labels2,
-                }),
-                dsl.waitForPingResponse(t, tc, 0, 0, true),
-
-                // assert that the second pair is accepted
-                dsl.assertMembership(t, tc, {
-                    1: { labels: labels2 }
-                }),
-            ];
-        })
-    );
-};
-
 test2('ringpop doesn\'t reincarnate if it hears the wrong labels that are not preferred', getClusterSizes(2), 20000,
     prepareCluster(function(t, tc, n) { return [
         // do not disable node
@@ -347,3 +305,45 @@ testLabelOverrideOnStatusChange('faulty', 'tombstone');
 
 // begin with leave node
 testLabelOverrideOnStatusChange('leave', 'tombstone');
+
+// since nodes might miss updates on changes they should always accept labels if
+// the status updates, even if these labels differ from the labels that were
+// previously known to the node.
+function testLabelOverrideOnStatusChange(firstStatus, secondStatus) {
+    test2('different labels should be accepted on a state override from ' + firstStatus + ' to ' + secondStatus , getClusterSizes(2), 20000,
+        prepareCluster(function(t, tc, n) {
+
+            // two pairs of labels
+            var labels1 = { "hello": "world" };
+            var labels2 = { "hello": "goodbey" };
+
+            return [
+                // feed the sut with the first pair of labels
+                dsl.changeStatus(t, tc, 0, 1, {
+                    subjectIncNoDelta: +1,
+                    status: firstStatus,
+                    labels: labels1,
+                }),
+                dsl.waitForPingResponse(t, tc, 0, 0, true),
+
+                // assert that the first pair is accepted
+                dsl.assertMembership(t, tc, {
+                    1: { labels: labels1 }
+                }),
+
+                // feed the sut with the second pair of labels
+                dsl.changeStatus(t, tc, 0, 1, {
+                    subjectIncNoDelta: +1,
+                    status: secondStatus,
+                    labels: labels2,
+                }),
+                dsl.waitForPingResponse(t, tc, 0, 0, true),
+
+                // assert that the second pair is accepted
+                dsl.assertMembership(t, tc, {
+                    1: { labels: labels2 }
+                }),
+            ];
+        })
+    );
+};
