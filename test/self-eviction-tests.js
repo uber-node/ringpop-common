@@ -28,10 +28,11 @@ var test2 = require('./test-util').test2;
 
 test2('self eviction changes state to faulty and pings members', getClusterSizes(2), 2000000, prepareCluster(function(t, tc, n) {
     return [
-        // disable pinging from fake nodes
-        dsl.disableAllNodesPing(t, tc),
 
-        // stop gossiping on SUT
+        // disable pinging from fake nodes and stop gossip on the SUT
+        // this is necessary to make sure all the pings assert later on
+        // are sent from the graceful shutdown.
+        dsl.disableAllNodesPing(t, tc),
         dsl.stopGossip(t, tc),
 
         // graceful shutdown SUT (sent SIGTERM and wait till exit)
@@ -59,7 +60,7 @@ function assertValidPings(t, tc, n) {
             direction: 'request'
         });
         if (pings.length === 0) {
-            return cb(list);
+            return cb(null);
         }
 
         var maxPings = Math.ceil(n * 0.4);
