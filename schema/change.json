@@ -28,12 +28,7 @@
             "type": "boolean"
         },
         "labels": {
-            "type": "object",
-            "patternProperties": {
-                "^.*$": {
-                    "type": "string"
-                }
-            }
+            "$ref": "/Labels"
         }
     },
     "required": [

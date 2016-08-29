@@ -30,12 +30,7 @@
                                 "type": "number"
                             },
                             "labels": {
-                                "type": "object",
-                                 "patternProperties": {
-                                    "^.*$": {
-                                        "type": "string"
-                                    }
-                                }
+                                "$ref": "/Labels"
                             }
                         },
                         "required": [
