@@ -110,7 +110,7 @@ test2('ringpop should not accept labels for a node with a lower incarnation numb
 );
 
 // The most likely assert to fail will be the last assert in this test where the
-// winning labels are compaired to the labels that were chosen after the first
+// winning labels are compared to the labels that were chosen after the first
 // round of label gossipping
 test2('ringpop should deterministically pick labels on conflict', getClusterSizes(2), 20000,
     prepareCluster(function(t, tc, n) {
@@ -119,7 +119,7 @@ test2('ringpop should deterministically pick labels on conflict', getClusterSize
 
         // two pairs of labels
         var labels1 = { "hello": "world" };
-        var labels2 = { "hello": "goodbey" };
+        var labels2 = { "hello": "goodbye" };
 
         return [
             // send the sut the first pair of labels on inc+1, these will always
@@ -214,7 +214,7 @@ test2('different labels should be accepted on a higher incarnation number', getC
 
         // two pairs of labels
         var labels1 = { "hello": "world" };
-        var labels2 = { "hello": "goodbey" };
+        var labels2 = { "hello": "goodbye" };
 
         return [
             // feed the sut with the first pair of labels
@@ -315,7 +315,7 @@ function testLabelOverrideOnStatusChange(firstStatus, secondStatus) {
 
             // two pairs of labels
             var labels1 = { "hello": "world" };
-            var labels2 = { "hello": "goodbey" };
+            var labels2 = { "hello": "goodbye" };
 
             return [
                 // feed the sut with the first pair of labels
