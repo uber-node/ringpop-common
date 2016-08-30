@@ -26,7 +26,7 @@ var prepareCluster = require('./test-util').prepareCluster;
 var test2 = require('./test-util').test2;
 
 
-test2('self eviction changes state to faulty and pings members', getClusterSizes(2), 2000000, prepareCluster(function(t, tc, n) {
+test2('self eviction changes state to faulty and pings members', getClusterSizes(2), 20000, prepareCluster(function(t, tc, n) {
     return [
 
         // disable pinging from fake nodes and stop gossip on the SUT
