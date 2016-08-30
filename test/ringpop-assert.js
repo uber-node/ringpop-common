@@ -705,11 +705,10 @@ function enableNode(t, tc, ix, incarnationNumber) {
     return f;
 }
 
-function createValidateEvent(t, tc) {
-    var Validator = jsonschema.Validator;
-    var validator = new Validator();
+function createEventValidator(t) {
+    var validator = new jsonschema.Validator();
 
-    // load all json schema files and add them to the valicator
+    // load all json schema files and add them to the validator
     var schemaFiles = glob.sync("../schema/*.json",{cwd:__dirname});
     schemaFiles.forEach(function (schemaFile) {
         validator.addSchema(require(schemaFile));
@@ -726,19 +725,19 @@ function createValidateEvent(t, tc) {
     }
 
     var validators = {
-        'request': {},
-        'response': {}
+        request: {},
+        response: {}
     };
 
     // /protocol/join
     validators.request[events.Types.Join] = bodyVerification("join request", "/JoinRequest");
     validators.response[events.Types.Join] = bodyVerification("join response", "/JoinResponse");
 
-    // /protovol/ping
+    // /protocol/ping
     validators.request[events.Types.Ping] = bodyVerification("ping request", "/PingRequest");
     validators.response[events.Types.Ping] = bodyVerification("ping response", "/PingResponse");
 
-    // /protovol/ping-req
+    // /protocol/ping-req
     validators.request[events.Types.PingReq] = bodyVerification("ping-req request", "/PingReqRequest");
     validators.response[events.Types.PingReq] = bodyVerification("ping-req response", "/PingReqResponse");
 
@@ -756,7 +755,7 @@ function createValidateEvent(t, tc) {
     // /admin/leave
     // /admin/tick
 
-    return function validateIncommingEvent(event) {
+    return function validateIncomingEvent(event) {
         var type = event.type;
         var direction = event.direction;
 
@@ -791,11 +790,10 @@ function createValidateEvent(t, tc) {
 function validate(t, tc, scheme, deadline) {
     var fns = scheme;
     var cursor = 0;
+    var allEvents = [];
     var eventList = [];
 
-    tc.on('event', createValidateEvent(t, tc));
-
-    timer = setTimeout(function() {
+    var timer = setTimeout(function() {
         t.fail('timeout');
         tc.removeAllListeners('event');
         tc.removeAllListeners('sut-died');
@@ -824,12 +822,7 @@ function validate(t, tc, scheme, deadline) {
         inProgress = true;
 
         if(cursor >= fns.length) {
-            clearTimeout(timer);
-            t.ok(true, 'validate done: all functions passed');
-            tc.shutdown();
-            tc.removeAllListeners('event');
-            tc.removeAllListeners('sut-died');
-            t.end();
+            progressionComplete();
 
             inProgress = false;
             return;
@@ -858,8 +851,23 @@ function validate(t, tc, scheme, deadline) {
 
     tc.on('event', function(event) {
         eventList.push(event);
+        allEvents.push(event);
         progressFromCursor();
     });
+
+    function progressionComplete() {
+        clearTimeout(timer);
+        t.ok(true, 'validate done: all functions passed');
+        tc.shutdown();
+        tc.removeAllListeners('event');
+        tc.removeAllListeners('sut-died');
+
+        /* Validate all events */
+        var jsonValidator = createEventValidator(t);
+        _.each(allEvents, jsonValidator);
+
+        t.end();
+    }
 }
 
 var uuid = require('node-uuid');
