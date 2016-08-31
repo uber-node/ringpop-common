@@ -1,0 +1,10 @@
+{
+    "id": "/Labels",
+    "title": "Labels",
+    "type": "object",
+    "patternProperties": {
+        "^.*$": {
+            "type": "string"
+        }
+    }
+}

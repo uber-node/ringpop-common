@@ -86,6 +86,12 @@ var features = {
         tests: [
             './partition-healing-tests'
         ]
+    },
+    'labels': {
+        mandatory: false,
+        tests: [
+            './labels'
+        ]
     }
 };
 

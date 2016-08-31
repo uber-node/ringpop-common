@@ -31,9 +31,45 @@ function generateChecksumString(members) {
         })
         .map(function (member) {
             var address = member.address || (member.host + ':' + member.port);
-            return address +
-                    member.status +
-                    member.incarnationNumber
+
+            var labelChecksum = 0;
+
+            if (member.labels) {
+                Object.keys(member.labels).forEach(function (key) {
+                    var value = member.labels[key];
+
+                    var keyLength = Buffer.byteLength(key);
+                    var valueLength = Buffer.byteLength(value);
+
+                    var pos = 0;
+                    var buf = new Buffer(8 + keyLength + valueLength);
+                    buf.writeInt32BE(keyLength, pos);
+                    pos += 4
+                    pos += buf.write(key, pos);
+                    buf.writeInt32BE(valueLength, pos);
+                    pos += 4
+                    pos += buf.write(value, pos);
+
+                    labelChecksum ^= farmhash.fingerprint32(buf);
+                });
+            }
+
+            // concat all parts of the checksum string
+            var checksumString = '';
+            checksumString += address;
+            checksumString += member.status;
+            checksumString += member.incarnationNumber;
+
+            if (labelChecksum != 0) {
+                // we only add the label checksum to the string when it is not 0
+                // This guarantees that the change is backwards compatible and
+                // ringpop with label support can correctly synchronize with a
+                // version that has no labels as long as there are no labels set
+                // on ringpop.
+                checksumString += '#labels' + labelChecksum;
+            }
+
+            return checksumString;
         })
         .value()
         .sort()
