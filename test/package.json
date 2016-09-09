@@ -20,7 +20,7 @@
     "tap-parser": "^1.2.2",
     "tape": "^4.2.0",
     "tape-catch": "^1.0.5",
-    "tchannel": "^2.4.6",
+    "tchannel": "^3.8.5",
     "underscore": "^1.8.3"
   }
 }
