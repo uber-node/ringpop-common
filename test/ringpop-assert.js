@@ -804,8 +804,10 @@ function validate(t, tc, scheme, deadline) {
     var cursor = 0;
     var allEvents = [];
     var eventList = [];
+    var timedOut = false;
 
     var timer = setTimeout(function() {
+        timedOut = true;
         t.fail('timeout');
         tc.removeAllListeners('event');
         tc.removeAllListeners('sut-died');
@@ -830,6 +832,7 @@ function validate(t, tc, scheme, deadline) {
     // to the next function.
     var inProgress = false;
     var progressFromCursor = function() {
+        if (timedOut) return;
         if (inProgress) return;
         inProgress = true;
 
