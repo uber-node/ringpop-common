@@ -98,6 +98,8 @@ TestCoordinator.prototype.lookup = function(key) {
 
     var matchingNode;
     var matchingHash;
+    var minimumNode;
+    var minimumHash;
 
     var hash = farmhash.fingerprint32(key);
 
@@ -105,7 +107,6 @@ TestCoordinator.prototype.lookup = function(key) {
         if (!matchingNode) return true; // 1 node is better than no node
 
         if (hash <= newHash && newHash < matchingHash) return true; // new hash is closer to the current best match
-        if (matchingHash <= hash && hash <= newHash) return true; // the matchingHash wraps around, and new hash is a better match to hash
 
         return false;
     }
@@ -121,6 +122,10 @@ TestCoordinator.prototype.lookup = function(key) {
         for (var i=0; i<self.replicaPoints; i++) {
             var currentHash = farmhash.fingerprint32(hostPort + i);
 
+            if (minimumNode === undefined || currentHash < minimumHash)  {
+                minimumNode = hostPort;
+                minimumHash = currentHash;
+            }
             if (isBetterMatch(currentHash)) {
                 matchingNode = hostPort;
                 matchingHash = currentHash;
@@ -128,6 +133,11 @@ TestCoordinator.prototype.lookup = function(key) {
         }
     });
 
+    // wrap around
+    if (matchingHash < hash) {
+        matchingHash = minimumHash;
+        matchingNode = minimumNode;
+    }
     console.log("hash:", hash, "matchingHash:", matchingHash);
 
     return matchingNode;
