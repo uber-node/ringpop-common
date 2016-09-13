@@ -121,7 +121,7 @@ function testStateTransitions(ns, initial, newState, finalState, incNoDelta, sta
 function prepareCluster(insert_fns) {
     return function(t, tc, n) {
         return [
-            dsl.waitForPing(t, tc),
+            dsl.waitForPing(t, tc, false),
             dsl.waitForJoins(t, tc, n),
             dsl.assertDetectChecksumMethod(t, tc),
             dsl.assertStats(t, tc, n+1, 0, 0),

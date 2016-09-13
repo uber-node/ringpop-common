@@ -74,7 +74,10 @@ function waitForPingReqs(t, tc, n) {
     };
 }
 
-function waitForPing(t, tc) {
+function waitForPing(t, tc, consume) {
+    if (consume === undefined) {
+        consume = true;
+    }
     return function waitForPing(list, cb) {
         var index = _.findIndex(list, {
             type: events.Types.Ping,
@@ -86,8 +89,9 @@ function waitForPing(t, tc) {
             return cb(null);
         }
 
-        list.splice(index, 1); // remove ping from list
-
+        if (consume) {
+            list.splice(index, 1); // remove ping from list
+        }
         return cb(list);
     };
 }
