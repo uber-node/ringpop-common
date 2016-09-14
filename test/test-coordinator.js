@@ -95,21 +95,7 @@ require('util').inherits(TestCoordinator, events.EventEmitter);
 
 TestCoordinator.prototype.lookup = function(key) {
     var self = this;
-
-    var matchingNode;
-    var matchingHash;
-    var minimumNode;
-    var minimumHash;
-
     var hash = farmhash.fingerprint32(key);
-
-    function isBetterMatch(newHash) {
-        if (!matchingNode) return true; // 1 node is better than no node
-
-        if (hash <= newHash && newHash < matchingHash) return true; // new hash is closer to the current best match
-
-        return false;
-    }
 
     var hostPorts = this.fakeNodes.map(function (fn) {
         return fn.getHostPort();
@@ -117,30 +103,35 @@ TestCoordinator.prototype.lookup = function(key) {
     hostPorts.push(this.sutHostPort);
 
     // iterate over all hosts
+    var allHashes = [];
     hostPorts.forEach(function (hostPort) {
         // iterate over all vnodes for that host
         for (var i=0; i<self.replicaPoints; i++) {
             var currentHash = farmhash.fingerprint32(hostPort + i);
-
-            if (minimumNode === undefined || currentHash < minimumHash)  {
-                minimumNode = hostPort;
-                minimumHash = currentHash;
-            }
-            if (isBetterMatch(currentHash)) {
-                matchingNode = hostPort;
-                matchingHash = currentHash;
-            }
+            allHashes.push({node: hostPort, hash: currentHash});
         }
     });
 
-    // wrap around
-    if (matchingHash < hash) {
-        matchingHash = minimumHash;
-        matchingNode = minimumNode;
-    }
-    console.log("hash:", hash, "matchingHash:", matchingHash);
+    allHashes = allHashes.sort(function(a, b) {
+        return a.hash - b.hash;
+    });
 
-    return matchingNode;
+    var nodeHash;
+
+    if (allHashes[allHashes.length - 1].hash < hash) {
+        // If the last hash is smaller than the hash of the key we need to wrap around.
+        nodeHash = allHashes[0];
+    } else {
+
+        for (var i = 0; i < allHashes.length; i++) {
+            if (allHashes[i].hash >= hash) {
+                nodeHash = allHashes[i];
+                break;
+            }
+        }
+    }
+
+    return nodeHash.node;
 };
 
 TestCoordinator.prototype.createFakeNode = function createFakeNode() {
@@ -336,6 +327,7 @@ TestCoordinator.prototype.createHostsFile = function createHostsFile(hostPortLis
     if (!hostPortList) {
         hostPortList = this.getStandardHostPortList();
     }
+    console.log('hosts: ', hostPortList);
     fs.writeFileSync(this.hostsFile, JSON.stringify(hostPortList));
 };
 
