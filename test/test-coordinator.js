@@ -102,36 +102,34 @@ TestCoordinator.prototype.lookup = function(key) {
     });
     hostPorts.push(this.sutHostPort);
 
-    // iterate over all hosts
-    var allHashes = [];
-    hostPorts.forEach(function (hostPort) {
+    var minimumHash, minimumNode;
+    var bestHash, bestNode;
+
+    hostPorts.forEach(function (hostPort){
         // iterate over all vnodes for that host
         for (var i=0; i<self.replicaPoints; i++) {
-            var currentHash = farmhash.fingerprint32(hostPort + i);
-            allHashes.push({node: hostPort, hash: currentHash});
-        }
-    });
+            var vNodeHash = farmhash.fingerprint32(hostPort + i);
 
-    allHashes = allHashes.sort(function(a, b) {
-        return a.hash - b.hash;
-    });
+            if (minimumHash === undefined || vNodeHash < minimumHash) {
+                minimumHash = vNodeHash;
+                minimumNode = hostPort;
+            }
 
-    var nodeHash;
-
-    if (allHashes[allHashes.length - 1].hash < hash) {
-        // If the last hash is smaller than the hash of the key we need to wrap around.
-        nodeHash = allHashes[0];
-    } else {
-
-        for (var i = 0; i < allHashes.length; i++) {
-            if (allHashes[i].hash >= hash) {
-                nodeHash = allHashes[i];
-                break;
+            // If the vnodehash is after the hash and before the current best, select it.
+            if (vNodeHash >= hash && (bestHash === undefined || vNodeHash < bestHash)) {
+                bestHash = vNodeHash;
+                bestNode = hostPort;
             }
         }
-    }
+    });
 
-    return nodeHash.node;
+    // All vNodes are below the key: wrap around
+    if (bestNode === undefined) {
+        return minimumNode;
+    }
+    else {
+        return bestNode;
+    }
 };
 
 TestCoordinator.prototype.createFakeNode = function createFakeNode() {
@@ -327,7 +325,6 @@ TestCoordinator.prototype.createHostsFile = function createHostsFile(hostPortLis
     if (!hostPortList) {
         hostPortList = this.getStandardHostPortList();
     }
-    console.log('hosts: ', hostPortList);
     fs.writeFileSync(this.hostsFile, JSON.stringify(hostPortList));
 };
 
