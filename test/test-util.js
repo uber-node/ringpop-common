@@ -128,7 +128,6 @@ function prepareCluster(insert_fns) {
             // can still assert implementation details related to ping distribution.
             dsl.waitForPing(t, tc, false),
 
-            //dsl.waitForJoins(t, tc, n),
             dsl.assertDetectChecksumMethod(t, tc),
             dsl.assertStats(t, tc, n+1, 0, 0),
             insert_fns(t, tc, n),
