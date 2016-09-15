@@ -121,12 +121,14 @@ function testStateTransitions(ns, initial, newState, finalState, incNoDelta, sta
 function prepareCluster(insert_fns) {
     return function(t, tc, n) {
         return [
-            dsl.waitForJoins(t, tc, n),
-
             // By waiting for the first ping we make sure the SUT is ready to go.
             // We don't consume it so other tests (especially the ping-tests)
             // can still assert implementation details related to ping distribution.
             dsl.waitForPing(t, tc, false),
+
+            // We're waiting for joins AFTER the first ping so we're able to detect
+            // if there are too many joins.
+            dsl.waitForJoins(t, tc, n),
 
             dsl.assertDetectChecksumMethod(t, tc),
             dsl.assertStats(t, tc, n+1, 0, 0),
