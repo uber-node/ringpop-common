@@ -60,8 +60,12 @@ function assertValidPings(t, tc, n) {
             type: events.Types.Ping,
             direction: 'request'
         });
+
         if (pings.length === 0) {
-            return cb(null);
+            // We should have at least one ping here,
+            // otherwise self-eviction is not working.
+            t.fail('no pings received');
+            return cb(pings);
         }
 
         var maxPings = Math.ceil(n * 0.4);
