@@ -51,6 +51,7 @@ test2('self eviction changes state to faulty and pings members', getClusterSizes
  *
  * @param t the current test suite
  * @param tc the test coordinated
+ * @param n the number of servers in the cluster
  * @return {assertValidPings} the assert functions
  */
 function assertValidPings(t, tc, n) {
