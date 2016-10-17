@@ -28,6 +28,9 @@
                             },
                             "dampScore": {
                                 "type": "number"
+                            },
+                            "labels": {
+                                "$ref": "/Labels"
                             }
                         },
                         "required": [

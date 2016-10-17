@@ -111,12 +111,22 @@ FakeNode.prototype.shutdown = function shutdown() {
 };
 
 FakeNode.prototype.toMemberInfo = function toMemberInfo() {
-    return {
+    var memberInfo = {
         host: this.host,
         port: this.port,
         status: this.status,
         incarnationNumber: this.incarnationNumber,
     };
+
+    if (this.labels) {
+        // the easiest way to get the labels in the join response.
+        if (!memberInfo.extraFields) {
+            memberInfo.extraFields = {};
+        }
+        memberInfo.extraFields.labels = this.labels;
+    }
+
+    return memberInfo;
 };
 
 FakeNode.prototype.changeEndpoint = function modifyEndpoint(endpoint, handler) {

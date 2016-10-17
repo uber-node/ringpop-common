@@ -74,7 +74,10 @@ function waitForPingReqs(t, tc, n) {
     };
 }
 
-function waitForPing(t, tc) {
+function waitForPing(t, tc, consume) {
+    if (consume === undefined) {
+        consume = true;
+    }
     return function waitForPing(list, cb) {
         var index = _.findIndex(list, {
             type: events.Types.Ping,
@@ -86,8 +89,9 @@ function waitForPing(t, tc) {
             return cb(null);
         }
 
-        list.splice(index, 1); // remove ping from list
-
+        if (consume) {
+            list.splice(index, 1); // remove ping from list
+        }
         return cb(list);
     };
 }
@@ -222,16 +226,21 @@ function sendPings(t, tc, nodeIxs) {
     });
 }
 
-function changeStatus(t, tc, sourceIx, subjectIx, status, subjectIncNoDelta) {
-    var ping = sendPing(t, tc, sourceIx, {
+function changeStatus(t, tc, sourceIx, subjectIx, statusOrOptions, subjectIncNoDelta) {
+    if (typeof statusOrOptions !== 'object') {
+        statusOrOptions = {
+            status: statusOrOptions,
+            subjectIncNoDelta: subjectIncNoDelta || 0,
+        };
+    }
+
+    var ping = sendPing(t, tc, sourceIx, _.extend({
         sourceIx: sourceIx,
         subjectIx: subjectIx,
-        status: status,
-        subjectIncNoDelta: subjectIncNoDelta || 0
-    });
+    }, statusOrOptions));
 
     var f = _.once(function (list, cb) {
-        tc.fakeNodes[subjectIx].status = status;
+        tc.fakeNodes[subjectIx].status = statusOrOptions.status;
         return ping(list, cb);
     });
     f.callerName = 'changeStatus';
@@ -487,11 +496,18 @@ function waitForStatsAssertMembership(t, tc, members) {
         _.forEach(members, function(member, i) {
             // find member i in statsMembers
             var ix = _.findIndex(statsMembers, {address: tc.fakeNodes[i].getHostPort()});
-            received = statsMembers[ix];
-            expected = member;
-            _.forEach(member, function(value, field) {
-                t.equal(statsMembers[ix][field], value, 'assert membership', errDetails({ expected: expected, received: received}));
-            });
+            var received = statsMembers[ix];
+
+            if (typeof member === 'function') {
+                // use the function to test the received member object
+                t.ok(member(received), 'assert membership via closure: ' + (member.name||'<anonymous>'));
+            } else {
+                // test the received object to the expected object field by field
+                var expected = member;
+                _.forEach(member, function(value, field) {
+                    t.deepEqual(statsMembers[ix][field], value, 'assert membership', errDetails({ expected: expected, received: received}));
+                });
+            }
         });
 
         _.pullAt(list, ix);
@@ -807,8 +823,10 @@ function validate(t, tc, scheme, deadline) {
     var cursor = 0;
     var allEvents = [];
     var eventList = [];
+    var timedOut = false;
 
     var timer = setTimeout(function() {
+        timedOut = true;
         t.fail('timeout');
         tc.removeAllListeners('event');
         tc.removeAllListeners('sut-died');
@@ -833,6 +851,7 @@ function validate(t, tc, scheme, deadline) {
     // to the next function.
     var inProgress = false;
     var progressFromCursor = function() {
+        if (timedOut) return;
         if (inProgress) return;
         inProgress = true;
 
@@ -904,6 +923,11 @@ function piggyback(tc, opts) {
     update.id = opts.id || uuid.v4();
     update.status = opts.status;
     update.tombstone = opts.tombstone || false;
+
+    // copy labels to the piggybacked ping when present
+    if (opts.labels) {
+        update.labels = opts.labels;
+    }
 
     if(opts.sourceIx === 'sut') {
         update.source = tc.sutHostPort;

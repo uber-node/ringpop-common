@@ -26,6 +26,9 @@
         },
         "tombstone": {
             "type": "boolean"
+        },
+        "labels": {
+            "$ref": "/Labels"
         }
     },
     "required": [

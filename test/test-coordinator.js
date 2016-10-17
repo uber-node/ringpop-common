@@ -95,42 +95,41 @@ require('util').inherits(TestCoordinator, events.EventEmitter);
 
 TestCoordinator.prototype.lookup = function(key) {
     var self = this;
-
-    var matchingNode;
-    var matchingHash;
-
     var hash = farmhash.fingerprint32(key);
-
-    function isBetterMatch(newHash) {
-        if (!matchingNode) return true; // 1 node is better than no node
-
-        if (hash <= newHash && newHash < matchingHash) return true; // new hash is closer to the current best match
-        if (matchingHash <= hash && hash <= newHash) return true; // the matchingHash wraps around, and new hash is a better match to hash
-
-        return false;
-    }
 
     var hostPorts = this.fakeNodes.map(function (fn) {
         return fn.getHostPort();
     });
     hostPorts.push(this.sutHostPort);
 
-    // iterate over all hosts
-    hostPorts.forEach(function (hostPort) {
+    var minimumHash, minimumNode;
+    var bestHash, bestNode;
+
+    hostPorts.forEach(function (hostPort){
         // iterate over all vnodes for that host
         for (var i=0; i<self.replicaPoints; i++) {
-            var currentHash = farmhash.fingerprint32(hostPort + i);
+            var vNodeHash = farmhash.fingerprint32(hostPort + i);
 
-            if (isBetterMatch(currentHash)) {
-                matchingNode = hostPort;
-                matchingHash = currentHash;
+            if (minimumHash === undefined || vNodeHash < minimumHash) {
+                minimumHash = vNodeHash;
+                minimumNode = hostPort;
+            }
+
+            // If the vnodehash is after the hash and before the current best, select it.
+            if (vNodeHash >= hash && (bestHash === undefined || vNodeHash < bestHash)) {
+                bestHash = vNodeHash;
+                bestNode = hostPort;
             }
         }
     });
 
-    console.log("hash:", hash, "matchingHash:", matchingHash);
-
-    return matchingNode;
+    // All vNodes are below the key: wrap around
+    if (bestNode === undefined) {
+        return minimumNode;
+    }
+    else {
+        return bestNode;
+    }
 };
 
 TestCoordinator.prototype.createFakeNode = function createFakeNode() {

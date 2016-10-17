@@ -91,6 +91,12 @@ var features = {
         mandatory: false,
         tests: [
             './self-eviction-tests'
+        ],
+    },
+    'labels': {
+        mandatory: false,
+        tests: [
+            './labels'
         ]
     }
 };
