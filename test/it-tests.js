@@ -87,6 +87,12 @@ var features = {
             './partition-healing-tests'
         ]
     },
+    'self-eviction': {
+        mandatory: false,
+        tests: [
+            './self-eviction-tests'
+        ],
+    },
     'labels': {
         mandatory: false,
         tests: [
