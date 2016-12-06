@@ -115,6 +115,14 @@
                 "checksum": {
                     "type": "number"
                 },
+                "checksums": {
+                    "type": "object",
+                    "patternProperties": {
+                        "^.*$": {
+                            "type": "number"
+                        }
+                    }
+                },
                 "servers": {
                     "type": "array",
                     "items": {
