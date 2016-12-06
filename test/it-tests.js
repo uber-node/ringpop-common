@@ -98,6 +98,12 @@ var features = {
         tests: [
             './labels'
         ]
+    },
+    'lookup': {
+        mandatory: true,
+        tests: [
+            './lookup-tests'
+        ]
     }
 };
 
