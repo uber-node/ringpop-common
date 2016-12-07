@@ -417,6 +417,41 @@ function callEndpoint(t, tc, endpoint, body, validateEvent) {
     };
 }
 
+/***
+ * assert a lookup results in a specific value
+ * @param t the assert framework
+ * @param tc the test coordinater
+ * @param key the key to lookup
+ * @param expected the expected value or a function that returns true if it the value is expected
+ */
+function assertLookup(t, tc, key, expected) {
+    return [
+        callEndpoint(t, tc, '/admin/lookup', {key: key}),
+        validateLookupResponse
+    ];
+
+    function validateLookupResponse(list, cb) {
+        var responses = _.filter(list, {
+            type: 'AdminLookup',
+            direction: 'response'
+        });
+
+        responses = _.filter(responses, function(response) {
+            if (typeof expected === 'function') {
+                return expected(response.body.dest);
+            } else {
+                return response.body.dest === expected;
+            }
+        });
+
+        if (responses.length === 0) {
+            return cb(null);
+        }
+
+        return cb(_.without(list, responses[0]));
+    }
+}
+
 function assertCorrectIncarnationNumbers(t, tc) {
     return [
         requestAdminStats(tc),
@@ -1004,6 +1039,7 @@ module.exports = {
     assertMembership: assertMembership,
     assertCorrectIncarnationNumbers: assertCorrectIncarnationNumbers,
     assertBumpedIncarnationNumber: assertBumpedIncarnationNumber,
+    assertLookup: assertLookup,
 
     disableNode: disableNode,
     disableAllNodes: disableAllNodes,
