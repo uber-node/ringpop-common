@@ -62,3 +62,37 @@ test2('ringpop lookup of faulty member should return different member', getClust
         })
     ];
 }));
+
+
+validateLookupAfterStatusChange('suspect', true);
+validateLookupAfterStatusChange('faulty', false);
+validateLookupAfterStatusChange('tombstone', false);
+validateLookupAfterStatusChange('leave', false);
+
+function validateLookupAfterStatusChange(newStatus, shouldStayInRing) {
+    test2('ringpop lookup after changing status to ' + newStatus + ' is correct', getClusterSizes(2), 20000, prepareCluster(function(t, tc) {
+        // pick a node
+        var hostPort = tc.getFakeNodes()[0].getHostPort();
+        // replica point 0
+        var key = hostPort + '0';
+        return [
+            // validate if lookup hashes to the node
+            dsl.assertLookup(t, tc, key, hostPort),
+
+            // change it to faulty so it should be removed from the ring
+            dsl.changeStatus(t, tc, 1, 0, newStatus),
+            dsl.waitForPingResponse(t, tc, 1),
+
+            // assert that the node
+            dsl.assertLookup(t, tc, key, function validateLookup(dest) {
+                if (shouldStayInRing) {
+                    // dest is still the same member
+                    return dest === hostPort;
+                } else {
+                    // dest is now a different member
+                    return dest !== hostPort;
+                }
+            })
+        ];
+    }));
+}
