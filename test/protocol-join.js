@@ -40,7 +40,8 @@ function getJoinResponsePayload(respondingNode, membershipList, checksumMethod) 
             source: responderHostPort,
             address: makeHostPort(member.host, member.port),
             status: member.status,
-            incarnationNumber: member.incarnationNumber
+            incarnationNumber: member.incarnationNumber,
+            labels: member.labels
         }, member.extraFields);
     });
 

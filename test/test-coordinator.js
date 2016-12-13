@@ -275,12 +275,14 @@ TestCoordinator.prototype.getSUTAsMember = function getSUTAsMember() {
     var host = this.sutHostPort.split(':')[0];
     var port = this.sutHostPort.split(':')[1];
     var incNo = this.test_state['sutIncarnationNumber'];
+    var labels = this.test_state['sutLabels'];
 
     return {
         host: host,
         port: port,
         status: 'alive',
-        incarnationNumber: incNo
+        incarnationNumber: incNo,
+        labels: labels
     };
 };
 

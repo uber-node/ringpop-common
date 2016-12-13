@@ -499,8 +499,9 @@ function checkSutMergedWithB(t, tc) {
                 var found_sut = _.find(changes, {address: sut_hostport, status: 'alive'});
                 if (found_a && found_sut) {
                     t.ok(true, "found alive a and sut");
-                    // XXX a bit inappropriate to set incarnation number here, but hey.
-                    tc.test_state['sutIncarnationNumber'] = found_sut.incarnationNumber
+                    // XXX a bit inappropriate to set internal state here, but hey.
+                    tc.test_state['sutIncarnationNumber'] = found_sut.incarnationNumber;
+                    tc.test_state['sutLabels'] = found_sut.labels;
                 }
                 cb(_.without(list, ping));
             }
