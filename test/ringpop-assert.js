@@ -465,6 +465,36 @@ function assertLookups(t, tc, mapping) {
         return assertLookup(t, tc, key, expected);
     });
 }
+
+function assertFullHashring(t, tc, identities) {
+    var identityMapping = _.reduce(identities, function(mapping, value, index) {
+        var hostPort;
+        if (index === 'sut') {
+            hostPort = tc.getSUTHostPort();
+        } else {
+            hostPort = tc.fakeNodes[index].getHostPort();
+        }
+        mapping[hostPort] = value;
+        return mapping;
+    }, {});
+
+    var membership = tc.getMembership();
+    var mapping = _.reduce(membership, function(mapping, member) {
+        // and all replica points
+        _.times(tc.replicaPoints, function eachReplicaPoint(index) {
+            var hostPort = member.host + ':' + member.port;
+
+            var identity = identityMapping[hostPort] || hostPort;
+            var replicaPoint = identity + index;
+            // and add a mapping for the replica-point to the hostPort
+            mapping[replicaPoint] = hostPort;
+        });
+        return mapping;
+    }, {});
+
+    return assertLookups(t, tc, mapping);
+}
+
 function assertCorrectIncarnationNumbers(t, tc) {
     return [
         requestAdminStats(tc),
@@ -1062,6 +1092,7 @@ module.exports = {
     assertBumpedIncarnationNumber: assertBumpedIncarnationNumber,
     assertLookup: assertLookup,
     assertLookups: assertLookups,
+    assertFullHashring: assertFullHashring,
 
     disableNode: disableNode,
     disableAllNodes: disableAllNodes,
