@@ -32,15 +32,17 @@ test2('ringpop full lookup returns correct values', getClusterSizes(1), 20000, p
     });
 
     // Loop through all hostPorts
-    return _.map(hostPorts, function eachHostPort(hostPort) {
-        // And all replica points
-        return _.times(tc.replicaPoints, function eachReplicaPoint(index) {
+    var mapping = _.reduce(hostPorts, function(mapping, hostPort){
+        // and all replica points
+        _.times(tc.replicaPoints, function eachReplicaPoint(index){
             var replicaPoint = hostPort + index;
-
-            // And validate if a lookup on it results in the right hostPort
-            return dsl.assertLookup(t, tc, replicaPoint, hostPort);
+            // and add a mapping for the replica-point to the hostPort
+            mapping[replicaPoint] = hostPort;
         });
-    });
+        return mapping;
+    }, {});
+
+    return dsl.assertLookups(t, tc, mapping);
 }));
 
 test2('ringpop lookup of faulty member should return different member', getClusterSizes(2), 20000, prepareCluster(function(t, tc){

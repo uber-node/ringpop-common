@@ -428,7 +428,13 @@ function callEndpoint(t, tc, endpoint, body, validateEvent) {
  */
 function assertLookup(t, tc, key, expected) {
     return [
-        callEndpoint(t, tc, '/admin/lookup', {key: key}),
+        callEndpoint(t, tc, '/admin/lookup', {key: key}, function validate(body) {
+            if(typeof expected === 'function') {
+                expected(body);
+            } else {
+                t.equals(body.dest, expected);
+            }
+        }),
         validateLookupResponse
     ];
 
@@ -454,6 +460,11 @@ function assertLookup(t, tc, key, expected) {
     }
 }
 
+function assertLookups(t, tc, mapping) {
+    return _.map(mapping, function(expected, key) {
+        return assertLookup(t, tc, key, expected);
+    });
+}
 function assertCorrectIncarnationNumbers(t, tc) {
     return [
         requestAdminStats(tc),
@@ -531,9 +542,14 @@ function waitForStatsAssertMembership(t, tc, members) {
         var stats = safeJSONParse(list[ix].arg3);
         var statsMembers = stats.membership.members;
         _.forEach(members, function(member, i) {
-            // find member i in statsMembers
-            var ix = _.findIndex(statsMembers, {address: tc.fakeNodes[i].getHostPort()});
-            var received = statsMembers[ix];
+            var hostPort;
+            if (i === 'sut') {
+                hostPort = tc.getSUTHostPort();
+            } else {
+                // find member i in statsMembers
+                hostPort= _tc.fakeNodes[i].getHostPort();
+            }
+            var received = _.find(statsMembers, {address: hostPort});
 
             if (typeof member === 'function') {
                 // use the function to test the received member object
@@ -542,7 +558,7 @@ function waitForStatsAssertMembership(t, tc, members) {
                 // test the received object to the expected object field by field
                 var expected = member;
                 _.forEach(member, function(value, field) {
-                    t.deepEqual(statsMembers[ix][field], value, 'assert membership', errDetails({ expected: expected, received: received}));
+                    t.deepEqual(received[field], value, 'assert membership', errDetails({ expected: expected, received: received}));
                 });
             }
         });
@@ -1045,6 +1061,7 @@ module.exports = {
     assertCorrectIncarnationNumbers: assertCorrectIncarnationNumbers,
     assertBumpedIncarnationNumber: assertBumpedIncarnationNumber,
     assertLookup: assertLookup,
+    assertLookups: assertLookups,
 
     disableNode: disableNode,
     disableAllNodes: disableAllNodes,
