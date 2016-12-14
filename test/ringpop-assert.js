@@ -577,7 +577,7 @@ function waitForStatsAssertMembership(t, tc, members) {
                 hostPort = tc.getSUTHostPort();
             } else {
                 // find member i in statsMembers
-                hostPort= _tc.fakeNodes[i].getHostPort();
+                hostPort = tc.fakeNodes[i].getHostPort();
             }
             var received = _.find(statsMembers, {address: hostPort});
 
