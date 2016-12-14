@@ -104,6 +104,12 @@ var features = {
         tests: [
             './lookup-tests'
         ]
+    },
+    'identity': {
+        mandatory: false,
+        tests: [
+            './identity'
+        ]
     }
 };
 
