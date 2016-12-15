@@ -428,7 +428,13 @@ function callEndpoint(t, tc, endpoint, body, validateEvent) {
  */
 function assertLookup(t, tc, key, expected) {
     return [
-        callEndpoint(t, tc, '/admin/lookup', {key: key}),
+        callEndpoint(t, tc, '/admin/lookup', {key: key}, function validate(body) {
+            if(typeof expected === 'function') {
+                expected(body);
+            } else {
+                t.equals(body.dest, expected);
+            }
+        }),
         validateLookupResponse
     ];
 
@@ -452,6 +458,41 @@ function assertLookup(t, tc, key, expected) {
 
         return cb(_.without(list, responses[0]));
     }
+}
+
+function assertLookups(t, tc, mapping) {
+    return _.map(mapping, function(expected, key) {
+        return assertLookup(t, tc, key, expected);
+    });
+}
+
+function assertFullHashring(t, tc, identities) {
+    var identityMapping = _.reduce(identities, function(mapping, value, index) {
+        var hostPort;
+        if (index === 'sut') {
+            hostPort = tc.getSUTHostPort();
+        } else {
+            hostPort = tc.fakeNodes[index].getHostPort();
+        }
+        mapping[hostPort] = value;
+        return mapping;
+    }, {});
+
+    var membership = tc.getMembership();
+    var mapping = _.reduce(membership, function(mapping, member) {
+        // and all replica points
+        _.times(tc.replicaPoints, function eachReplicaPoint(index) {
+            var hostPort = member.host + ':' + member.port;
+
+            var identity = identityMapping[hostPort] || hostPort;
+            var replicaPoint = identity + index;
+            // and add a mapping for the replica-point to the hostPort
+            mapping[replicaPoint] = hostPort;
+        });
+        return mapping;
+    }, {});
+
+    return assertLookups(t, tc, mapping);
 }
 
 function assertCorrectIncarnationNumbers(t, tc) {
@@ -531,9 +572,14 @@ function waitForStatsAssertMembership(t, tc, members) {
         var stats = safeJSONParse(list[ix].arg3);
         var statsMembers = stats.membership.members;
         _.forEach(members, function(member, i) {
-            // find member i in statsMembers
-            var ix = _.findIndex(statsMembers, {address: tc.fakeNodes[i].getHostPort()});
-            var received = statsMembers[ix];
+            var hostPort;
+            if (i === 'sut') {
+                hostPort = tc.getSUTHostPort();
+            } else {
+                // find member i in statsMembers
+                hostPort = tc.fakeNodes[i].getHostPort();
+            }
+            var received = _.find(statsMembers, {address: hostPort});
 
             if (typeof member === 'function') {
                 // use the function to test the received member object
@@ -542,7 +588,7 @@ function waitForStatsAssertMembership(t, tc, members) {
                 // test the received object to the expected object field by field
                 var expected = member;
                 _.forEach(member, function(value, field) {
-                    t.deepEqual(statsMembers[ix][field], value, 'assert membership', errDetails({ expected: expected, received: received}));
+                    t.deepEqual(received[field], value, 'assert membership', errDetails({ expected: expected, received: received}));
                 });
             }
         });
@@ -1045,6 +1091,8 @@ module.exports = {
     assertCorrectIncarnationNumbers: assertCorrectIncarnationNumbers,
     assertBumpedIncarnationNumber: assertBumpedIncarnationNumber,
     assertLookup: assertLookup,
+    assertLookups: assertLookups,
+    assertFullHashring: assertFullHashring,
 
     disableNode: disableNode,
     disableAllNodes: disableAllNodes,

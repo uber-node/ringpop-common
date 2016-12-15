@@ -26,21 +26,7 @@ var prepareCluster = require('./test-util').prepareCluster;
 var test2 = require('./test-util').test2;
 
 test2('ringpop full lookup returns correct values', getClusterSizes(1), 20000, prepareCluster(function(t, tc, n) {
-    var membership = tc.getMembership();
-    var hostPorts = _.map(membership, function(member) {
-        return member.host + ':' + member.port;
-    });
-
-    // Loop through all hostPorts
-    return _.map(hostPorts, function eachHostPort(hostPort) {
-        // And all replica points
-        return _.times(tc.replicaPoints, function eachReplicaPoint(index) {
-            var replicaPoint = hostPort + index;
-
-            // And validate if a lookup on it results in the right hostPort
-            return dsl.assertLookup(t, tc, replicaPoint, hostPort);
-        });
-    });
+    return dsl.assertFullHashring(t, tc);
 }));
 
 test2('ringpop lookup of faulty member should return different member', getClusterSizes(2), 20000, prepareCluster(function(t, tc){

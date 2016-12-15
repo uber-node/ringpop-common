@@ -64,6 +64,7 @@ function TestCoordinator(options) {
     this.sutHostPort = makeHostPort('127.0.0.1', _.random(10000, 30000));
     this.sutProgram = options.sut.program;
     this.sutInterpreter = options.sut.interpreter;
+    this.sutIdentity = undefined;
     this.suspectPeriod = 5000;
     this.faultyPeriod = 5000;
     this.tombstonePeriod = 5000;
@@ -172,6 +173,11 @@ TestCoordinator.prototype.startSUT = function startSUT() {
         program = this.sutInterpreter
         args.push(this.sutProgram)
     }
+
+    if (this.sutIdentity) {
+        args.push(util.format('--identity=%s', this.sutIdentity));
+    }
+
     args.push(util.format('--hosts=%s', this.hostsFile));
     args.push(util.format('--listen=%s', this.sutHostPort));
     args.push(util.format('--suspect-period=%d', this.suspectPeriod));
