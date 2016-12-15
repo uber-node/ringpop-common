@@ -53,7 +53,7 @@ function waitForJoins(t, tc, n) {
             errDetails({journal: _.pluck(list, 'endpoint')}));
 
         //XXX: a bit inappropriate to set internal state like this
-        var joinRequest = safeJSONParse(joins[0].arg3);
+        var joinRequest = joins[0].body
         tc.test_state['sutIncarnationNumber'] = joinRequest.incarnationNumber;
         tc.test_state['sutLabels'] = joinRequest.labels;
         cb(_.reject(list, {type: events.Types.Join}));
