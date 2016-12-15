@@ -52,8 +52,10 @@ function waitForJoins(t, tc, n) {
         t.equals(joins.length, n, 'check number of joins',
             errDetails({journal: _.pluck(list, 'endpoint')}));
 
-        //XXX: a bit inappropriate to get sutIncarnationNumber like this
-        tc.test_state['sutIncarnationNumber'] = safeJSONParse(joins[0].arg3).incarnationNumber;
+        //XXX: a bit inappropriate to set internal state like this
+        var joinRequest = joins[0].body
+        tc.test_state['sutIncarnationNumber'] = joinRequest.incarnationNumber;
+        tc.test_state['sutLabels'] = joinRequest.labels;
         cb(_.reject(list, {type: events.Types.Join}));
     };
 }
@@ -673,6 +675,7 @@ function waitForStatsAssertBumpedIncarnationNumber(t, tc) {
             'sut bumped incarnation number to ' + member.incarnationNumber,
             errDetails({ old: tc.test_state['sutIncarnationNumber'], new: member.incarnationNumber}));
         tc.test_state['sutIncarnationNumber'] = member.incarnationNumber;
+        tc.test_state['sutLabels'] = member.labels;
 
         _.pullAt(list, ix);
         cb(list);
@@ -959,17 +962,19 @@ function piggyback(tc, opts) {
     update.status = opts.status;
     update.tombstone = opts.tombstone || false;
 
-    // copy labels to the piggybacked ping when present
-    if (opts.labels) {
-        update.labels = opts.labels;
-    }
-
     if(opts.sourceIx === 'sut') {
         update.source = tc.sutHostPort;
         update.sourceIncarnationNumber = tc.test_state['sutIncarnationNumber'];
+        update.labels = tc.test_state['sutLabels'];
     } else {
         update.source = tc.fakeNodes[opts.sourceIx].getHostPort();
         update.sourceIncarnationNumber = tc.fakeNodes[opts.sourceIx].incarnationNumber;
+        update.labels = tc.fakeNodes[opts.sourceIx].labels;
+    }
+
+    // copy labels to the piggybacked ping when present
+    if (opts.labels) {
+        update.labels = opts.labels;
     }
 
     if (opts.sourceIncNoDetla !== undefined) {

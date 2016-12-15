@@ -26,6 +26,9 @@
                     "incarnationNumber": {
                         "type": "number"
                     },
+                    "labels": {
+                        "$ref": "/Labels"
+                    },
 
                     "timestamp": {
                         "type": "number"
