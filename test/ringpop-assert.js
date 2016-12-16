@@ -484,7 +484,7 @@ function assertFullHashring(t, tc, identities) {
         _.times(tc.replicaPoints, function eachReplicaPoint(index) {
             var hostPort = member.host + ':' + member.port;
 
-            var identity = identityMapping[hostPort] || hostPort;
+            var identity = identityMapping[hostPort] ? identityMapping[hostPort] + '#' : hostPort;
             var replicaPoint = identity + index;
             // and add a mapping for the replica-point to the hostPort
             mapping[replicaPoint] = hostPort;
