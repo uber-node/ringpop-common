@@ -9,7 +9,7 @@ an instance of TChannel, the underlying transport for Ringpop:
 
 **Node.js**
 ```js
-var TChannel = require('TChannel');
+var TChannel = require('tchannel');
 
 var tchannel = new TChannel();
 var subChannel = tchannel.makeSubChannel({
