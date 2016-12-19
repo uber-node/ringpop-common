@@ -42,6 +42,7 @@ We're there! Instantiate Ringpop:
 
 **Node.js**
 ```js
+var Ringpop = require('ringpop');
 var ringpop = new Ringpop({
     app: 'yourapp',
     hostPort: host + ':' + port,
