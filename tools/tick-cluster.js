@@ -22,6 +22,7 @@
 'use strict';
 
 var _ = require('lodash');
+var async = require('async');
 var childProc = require('child_process');
 var color = require('cli-color');
 var farmhash = require('farmhash').hash32;
@@ -318,6 +319,11 @@ function onData(char) {
                 state = 'readnum';
                 process.stdout.write('terminate count: ');
                 break;
+            case 'r':
+                func = restartProc;
+                state = 'readnum';
+                process.stdout.write('batch size: ');
+                break;
             case 'K':
                 reviveProcs();
                 break;
@@ -519,6 +525,60 @@ function terminateProc(count) {
     });
 }
 
+function restartProc(batchSize) {
+    if (batchSize === 0) {
+        return;
+    }
+    var coolDownDelay = 1000;
+
+    var processGroups = _.chain(procs)
+        .filter(function(proc) {
+            return !proc.killed && !proc.suspended;
+        })
+        .chunk(batchSize)
+        .value();
+
+    async.eachOfSeries(processGroups, restartProcessGroup, function() {
+        logMsg('cluster', color.green('rolling restart completed'));
+    });
+
+    function restartProcessGroup(group, index, cb) {
+        logMsg('cluster', color.cyan('rolling restart batch: ' + (index + 1) + ' / ' + processGroups.length));
+        async.each(group, restartSingleProcess, cb);
+    }
+
+    function restartSingleProcess(proc, done) {
+        var index = procs.indexOf(proc);
+
+        stopProcess(terminated);
+
+        function stopProcess(cb) {
+            logMsg(proc.port, color.green('pid ' + proc.pid) + color.red(' terminating ' + index));
+            var hardKillTimer = setTimeout(function() {
+                logMsg(proc.port, color.green('pid ' + proc.pid) + color.red(' didn\'t terminate in 5 seconds. Hard killing...'));
+                proc.proc.kill('SIGKILL');
+            }, 5000);
+            proc.proc.once('exit', function() {
+                clearTimeout(hardKillTimer);
+                logMsg(proc.port, color.green('pid ' + proc.pid) + color.green(' terminated.'));
+                proc.killed = Date.now();
+                cb();
+            });
+            proc.proc.kill('SIGTERM');
+        }
+
+        function terminated() {
+            setTimeout(startProcess, coolDownDelay);
+        }
+
+        function startProcess() {
+            logMsg(proc.port, color.red('restarting ' + index + ' after ') + color.green((Date.now() - proc.killed) + 'ms'));
+            procs[index] = new ClusterProc(proc.port);
+            setTimeout(done, coolDownDelay);
+        }
+    }
+}
+
 function startCluster() {
     procs = []; // note module scope
     for (var i = 0; i < procsToStart ; i++) {
@@ -570,6 +630,7 @@ function displayMenu(logFn) {
     logFn('\tK\t\tRevive suspended or killed processes');
     logFn('\tl <count>\tSuspend processes');
     logFn('\tm <count>\tTerminate processes');
+    logFn('\tr <batch size>\tRestart processes');
     logFn('\tp\t\tPrint out protocol stats');
     logFn('\tq\t\tQuit');
     logFn('\ts\t\tPrint out stats');
