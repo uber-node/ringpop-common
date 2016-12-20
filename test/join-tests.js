@@ -71,7 +71,7 @@ test2('5-second suspect to faulty window on join',
         tc.addMembershipInformation('192.0.2.100:1234', 'suspect', 127);
         callback();
     },
-    prepareCluster({faulty: 1}, function(t, tc, n) {
+    prepareCluster({suspect: 1}, function(t, tc, n) {
         return [
             dsl.assertStats(t, tc, {
                 alive: n+1,
