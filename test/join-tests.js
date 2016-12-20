@@ -63,3 +63,36 @@ test2('join ringpop with fake node', getClusterSizes(), 20000,
         dsl.expectOnlyPings(t, tc),
     ];})
 );
+
+test2('5-second suspect to faulty window on join',
+    getClusterSizes(2),
+    20000,
+    function init(t, tc, callback) {
+        tc.addMembershipInformation('192.0.2.100:1234', 'suspect', 127);
+        callback();
+    },
+    prepareCluster({faulty: 1}, function(t, tc, n) {
+        return [
+            dsl.assertStats(t, tc, {
+                alive: n+1,
+                suspect: 1,
+                faulty: 0,
+                tombstone: 0
+            }),
+            dsl.wait(4000),
+            dsl.assertStats(t, tc, {
+                alive: n+1,
+                suspect: 1,
+                faulty: 0,
+                tombstone: 0
+            }),
+            dsl.wait(1100),
+            dsl.assertStats(t, tc, {
+                alive: n+1,
+                suspect: 0,
+                faulty: 1,
+                tombstone: 0
+            })
+        ];
+    })
+);

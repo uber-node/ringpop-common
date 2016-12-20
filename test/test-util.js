@@ -118,7 +118,13 @@ function testStateTransitions(ns, initial, newState, finalState, incNoDelta, sta
     );
 }
 
-function prepareCluster(insert_fns) {
+function prepareCluster(assertOverrides, insert_fns) {
+    if (typeof assertOverrides === 'function') {
+        insert_fns = assertOverrides;
+        assertOverrides = null;
+    }
+    assertOverrides = assertOverrides || {};
+
     return function(t, tc, n) {
         return [
             // By waiting for the first ping we make sure the SUT is ready to go.
@@ -131,7 +137,7 @@ function prepareCluster(insert_fns) {
             dsl.waitForJoins(t, tc, n),
 
             dsl.assertDetectChecksumMethod(t, tc),
-            dsl.assertStats(t, tc, n+1, 0, 0),
+            dsl.assertStats(t, tc, assertOverrides.alive || (n+1), assertOverrides.suspect || 0, assertOverrides.faulty || 0),
             insert_fns(t, tc, n),
             dsl.expectOnlyPingsAndPingReqs(t, tc),
         ];
