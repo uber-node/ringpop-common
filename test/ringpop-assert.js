@@ -635,7 +635,7 @@ function assertStateChange(t, tc, addressOrIndex, status, expectedDuration, allo
         address = addressOrIndex;
     }
 
-    var timeOfFirstPing = null;
+    var start = new Date();
 
     return [
         consumePings(t, tc), //consume outstanding pings
@@ -647,10 +647,6 @@ function assertStateChange(t, tc, addressOrIndex, status, expectedDuration, allo
 
         if(pingRequests.length === 0) {
             return cb(null);
-        }
-
-        if (timeOfFirstPing === null) {
-            timeOfFirstPing = new Date();
         }
 
         var index = _.findIndex(pingRequests, function(pingRequest) {
@@ -676,7 +672,7 @@ function assertStateChange(t, tc, addressOrIndex, status, expectedDuration, allo
         if (index < 0) {
             return cb(null);
         }
-        var duration = new Date() - timeOfFirstPing;
+        var duration = new Date() - start;
         var jitter = Math.abs(duration - expectedDuration);
 
         t.ok(jitter <= allowedJitter, util.format("state changed to %s in %dms (+/- %d) - duration: %d", status, expectedDuration, allowedJitter, duration));
