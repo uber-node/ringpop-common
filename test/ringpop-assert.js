@@ -635,13 +635,7 @@ function assertStateChange(t, tc, addressOrIndex, status, expectedDuration, allo
         address = addressOrIndex;
     }
 
-    var start = null;
-
     return function assertStateChange(list, cb) {
-        // set start date on first evaluation.
-        if (start === null) {
-            start = new Date();
-        }
         var pingRequests = _.filter(list, {
             type: events.Types.Ping,
             direction: 'request'
@@ -674,7 +668,9 @@ function assertStateChange(t, tc, addressOrIndex, status, expectedDuration, allo
         if (index < 0) {
             return cb(null);
         }
-        var duration = new Date() - start;
+        var pingRequest = pingRequests[index];
+
+        var duration = pingRequest.time - tc.firstJoinDate;
         var jitter = Math.abs(duration - expectedDuration);
         t.ok(jitter <= allowedJitter, util.format("state changed to %s in %dms (+/- %d) - duration: %d", status, expectedDuration, allowedJitter, duration));
 

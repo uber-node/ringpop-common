@@ -156,6 +156,11 @@ TestCoordinator.prototype.start = function start(callback) {
     var self = this;
     callback = callback || function(){};
 
+    self.once('joined', function joined(){
+        // Set firstJoinDate to current Date if not already set.
+        self.firstJoinDate = self.firstJoinDate || new Date();
+    });
+
     self.startAllFakeNodes(function onFakeNodesUp() {
         self.createHostsFile();
         self.startSUT();
