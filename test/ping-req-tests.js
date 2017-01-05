@@ -70,7 +70,7 @@ test2('become suspect through disabling ping response', getClusterSizes(2), 2000
 test2('5-second suspect to faulty window', getClusterSizes(2), 20000,
     prepareWithStatus(1, 'suspect', function(t, tc, n) { return [
         dsl.assertStats(t, tc, n, 1, 0, {1: {status: 'suspect'}}),
-        dsl.assertStateChange(t, tc, 1, 'faulty', 5000),
+        dsl.assertStateChange(t, tc, 1, 'faulty', 5000, false),
     ];})
 );
 

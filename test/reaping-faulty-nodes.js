@@ -89,7 +89,7 @@ test2('join cluster with tombstone flag in memberlist', getClusterSizes(2), 2000
 test2('5-second faulty to tombstone window', getClusterSizes(2), 20000,
     prepareWithStatus(1, 'faulty', function(t, tc, n) { return [
         dsl.assertStats(t, tc, {alive: n, faulty: 1}, {1: {status: 'faulty'}}),
-        dsl.assertStateChange(t, tc, 1, 'tombstone', 5000),
+        dsl.assertStateChange(t, tc, 1, 'tombstone', 5000, false),
     ];})
 );
 
@@ -107,7 +107,7 @@ test2('5-second faulty to tombstone window on join',
                 faulty: 1,
                 tombstone: 0
             }),
-            dsl.assertStateChange(t, tc, '192.0.2.100:1234', 'tombstone', 5000),
+            dsl.assertStateChange(t, tc, '192.0.2.100:1234', 'tombstone', 5000, true),
         ];
     })
 );

@@ -251,6 +251,9 @@ FakeNode.prototype.requestPing = function requestPing(callback, piggybackData, b
             return;
         }
 
+        self.lastPingTime = Date.now();
+        self.coordinator.emit('ping.send', this, self.lastPingTime);
+
         self.channel.request({
             serviceName: 'ringpop',
             host: self.coordinator.sutHostPort,

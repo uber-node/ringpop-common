@@ -79,7 +79,7 @@ test2('5-second suspect to faulty window on join',
                 faulty: 0,
                 tombstone: 0
             }),
-            dsl.assertStateChange(t, tc, '192.0.2.100:1234', 'faulty', 5000)
+            dsl.assertStateChange(t, tc, '192.0.2.100:1234', 'faulty', 5000, true)
         ];
     })
 );

@@ -625,8 +625,8 @@ function assertStats(t, tc, statusCountsOralive, suspect, faulty, members) {
     return result;
 }
 
-function assertStateChange(t, tc, addressOrIndex, status, expectedDuration, allowedJitter) {
-    allowedJitter = allowedJitter || 3000; //Default to 3s jitter
+function assertStateChange(t, tc, addressOrIndex, status, expectedDuration, startFromJoin) {
+    var allowedJitter = 3000; //Default to 3s jitter
 
     var address;
     if (typeof addressOrIndex === 'number') {
@@ -666,11 +666,13 @@ function assertStateChange(t, tc, addressOrIndex, status, expectedDuration, allo
         });
 
         if (index < 0) {
+
             return cb(null);
         }
         var pingRequest = pingRequests[index];
 
-        var duration = pingRequest.time - tc.firstJoinDate;
+        var start = startFromJoin ? tc.lastJoinTime : tc.lastPingTime;
+        var duration = pingRequest.time - start;
         var jitter = Math.abs(duration - expectedDuration);
         t.ok(jitter <= allowedJitter, util.format("state changed to %s in %dms (+/- %d) - duration: %d", status, expectedDuration, allowedJitter, duration));
 
