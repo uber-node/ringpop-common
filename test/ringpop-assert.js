@@ -626,7 +626,7 @@ function assertStats(t, tc, statusCountsOralive, suspect, faulty, members) {
 }
 
 function assertStateChange(t, tc, addressOrIndex, status, expectedDuration, allowedJitter) {
-    allowedJitter = allowedJitter || 2000; //Default to 2s jitter
+    allowedJitter = allowedJitter || 3000; //Default to 3s jitter
 
     var address;
     if (typeof addressOrIndex === 'number') {
