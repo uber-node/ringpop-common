@@ -160,7 +160,6 @@ TestCoordinator.prototype.start = function start(callback) {
         // Set firstJoinDate to current Date if not already set.
         self.firstJoinTime = self.firstJoinTime || Date.now();
         self.lastJoinTime = Date.now();
-        console.log('got joined: ', self.firstJoinTime, self.lastJoinTime);
     });
 
     self.on('ping.send', function pinged(fakeNode, time) {

@@ -666,7 +666,6 @@ function assertStateChange(t, tc, addressOrIndex, status, expectedDuration, star
         });
 
         if (index < 0) {
-
             return cb(null);
         }
         var pingRequest = pingRequests[index];
