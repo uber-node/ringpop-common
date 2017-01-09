@@ -625,6 +625,60 @@ function assertStats(t, tc, statusCountsOralive, suspect, faulty, members) {
     return result;
 }
 
+function assertStateChange(t, tc, addressOrIndex, status, expectedDuration, startFromJoin) {
+    var allowedJitter = 3000; //Default to 3s jitter
+
+    var address;
+    if (typeof addressOrIndex === 'number') {
+        address = tc.fakeNodes[addressOrIndex].getHostPort();
+    } else {
+        address = addressOrIndex;
+    }
+
+    return function assertStateChange(list, cb) {
+        var pingRequests = _.filter(list, {
+            type: events.Types.Ping,
+            direction: 'request'
+        });
+
+        if (pingRequests.length === 0) {
+            return cb(null);
+        }
+
+        var index = _.findIndex(pingRequests, function(pingRequest) {
+            var changeIndex = _.findIndex(pingRequest.body.changes, function(change) {
+                if (change.address !== address) {
+                    return false;
+                }
+
+                if (change.status === status) {
+                    return true;
+                }
+                // this is required since tombstone status is gossiped in a backwards compatible way.
+                if (status === 'tombstone' && change.tombstone === true) {
+                    return true;
+                }
+
+                return false;
+            });
+
+            return changeIndex > -1;
+        });
+
+        if (index < 0) {
+            return cb(null);
+        }
+        var pingRequest = pingRequests[index];
+
+        var start = startFromJoin ? tc.lastJoinTime : tc.lastPingTime;
+        var duration = pingRequest.time - start;
+        var jitter = Math.abs(duration - expectedDuration);
+        t.ok(jitter <= allowedJitter, util.format("state changed to %s in %dms (+/- %d) - duration: %d", status, expectedDuration, allowedJitter, duration));
+
+        list.splice(index, 1);
+        return cb(list);
+    }
+}
 
 function requestAdminStats(tc) {
     var f = _.once(function reuqestAdminStats(list, cb) {
@@ -1093,6 +1147,7 @@ module.exports = {
     assertLookup: assertLookup,
     assertLookups: assertLookups,
     assertFullHashring: assertFullHashring,
+    assertStateChange: assertStateChange,
 
     disableNode: disableNode,
     disableAllNodes: disableAllNodes,

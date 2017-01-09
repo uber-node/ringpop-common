@@ -89,11 +89,27 @@ test2('join cluster with tombstone flag in memberlist', getClusterSizes(2), 2000
 test2('5-second faulty to tombstone window', getClusterSizes(2), 20000,
     prepareWithStatus(1, 'faulty', function(t, tc, n) { return [
         dsl.assertStats(t, tc, {alive: n, faulty: 1}, {1: {status: 'faulty'}}),
-        dsl.wait(4000),
-        dsl.assertStats(t, tc, {alive: n, faulty: 1}, {1: {status: 'faulty'}}),
-        dsl.wait(1100),
-        dsl.assertStats(t, tc, {alive: n, tombstone: 1}, {1: {status: 'tombstone'}}),
+        dsl.assertStateChange(t, tc, 1, 'tombstone', 5000, false),
     ];})
+);
+
+test2('5-second faulty to tombstone window on join',
+    getClusterSizes(2),
+    20000,
+    function init(t, tc, callback) {
+        tc.addMembershipInformation('192.0.2.100:1234', 'faulty', 127);
+        callback();
+    },
+    prepareCluster({faulty: 1}, function(t, tc, n) {
+        return [
+            dsl.assertStats(t, tc, {
+                alive: n+1,
+                faulty: 1,
+                tombstone: 0
+            }),
+            dsl.assertStateChange(t, tc, '192.0.2.100:1234', 'tombstone', 5000, true),
+        ];
+    })
 );
 
 test2('5-second tombstone to evicted window', getClusterSizes(2), 20000,
