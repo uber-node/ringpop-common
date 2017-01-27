@@ -630,9 +630,9 @@ function displayMenu(logFn) {
     logFn('\tK\t\tRevive suspended or killed processes');
     logFn('\tl <count>\tSuspend processes');
     logFn('\tm <count>\tTerminate processes');
-    logFn('\tr <batch size>\tRestart processes');
     logFn('\tp\t\tPrint out protocol stats');
     logFn('\tq\t\tQuit');
+    logFn('\tr <batch size>\tRestart processes');
     logFn('\ts\t\tPrint out stats');
     logFn('\tt\t\tTick protocol period');
     logFn('\t<space>\t\tPrint out horizontal rule');
