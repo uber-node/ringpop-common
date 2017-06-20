@@ -15,6 +15,9 @@
         "source": {
             "type": "string"
         },
+        "app": {
+            "type": "string"
+        },
         "sourceIncarnationNumber": {
             "type": "number"
         },
