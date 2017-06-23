@@ -7,14 +7,15 @@
   "version": "0.0.1",
   "repository": "git://github.com/uber/ringpop-common.git",
   "dependencies": {
+    "async": "^2.1.4",
     "cli-color": "^0.3.2",
     "commander": "^2.6.0",
     "farmhash": "^1.1.0",
     "grafana-dash-gen": "uber/grafana-dash-gen#41a17abfa174fdda048f9a1084bc302dec28e6ff",
     "lodash": "^4.6.1",
     "strformat": "^0.0.7",
-    "uber-licence": "^2.0.1",
     "tchannel": "^3.6.24",
+    "uber-licence": "^2.0.1",
     "zero-config": "^5.0.0"
   },
   "pre-commit": [
