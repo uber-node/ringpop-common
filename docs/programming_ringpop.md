@@ -9,7 +9,7 @@ an instance of TChannel, the underlying transport for Ringpop:
 
 **Node.js**
 ```js
-var TChannel = require('TChannel');
+var TChannel = require('tchannel');
 
 var tchannel = new TChannel();
 var subChannel = tchannel.makeSubChannel({
@@ -42,6 +42,7 @@ We're there! Instantiate Ringpop:
 
 **Node.js**
 ```js
+var Ringpop = require('ringpop');
 var ringpop = new Ringpop({
     app: 'yourapp',
     hostPort: host + ':' + port,
